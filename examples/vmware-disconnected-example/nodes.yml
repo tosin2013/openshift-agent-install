@@ -1,0 +1,169 @@
+# Node Counts the installer will expect
+control_plane_replicas: 3
+app_node_replicas: 3
+octect: 192.168.180
+node_one_mac: EC:F4:BB:C0:B9:C8
+node_two_mac: EC:F4:BB:C0:B9:C9
+node_three_mac: EC:F4:BB:C0:B9:CA
+node_four_mac: EC:F4:BB:C0:B9:CB
+node_five_mac: EC:F4:BB:C0:B9:CC
+node_six_mac: EC:F4:BB:C0:B9:CD
+
+# nodes defines the nodes to use for the cluster
+nodes:
+  - hostname: node-1
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda
+      #deviceName: /dev/nvme0n1
+    interfaces:
+      - name: ens192
+        mac_address: "{{ node_one_mac }}"
+    networkConfig:
+      interfaces:
+        - name: ens192
+          type: ethernet
+          state: up
+          mac-address: "{{ node_one_mac }}"
+          ipv4:
+            enabled: true
+            address:
+              - ip: "{{ octect }}.21"
+                prefix-length: 24
+            dhcp: false
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: "{{ octect }}.1"
+            next-hop-interface: ens192
+            table-id: 254
+  - hostname: node-2
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda
+      #deviceName: /dev/nvme0n1
+    interfaces:
+      - name: ens192
+        mac_address: "{{ node_two_mac }}"
+    networkConfig:
+      interfaces:
+        - name: ens192
+          type: ethernet
+          state: up
+          mac-address: "{{ node_two_mac }}"
+          ipv4:
+            enabled: true
+            address:
+              - ip: "{{ octect }}.22"
+                prefix-length: 24
+            dhcp: false
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: "{{ octect }}.1"
+            next-hop-interface: ens192
+            table-id: 254
+  - hostname: node-3
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda
+      #deviceName: /dev/nvme0n1
+    interfaces:
+      - name: ens192
+        mac_address: "{{ node_three_mac }}"
+    networkConfig:
+      interfaces:
+        - name: ens192
+          type: ethernet
+          state: up
+          mac-address: "{{ node_three_mac }}"
+          ipv4:
+            enabled: true
+            address:
+              - ip: "{{ octect }}.23"
+                prefix-length: 24
+            dhcp: false
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: "{{ octect }}.1"
+            next-hop-interface: ens192
+            table-id: 254
+  - hostname: node-4
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/sda
+      #deviceName: /dev/nvme0n1
+    interfaces:
+      - name: ens192
+        mac_address: "{{ node_four_mac }}"
+    networkConfig:
+      interfaces:
+        - name: ens192
+          type: ethernet
+          state: up
+          mac-address: "{{ node_four_mac }}"
+          ipv4:
+            enabled: true
+            address:
+              - ip: "{{ octect }}.24"
+                prefix-length: 24
+            dhcp: false
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: "{{ octect }}.1"
+            next-hop-interface: ens192
+            table-id: 254
+  - hostname: node-5
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/sda
+      #deviceName: /dev/nvme0n1
+    interfaces:
+      - name: ens192
+        mac_address: "{{ node_five_mac }}"
+    networkConfig:
+      interfaces:
+        - name: ens192
+          type: ethernet
+          state: up
+          mac-address: "{{ node_five_mac }}"
+          ipv4:
+            enabled: true
+            address:
+              - ip: "{{ octect }}.25"
+                prefix-length: 24
+            dhcp: false
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: "{{ octect }}.1"
+            next-hop-interface: ens192
+            table-id: 254
+  - hostname: node-6
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/sda
+      #deviceName: /dev/nvme0n1
+    interfaces:
+      - name: ens192
+        mac_address: "{{ node_six_mac }}"
+    networkConfig:
+      interfaces:
+        - name: ens192
+          type: ethernet
+          state: up
+          mac-address: "{{ node_six_mac }}"
+          ipv4:
+            enabled: true
+            address:
+              - ip: "{{ octect }}.26"
+                prefix-length: 24
+            dhcp: false
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: "{{ octect }}.1"
+            next-hop-interface: ens192
+            table-id: 254
