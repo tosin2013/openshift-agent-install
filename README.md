@@ -1,6 +1,6 @@
 # OpenShift Agent Based Installer Helper
 
-This repo holds some utilities to easily leverage the OpenShift Agent Based Installer.  Supports bare metal, vSphere, and platform=none deployments in SNO/3 Node/HA configurations.
+This repo holds some utilities to easily leverage the OpenShift Agent-Based Installer.  Supports bare metal, vSphere, and platform=none deployments in SNO/3 Node/HA configurations.
 
 ## Prerequisites
 
@@ -8,7 +8,7 @@ This repo holds some utilities to easily leverage the OpenShift Agent Based Inst
 - OpenShift CLI Tools - run `./download-openshift-cli.sh` then `sudo cp ./bin/* /usr/local/bin/`
 - NMState CLI `dnf install nmstate`
 - Ansible Core `dnf install ansible-core`
-- Ansible Collections for the automation: `ansible-galaxy install -r openshift-agent-install/collections/requirements.yml`
+- Ansible Collections for the automation: `ansible-galaxy install -r playbooks/collections/requirements.yml`
 - Red Hat OpenShift Pull Secret saved to a file: https://console.redhat.com/openshift/downloads#tool-pull-secret
 - Any other Pull Secret for a disconnected registry, joined with the Red Hat OpenShift Pull Secret
 
