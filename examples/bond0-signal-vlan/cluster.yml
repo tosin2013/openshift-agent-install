@@ -22,12 +22,12 @@ app_vips:
 
 # Optional NTP Servers
 ntp_servers:
-  - 0.rhel.pool.ntp.org
-  - 1.rhel.pool.ntp.org
+  - 216.239.35.0 #0.rhel.pool.ntp.org
+  - 216.239.35.4 #1.rhel.pool.ntp.org
 
 # Optional DNS Server definitions
 dns_servers:
-  - 192.168.50.9
+  - 192.168.122.158
   - 1.1.1.1
 dns_search_domains:
   - example.com

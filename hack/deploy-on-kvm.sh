@@ -22,6 +22,10 @@ else
     echo "Agent ISO exists"
     if [ ! -f /var/lib/libvirt/images/agent.x86_64.iso ]; then
         sudo cp playbooks/generated_manifests/${CLUSTER_NAME}/agent.x86_64.iso /var/lib/libvirt/images/agent.x86_64.iso
+    elif [ -f /var/lib/libvirt/images/agent.x86_64.iso ];
+    then 
+        sudo rm /var/lib/libvirt/images/agent.x86_64.iso
+        sudo cp playbooks/generated_manifests/${CLUSTER_NAME}/agent.x86_64.iso /var/lib/libvirt/images/agent.x86_64.iso
     fi
 fi
 
@@ -45,7 +49,7 @@ calculate_resources() {
     elif [ "$num" -eq 6 ]; then
         if [ "$counter" -lt 3 ] && [ "$num" -gt 3 ]; then
             CP_CPU_CORES=6
-            CP_RAM_GB=16
+            CP_RAM_GB=24
             DISK_SIZE=130
         else
             CP_CPU_CORES=12
@@ -56,16 +60,16 @@ calculate_resources() {
     elif [ "$num" -gt 6 ]; then
          if [ "$counter" -lt 3 ] && [ "$num" -gt 3 ]; then
             CP_CPU_CORES=6
-            CP_RAM_GB=16
+            CP_RAM_GB=24
             DISK_SIZE=130
         elif [ "$counter" -ge 3 ] && [ "$counter" -lt 6 ]; then
             CP_CPU_CORES=12
-            CP_RAM_GB=32
+            CP_RAM_GB=48
             extra_storage="true"
             DISK_SIZE=130
         else
             CP_CPU_CORES=12
-            CP_RAM_GB=32
+            CP_RAM_GB=48
             extra_storage=""
             DISK_SIZE=130
         fi

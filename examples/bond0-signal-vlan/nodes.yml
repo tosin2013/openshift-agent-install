@@ -5,14 +5,14 @@ octect: 192.168.50
 
 # nodes defines the nodes to use for the cluster
 nodes:
-  - hostname: node-1
+  - hostname: lab-ctlplane-0
     role: master
     rootDeviceHints:
       deviceName: /dev/vda
     interfaces:
       - name: enp1s0
         mac_address: "54:52:00:19:04:73"
-      - name: enp7s0
+      - name: enp2s0
         mac_address: "54:52:00:27:dd:40"
     networkConfig:
       interfaces:
@@ -28,7 +28,7 @@ nodes:
               miimon: '140'
             port:
             - enp1s0
-            - enp7s0
+            - enp2s0
         - name: bond0.1924
           type: vlan
           state: up
@@ -47,14 +47,14 @@ nodes:
           next-hop-address: 192.168.50.1
           next-hop-interface: bond0.1924
           table-id: 254
-  - hostname: node-2
+  - hostname: lab-ctlplane-1
     role: master
     rootDeviceHints:
       deviceName: /dev/vda
     interfaces:
       - name: enp1s0
         mac_address: "54:52:00:6f:25:eb"
-      - name: enp7s0
+      - name: enp2s0
         mac_address: "54:52:00:2f:52:b2"
     networkConfig:
       interfaces:
@@ -70,7 +70,7 @@ nodes:
               miimon: '140'
             port:
             - enp1s0
-            - enp7s0
+            - enp2s0
         - name: bond0.1924
           type: vlan
           state: up
@@ -89,14 +89,14 @@ nodes:
           next-hop-address: 192.168.50.1
           next-hop-interface: bond0.1924
           table-id: 254
-  - hostname: node-3
+  - hostname: lab-ctlplane-3
     role: master
     rootDeviceHints:
       deviceName: /dev/vda
     interfaces:
       - name: enp1s0
         mac_address: "54:52:00:3d:e5:d7"
-      - name: enp7s0
+      - name: enp2s0
         mac_address: "54:52:00:7b:4c:b8"
     networkConfig:
       interfaces:
@@ -112,7 +112,7 @@ nodes:
               miimon: '140'
             port:
             - enp1s0
-            - enp7s0
+            - enp2s0
         - name: bond0.1924
           type: vlan
           state: up
@@ -131,14 +131,14 @@ nodes:
           next-hop-address: 192.168.50.1
           next-hop-interface: bond0.1924
           table-id: 254
-  - hostname: node-4
+  - hostname: lab-worker-0
     role: worker
     rootDeviceHints:
       deviceName: /dev/vda
     interfaces:
       - name: enp1s0
         mac_address: "54:52:00:cd:7b:ea"
-      - name: enp7s0
+      - name: enp2s0
         mac_address: "54:52:00:7b:ee:a2"
     networkConfig:
       interfaces:
@@ -154,7 +154,7 @@ nodes:
               miimon: '140'
             port:
             - enp1s0
-            - enp7s0
+            - enp2s0
         - name: bond0.1924
           type: vlan
           state: up
@@ -173,14 +173,14 @@ nodes:
           next-hop-address: 192.168.50.1
           next-hop-interface: bond0.1924
           table-id: 254
-  - hostname: node-5
+  - hostname: lab-worker-1
     role: worker
     rootDeviceHints:
       deviceName: /dev/vda
     interfaces:
       - name: enp1s0
         mac_address: "54:52:00:25:34:c3"
-      - name: enp7s0
+      - name: enp2s0
         mac_address: "54:52:00:a5:3e:f1"
     networkConfig:
       interfaces:
@@ -196,7 +196,7 @@ nodes:
               miimon: '140'
             port:
             - enp1s0
-            - enp7s0
+            - enp2s0
         - name: bond0.1924
           type: vlan
           state: up
@@ -215,14 +215,14 @@ nodes:
           next-hop-address: 192.168.50.1
           next-hop-interface: bond0.1924
           table-id: 254
-  - hostname: node-6
+  - hostname: lab-worker-2
     role: worker
     rootDeviceHints:
       deviceName: /dev/vda
     interfaces:
       - name: enp1s0
         mac_address: "54:52:00:0e:c0:0a"
-      - name: enp7s0
+      - name: enp2s0
         mac_address: "54:52:00:6b:bc:4c"
     networkConfig:
       interfaces:
@@ -238,7 +238,7 @@ nodes:
               miimon: '140'
             port:
             - enp1s0
-            - enp7s0
+            - enp2s0
         - name: bond0.1924
           type: vlan
           state: up
@@ -257,14 +257,14 @@ nodes:
           next-hop-address: 192.168.50.1
           next-hop-interface: bond0.1924
           table-id: 254
-  - hostname: node-7
+  - hostname: lab-worker-3
     role: worker
     rootDeviceHints:
       deviceName: /dev/vda
     interfaces:
       - name: enp1s0
         mac_address: "54:52:00:c2:bb:d9"
-      - name: enp7s0
+      - name: enp2s0
         mac_address: "54:52:00:68:b8:b7"
     networkConfig:
       interfaces:
@@ -280,7 +280,7 @@ nodes:
               miimon: '140'
             port:
             - enp1s0
-            - enp7s0
+            - enp2s0
         - name: bond0.1924
           type: vlan
           state: up
@@ -299,14 +299,14 @@ nodes:
           next-hop-address: 192.168.50.1
           next-hop-interface: bond0.1924
           table-id: 254
-  - hostname: node-8
+  - hostname: lab-worker-4
     role: worker
     rootDeviceHints:
       deviceName: /dev/vda
     interfaces:
       - name: enp1s0
         mac_address: "54:52:00:3d:d6:c5"
-      - name: enp7s0
+      - name: enp2s0
         mac_address: "54:52:00:67:04:87"
     networkConfig:
       interfaces:
@@ -322,7 +322,7 @@ nodes:
               miimon: '140'
             port:
             - enp1s0
-            - enp7s0
+            - enp2s0
         - name: bond0.1924
           type: vlan
           state: up
@@ -341,14 +341,14 @@ nodes:
           next-hop-address: 192.168.50.1
           next-hop-interface: bond0.1924
           table-id: 254
-  - hostname: node-9
+  - hostname: lab-worker-5
     role: worker
     rootDeviceHints:
       deviceName: /dev/vda
     interfaces:
       - name: enp1s0
         mac_address: "54:52:00:05:7a:c5"
-      - name: enp7s0
+      - name: enp2s0
         mac_address: "54:52:00:5f:9c:2c"
     networkConfig:
       interfaces:
@@ -364,7 +364,7 @@ nodes:
               miimon: '140'
             port:
             - enp1s0
-            - enp7s0
+            - enp2s0
         - name: bond0.1924
           type: vlan
           state: up
