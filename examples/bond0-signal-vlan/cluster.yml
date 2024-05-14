@@ -44,7 +44,7 @@ service_network_cidrs:
 
 # machine_network_cidr is the CIDR space for the Machines in the cluster
 machine_network_cidrs:
-  - 192.168.50.0/23
+  - 192.168.50.0/24
 
 # networkType is the type of network to use for the cluster (OpenShiftSDN, OVNKubernetes)
 network_type: OVNKubernetes
