@@ -46,6 +46,11 @@ calculate_resources() {
         extra_storage="true"
         DISK_SIZE=130
         break
+    elif [ "$num" -eq 3 ]; then
+        CP_CPU_CORES=6
+        CP_RAM_GB=32
+        extra_storage="true"
+        DISK_SIZE=130
     elif [ "$num" -eq 6 ]; then
         if [ "$counter" -lt 3 ] && [ "$num" -gt 3 ]; then
             CP_CPU_CORES=6
