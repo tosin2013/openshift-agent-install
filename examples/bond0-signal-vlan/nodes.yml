@@ -89,7 +89,7 @@ nodes:
           next-hop-address: 192.168.50.1
           next-hop-interface: bond0.1924
           table-id: 254
-  - hostname: lab-ctlplane-3
+  - hostname: lab-ctlplane-2
     role: master
     rootDeviceHints:
       deviceName: /dev/vda
