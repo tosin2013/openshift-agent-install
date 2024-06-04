@@ -75,7 +75,11 @@
       ansible.builtin.template:
         src: imagedigestmirrorset.yml.j2
 <<<<<<< HEAD
+<<<<<<< HEAD
         dest: "./generated_manifests/{{ cluster_name }}/image-mirror-config.yaml"
+=======
+        dest: "{{ generated_asset_path }}/{{ cluster_name }}/image-mirror-config.yaml"
+>>>>>>> d3313640fd7567b006e561c6868cafe19deedd3c
         mode: '0644'
 =======
         dest: "{{ generated_asset_path }}/{{ cluster_name }}/image-mirror-config.yaml"
