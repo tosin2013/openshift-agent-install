@@ -1,3 +1,6 @@
+# Use Site Config
+use_site_configs: false
+
 # pull_secret path is the path to the pull-secret for the cluster
 pull_secret_path: ~/ocp-install-pull-secret.json
 
