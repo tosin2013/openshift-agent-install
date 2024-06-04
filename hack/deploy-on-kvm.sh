@@ -200,9 +200,17 @@ for node_name in $node_names; do
 done
 
 # Verify the installation if Redfish is enabled
-if [ "$USE_REDFISH" == true ]; then
+if [ "$USE_REDFISH" == true]; then
     echo "Verifying Redfish registration..."
     registered_systems=$(curl -s http://localhost:8000/redfish/v1/Systems)
     echo "Registered systems:"
     echo "$registered_systems"
+
+    # Print the name of each registered system
+    echo "Details of Registered Systems:"
+    echo "$registered_systems" | jq -r '.Members[]."@odata.id"' | while read system; do
+        system_details=$(curl -s http://localhost:8000"$system")
+        system_name=$(echo "$system_details" | jq -r '.Name')
+        echo "System Name: $system_name, System ID: $system"
+    done
 fi
