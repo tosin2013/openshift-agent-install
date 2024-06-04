@@ -9,14 +9,14 @@ if [ $# -lt 1 ]; then
 fi
 
 yaml_file=$1
-# Use GENERATED_ASSET_PATH as an environment variable, default to "${GENERATED_ASSET_PATH}" if not set
-GENERATED_ASSET_PATH="${GENERATED_ASSET_PATH:-"${HOME}"}"
 LIBVIRT_NETWORK="network=1924,model=virtio"
 LIBVIRT_NETWORK_TWO="network=1924,model=virtio"
 LIBVIRT_VM_PATH="/var/lib/libvirt/images"
 MULTI_NETWORK=true
 CLUSTER_NAME="ocp4"
-USE_REDFISH=${USE_REDFISH:-true}
+USE_REDFISH=true
+# Use GENERATED_ASSET_PATH as an environment variable, default to "playbooks/generated_manifests" if not set
+GENERATED_ASSET_PATH="${GENERATED_ASSET_PATH:-"${HOME}"}"
 
 # Check if Redfish option is enabled
 if [ "$2" == "--redfish" ]; then
@@ -93,25 +93,57 @@ counter=0
 
 # Install and configure sushy-tools if Redfish is enabled
 if [ "$USE_REDFISH" == true ]; then
-    echo "Installing sushy-tools..."
-    sudo pip install sushy-tools
+    echo "Installing required packages..."
+    sudo dnf install bind-utils libguestfs-tools cloud-init virt-install -yy
+    sudo dnf module install virt -yy
+    sudo systemctl enable libvirtd --now
+
+    echo "Installing Podman..."
+    sudo dnf install podman -yy
     
     echo "Configuring sushy-tools..."
-    sudo tee /etc/sushy-tools.conf <<EOF
-[sushy]
-# Bind IP address, 0.0.0.0 for all available interfaces
-SUSHY_EMULATOR_LISTEN_IP = 0.0.0.0
-# Bind port
+    sudo mkdir -p /etc/sushy/
+    cat << "EOF" | sudo tee /etc/sushy/sushy-emulator.conf
+SUSHY_EMULATOR_LISTEN_IP = '0.0.0.0'
 SUSHY_EMULATOR_LISTEN_PORT = 8000
-
-[default]
-# Map libvirt domains to BMCs
-SUSHY_EMULATOR_LIBVIRT_URI = qemu:///system
+SUSHY_EMULATOR_SSL_CERT = None
+SUSHY_EMULATOR_SSL_KEY = None
+SUSHY_EMULATOR_OS_CLOUD = None
+SUSHY_EMULATOR_LIBVIRT_URI = 'qemu:///system'
+SUSHY_EMULATOR_IGNORE_BOOT_DEVICE = True
+SUSHY_EMULATOR_BOOT_LOADER_MAP = {
+    'UEFI': {
+        'x86_64': '/usr/share/OVMF/OVMF_CODE.secboot.fd'
+    },
+    'Legacy': {
+        'x86_64': None
+    }
+}
 EOF
     
-    echo "Starting sushy-tools..."
-    sudo systemctl enable sushy-tools
-    sudo systemctl start sushy-tools
+    echo "Running sushy-tools container..."
+    export SUSHY_TOOLS_IMAGE=${SUSHY_TOOLS_IMAGE:-"quay.io/metal3-io/sushy-tools"}
+    sudo podman create --net host --privileged --name sushy-emulator -v "/etc/sushy":/etc/sushy -v "/var/run/libvirt":/var/run/libvirt "${SUSHY_TOOLS_IMAGE}" sushy-emulator -i :: -p 8000 --config /etc/sushy/sushy-emulator.conf
+    
+    echo "Creating systemd service for sushy-emulator..."
+    sudo sh -c 'podman generate systemd --restart-policy=always -t 1 sushy-emulator > /etc/systemd/system/sushy-emulator.service'
+    sudo systemctl daemon-reload
+    sudo systemctl restart sushy-emulator.service
+    sudo systemctl enable sushy-emulator.service
+
+    echo "Configuring firewall..."
+    sudo systemctl start firewalld
+    sudo firewall-cmd --add-port=8000/tcp
+
+    # Test Redfish API
+    echo "Testing Redfish API..."
+    sleep 10  # Give some time for sushy-emulator to start properly
+    if curl -s http://localhost:8000/redfish/v1/Managers | grep -q "ManagerCollection"; then
+        echo "Redfish API is up and running."
+    else
+        echo "Failed to start Redfish API. Exiting..."
+        exit 1
+    fi
 fi
 
 # Loop through each node name
@@ -129,7 +161,7 @@ for node_name in $node_names; do
     echo "---------------------"
 
     if [ "$extra_storage" == "true" ]; then
-        if [ -f /var/lib/libvirt/images/${CLUSTER_NAME}-${node_name}-odf.qcow2]; then
+        if [ -f /var/lib/libvirt/images/${CLUSTER_NAME}-${node_name}-odf.qcow2 ]; then
             sudo rm /var/lib/libvirt/images/${CLUSTER_NAME}-${node_name}-odf.qcow2
         fi
         sudo qemu-img create -f qcow2 /var/lib/libvirt/images/${CLUSTER_NAME}-${node_name}-odf.qcow2 400G
@@ -160,16 +192,17 @@ for node_name in $node_names; do
             --graphics vnc,listen=0.0.0.0 --noautoconsole -v --vcpus "sockets=1,cores=${CP_CPU_CORES},threads=1" --os-variant=rhel8.6 || exit $?
     fi
 
-    # If Redfish option is enabled, register the VM with sushy-tools
-    if [ "$USE_REDFISH" == true ]; then
-        echo "Redfish is enabled for node: $node_name"
-        # Notify sushy-tools of the new VM
-        sudo sushy-emulator-manager register ${node_name}
-    fi
-
     # Increment counter for differentiating resources for first 3 nodes
     ((counter++))
 
     # Reset counter to 0 after processing first 3 nodes
     #[ "$counter" -eq 6 ] && counter=0
 done
+
+# Verify the installation if Redfish is enabled
+if [ "$USE_REDFISH" == true ]; then
+    echo "Verifying Redfish registration..."
+    registered_systems=$(curl -s http://localhost:8000/redfish/v1/Systems)
+    echo "Registered systems:"
+    echo "$registered_systems"
+fi
