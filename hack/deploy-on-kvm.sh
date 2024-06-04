@@ -3,8 +3,8 @@
 #set -xe
 
 # Check if the argument is provided
-if [ $# -ne 1 ]; then
-    echo "Usage: $0 <yaml_file>"
+if [ $# -lt 1 ]; then
+    echo "Usage: $0 <yaml_file> [--redfish]"
     exit 1
 fi
 
@@ -14,6 +14,12 @@ LIBVIRT_NETWORK_TWO="network=1924,model=virtio"
 LIBVIRT_VM_PATH="/var/lib/libvirt/images"
 MULTI_NETWORK=true
 CLUSTER_NAME="ocp4"
+USE_REDFISH=${USE_REDFISH:-true}
+
+# Check if Redfish option is enabled
+if [ "$2" == "--redfish" ]; then
+    USE_REDFISH=true
+fi
 
 if [ ! -f playbooks/generated_manifests/${CLUSTER_NAME}/agent.x86_64.iso ]; then
     echo "Please generate the agent.iso first"
@@ -22,14 +28,13 @@ else
     echo "Agent ISO exists"
     if [ ! -f /var/lib/libvirt/images/agent.x86_64.iso ]; then
         sudo cp playbooks/generated_manifests/${CLUSTER_NAME}/agent.x86_64.iso /var/lib/libvirt/images/agent.x86_64.iso
-    elif [ -f /var/lib/libvirt/images/agent.x86_64.iso ];
-    then 
+    elif [ -f /var/lib/libvirt/images/agent.x86_64.iso ]; then
         sudo rm /var/lib/libvirt/images/agent.x86_64.iso
         sudo cp playbooks/generated_manifests/${CLUSTER_NAME}/agent.x86_64.iso /var/lib/libvirt/images/agent.x86_64.iso
     fi
 fi
 
-LIBVIRT_LIKE_OPTIONS="--connect=qemu:///system -v --memballoon none --cpu host-passthrough --autostart --noautoconsole --virt-type kvm --features kvm_hidden=on --controller type=scsi,model=virtio-scsi --cdrom=/var/lib/libvirt/images/agent.x86_64.iso   --os-variant=fedora-coreos-stable --events on_reboot=restart --graphics vnc,listen=0.0.0.0,tlsport=,defaultMode='insecure' --console pty,target_type=serial"
+LIBVIRT_LIKE_OPTIONS="--connect=qemu:///system -v --memballoon none --cpu host-passthrough --autostart --noautoconsole --virt-type kvm --features kvm_hidden=on --controller type=scsi,model=virtio-scsi --cdrom=/var/lib/libvirt/images/agent.x86_64.iso --os-variant=fedora-coreos-stable --events on_reboot=restart --graphics vnc,listen=0.0.0.0,tlsport=,defaultMode='insecure' --console pty,target_type=serial"
 
 # Extract node names using yq
 node_names=$(yq e '.nodes[].hostname' "$yaml_file")
@@ -84,6 +89,29 @@ calculate_resources() {
 # Initialize counter for differentiating resources for first 3 nodes
 counter=0
 
+# Install and configure sushy-tools if Redfish is enabled
+if [ "$USE_REDFISH" == true ]; then
+    echo "Installing sushy-tools..."
+    sudo pip install sushy-tools
+    
+    echo "Configuring sushy-tools..."
+    sudo tee /etc/sushy-tools.conf <<EOF
+[sushy]
+# Bind IP address, 0.0.0.0 for all available interfaces
+SUSHY_EMULATOR_LISTEN_IP = 0.0.0.0
+# Bind port
+SUSHY_EMULATOR_LISTEN_PORT = 8000
+
+[default]
+# Map libvirt domains to BMCs
+SUSHY_EMULATOR_LIBVIRT_URI = qemu:///system
+EOF
+    
+    echo "Starting sushy-tools..."
+    sudo systemctl enable sushy-tools
+    sudo systemctl start sushy-tools
+fi
+
 # Loop through each node name
 for node_name in $node_names; do
     echo "Node Name: $node_name"
@@ -99,7 +127,7 @@ for node_name in $node_names; do
     echo "---------------------"
 
     if [ "$extra_storage" == "true" ]; then
-        if [ -f /var/lib/libvirt/images/${CLUSTER_NAME}-${node_name}-odf.qcow2 ]; then
+        if [ -f /var/lib/libvirt/images/${CLUSTER_NAME}-${node_name}-odf.qcow2]; then
             sudo rm /var/lib/libvirt/images/${CLUSTER_NAME}-${node_name}-odf.qcow2
         fi
         sudo qemu-img create -f qcow2 /var/lib/libvirt/images/${CLUSTER_NAME}-${node_name}-odf.qcow2 400G
@@ -128,6 +156,13 @@ for node_name in $node_names; do
             --network ${LIBVIRT_NETWORK_TWO},mac=${mac_address2} \
             --connect=qemu:///system -v --memballoon none --cpu host-passthrough --autostart --noautoconsole --virt-type kvm --features kvm_hidden=on --controller type=scsi,model=virtio-scsi \
             --graphics vnc,listen=0.0.0.0 --noautoconsole -v --vcpus "sockets=1,cores=${CP_CPU_CORES},threads=1" --os-variant=rhel8.6 || exit $?
+    fi
+
+    # If Redfish option is enabled, register the VM with sushy-tools
+    if [ "$USE_REDFISH" == true ]; then
+        echo "Redfish is enabled for node: $node_name"
+        # Notify sushy-tools of the new VM
+        sudo sushy-emulator-manager register ${node_name}
     fi
 
     # Increment counter for differentiating resources for first 3 nodes
