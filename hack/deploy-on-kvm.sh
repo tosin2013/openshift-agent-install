@@ -9,6 +9,8 @@ if [ $# -lt 1 ]; then
 fi
 
 yaml_file=$1
+# Use GENERATED_ASSET_PATH as an environment variable, default to "${GENERATED_ASSET_PATH}" if not set
+GENERATED_ASSET_PATH="${GENERATED_ASSET_PATH:-"${HOME}"}"
 LIBVIRT_NETWORK="network=1924,model=virtio"
 LIBVIRT_NETWORK_TWO="network=1924,model=virtio"
 LIBVIRT_VM_PATH="/var/lib/libvirt/images"
@@ -21,16 +23,16 @@ if [ "$2" == "--redfish" ]; then
     USE_REDFISH=true
 fi
 
-if [ ! -f playbooks/generated_manifests/${CLUSTER_NAME}/agent.x86_64.iso ]; then
+if [ ! -f ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/agent.x86_64.iso ]; then
     echo "Please generate the agent.iso first"
     exit 1
 else 
     echo "Agent ISO exists"
     if [ ! -f /var/lib/libvirt/images/agent.x86_64.iso ]; then
-        sudo cp playbooks/generated_manifests/${CLUSTER_NAME}/agent.x86_64.iso /var/lib/libvirt/images/agent.x86_64.iso
+        sudo cp ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/agent.x86_64.iso /var/lib/libvirt/images/agent.x86_64.iso
     elif [ -f /var/lib/libvirt/images/agent.x86_64.iso ]; then
         sudo rm /var/lib/libvirt/images/agent.x86_64.iso
-        sudo cp playbooks/generated_manifests/${CLUSTER_NAME}/agent.x86_64.iso /var/lib/libvirt/images/agent.x86_64.iso
+        sudo cp ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/agent.x86_64.iso /var/lib/libvirt/images/agent.x86_64.iso
     fi
 fi
 

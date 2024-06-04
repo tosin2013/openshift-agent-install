@@ -1,5 +1,5 @@
 #!/bin/bash
-
+# ./hack/destroy-on-kvm.sh examples/bond0-signal-vlan/nodes.yml
 if [ $# -ne 1 ]; then
     echo "Usage: $0 <yaml_file>"
     exit 1
