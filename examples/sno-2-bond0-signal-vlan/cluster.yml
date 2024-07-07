@@ -10,7 +10,7 @@ pull_secret_path: ~/ocp-install-pull-secret.json
 
 # Cluster metadata
 base_domain: example.com
-cluster_name: ocp4
+cluster_name: sno2
 
 # platform_type is the type of platform to use for the cluster (baremetal, vsphere, none)
 # must be none for SNO
@@ -18,10 +18,10 @@ platform_type: none
 
 # VIPs - set as a list in case this is a dual-stack cluster
 api_vips:
-  -  192.168.50.21
+  -  192.168.50.22
 
 app_vips:
-  -  192.168.50.21
+  -  192.168.50.22
 
 # Optional NTP Servers
 ntp_servers:
@@ -53,7 +53,7 @@ machine_network_cidrs:
 network_type: OVNKubernetes
 
 # rendezvous_ip is the IP address of the node that will be used for the bootstrap node
-rendezvous_ip: 192.168.50.21
+rendezvous_ip: 192.168.50.22
 
 # Optional Outbound Proxy Configuration
 # proxy:

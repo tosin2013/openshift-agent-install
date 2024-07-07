@@ -10,7 +10,7 @@ pull_secret_path: ~/ocp-install-pull-secret.json
 
 # Cluster metadata
 base_domain: example.com
-cluster_name: ocp4
+cluster_name: sno1
 
 # platform_type is the type of platform to use for the cluster (baremetal, vsphere, none)
 # must be none for SNO
