@@ -6,7 +6,6 @@ octect: 192.168.50
 # nodes defines the nodes to use for the cluster
 nodes:
   - hostname: lab-ctlplane-0
-    role: master
     rootDeviceHints:
       deviceName: /dev/vda
     interfaces:
