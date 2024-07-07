@@ -5,14 +5,14 @@ octect: 192.168.50
 
 # nodes defines the nodes to use for the cluster
 nodes:
-  - hostname: lab-ctlplane-0
+  - hostname: lab-ctlplane-3
     rootDeviceHints:
       deviceName: /dev/vda
     interfaces:
       - name: enp1s0
-        mac_address: "54:52:00:19:04:73"
+        mac_address: "52:54:00:20:24:a3"
       - name: enp2s0
-        mac_address: "54:52:00:27:dd:40"
+        mac_address: "52:54:00:f4:ba:16"
     networkConfig:
       interfaces:
         - name: bond0
@@ -33,7 +33,7 @@ nodes:
           state: up
           ipv4:
             address:
-            - ip: 192.168.50.21
+            - ip: 192.168.50.23
               prefix-length: 24
             dhcp: false
             enabled: true
