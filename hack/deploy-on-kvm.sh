@@ -13,7 +13,10 @@ LIBVIRT_NETWORK="network=1924,model=virtio"
 LIBVIRT_NETWORK_TWO="network=1924,model=virtio"
 LIBVIRT_VM_PATH="/var/lib/libvirt/images"
 MULTI_NETWORK=true
-CLUSTER_NAME="ocp4"
+if [  -z $CLUSTER_NAME ]; then
+    CLUSTER_NAME="ocp4"
+fi
+
 USE_REDFISH=true
 # Use GENERATED_ASSET_PATH as an environment variable, default to "playbooks/generated_manifests" if not set
 GENERATED_ASSET_PATH="${GENERATED_ASSET_PATH:-"${HOME}"}"
