@@ -9,8 +9,8 @@ if [ $# -lt 1 ]; then
 fi
 
 yaml_file=$1
-LIBVIRT_NETWORK="network=1924,model=virtio"
-LIBVIRT_NETWORK_TWO="network=1924,model=virtio"
+LIBVIRT_NETWORK="network=1924,model=e1000e"
+LIBVIRT_NETWORK_TWO="network=1924,model=e1000e"
 LIBVIRT_VM_PATH="/var/lib/libvirt/images"
 MULTI_NETWORK=true
 if [  -z $CLUSTER_NAME ]; then
