@@ -1,6 +1,6 @@
 # Node Counts the installer will expect
 control_plane_replicas: 3
-app_node_replicas: 6
+app_node_replicas: 3
 octect: 192.168.50
 
 # nodes defines the nodes to use for the cluster
