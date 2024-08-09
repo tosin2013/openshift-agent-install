@@ -1,0 +1,540 @@
+# Node Counts the installer will expect
+control_plane_replicas: 3
+app_node_replicas: 6
+
+# nodes defines the nodes to use for the cluster
+nodes:
+  - hostname: lab-ctlplane-0
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "54:52:00:19:04:73"
+      - name: enp2s0
+        mac_address: "54:52:00:27:dd:40"
+    networkConfig:
+      interfaces:
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            dhcp: false
+            enabled: true
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: '140'
+            port:
+            - enp1s0
+            - enp2s0
+        - name: bond0.1924
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.50.21
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1924
+        - name: bond0.1925
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.52.21
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1925
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.50.1
+          next-hop-interface: bond0.1924
+          table-id: 254
+        - destination: 192.168.52.0/24
+          next-hop-address: 192.168.52.1
+          next-hop-interface: bond0.1925
+          table-id: 100
+  
+  # Repeat for other nodes
+  - hostname: lab-ctlplane-1
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "54:52:00:6f:25:eb"
+      - name: enp2s0
+        mac_address: "54:52:00:2f:52:b2"
+    networkConfig:
+      interfaces:
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            dhcp: false
+            enabled: true
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: '140'
+            port:
+            - enp1s0
+            - enp2s0
+        - name: bond0.1924
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.50.22
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1924
+        - name: bond0.1925
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.52.22
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1925
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.50.1
+          next-hop-interface: bond0.1924
+          table-id: 254
+        - destination: 192.168.52.0/24
+          next-hop-address: 192.168.52.1
+          next-hop-interface: bond0.1925
+          table-id: 100
+
+  - hostname: lab-ctlplane-3
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "54:52:00:3d:e5:d7"
+      - name: enp2s0
+        mac_address: "54:52:00:7b:4c:b8"
+    networkConfig:
+      interfaces:
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            dhcp: false
+            enabled: true
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: '140'
+            port:
+            - enp1s0
+            - enp2s0
+        - name: bond0.1924
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.50.23
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1924
+        - name: bond0.1925
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.52.23
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1925
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.50.1
+          next-hop-interface: bond0.1924
+          table-id: 254
+        - destination: 192.168.52.0/24
+          next-hop-address: 192.168.52.1
+          next-hop-interface: bond0.1925
+          table-id: 100
+
+  - hostname: lab-worker-0
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "54:52:00:cd:7b:ea"
+      - name: enp2s0
+        mac_address: "54:52:00:7b:ee:a2"
+    networkConfig:
+      interfaces:
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            dhcp: false
+            enabled: true
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: '140'
+            port:
+            - enp1s0
+            - enp2s0
+        - name: bond0.1924
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.50.24
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1924
+        - name: bond0.1925
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.52.24
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1925
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.50.1
+          next-hop-interface: bond0.1924
+          table-id: 254
+        - destination: 192.168.52.0/24
+          next-hop-address: 192.168.52.1
+          next-hop-interface: bond0.1925
+          table-id: 100
+  # Continue this pattern for the remaining nodes
+
+  # Ensure each worker has unique IPs for bond0.1924 and bond0.1925
+  - hostname: lab-worker-1
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "54:52:00:25:34:c3"
+      - name: enp2s0
+        mac_address: "54:52:00:a5:3e:f1"
+    networkConfig:
+      interfaces:
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            dhcp: false
+            enabled: true
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: '140'
+            port:
+            - enp1s0
+            - enp2s0
+        - name: bond0.1924
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.50.25
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1924
+        - name: bond0.1925
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.52.25
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1925
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.50.1
+          next-hop-interface: bond0.1924
+          table-id: 254
+        - destination: 192.168.52.0/24
+          next-hop-address: 192.168.52.1
+          next-hop-interface: bond0.1925
+          table-id: 100
+
+  # Update IPs for the remaining worker nodes in the same pattern
+  - hostname: lab-worker-2
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "54:52:00:0e:c0:0a"
+      - name: enp2s0
+        mac_address: "54:52:00:6b:bc:4c"
+    networkConfig:
+      interfaces:
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            dhcp: false
+            enabled: true
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: '140'
+            port:
+            - enp1s0
+            - enp2s0
+        - name: bond0.1924
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.50.26
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1924
+        - name: bond0.1925
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.52.26
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1925
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.50.1
+          next-hop-interface: bond0.1924
+          table-id: 254
+        - destination: 192.168.52.0/24
+          next-hop-address: 192.168.52.1
+          next-hop-interface: bond0.1925
+          table-id: 100
+
+  - hostname: lab-worker-3
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "54:52:00:c2:bb:d9"
+      - name: enp2s0
+        mac_address: "54:52:00:68:b8:b7"
+    networkConfig:
+      interfaces:
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            dhcp: false
+            enabled: true
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: '140'
+            port:
+            - enp1s0
+            - enp2s0
+        - name: bond0.1924
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.50.27
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1924
+        - name: bond0.1925
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.52.27
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1925
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.50.1
+          next-hop-interface: bond0.1924
+          table-id: 254
+        - destination: 192.168.52.0/24
+          next-hop-address: 192.168.52.1
+          next-hop-interface: bond0.1925
+          table-id: 100
+
+  - hostname: lab-worker-4
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "54:52:00:3d:d6:c5"
+      - name: enp2s0
+        mac_address: "54:52:00:67:04:87"
+    networkConfig:
+      interfaces:
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            dhcp: false
+            enabled: true
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: '140'
+            port:
+            - enp1s0
+            - enp2s0
+        - name: bond0.1924
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.50.28
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1924
+        - name: bond0.1925
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.52.28
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1925
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.50.1
+          next-hop-interface: bond0.1924
+          table-id: 254
+        - destination: 192.168.52.0/24
+          next-hop-address: 192.168.52.1
+          next-hop-interface: bond0.1925
+          table-id: 100
+
+  - hostname: lab-worker-5
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "54:52:00:05:7a:c5"
+      - name: enp2s0
+        mac_address: "54:52:00:5f:9c:2c"
+    networkConfig:
+      interfaces:
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            dhcp: false
+            enabled: true
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: '140'
+            port:
+            - enp1s0
+            - enp2s0
+        - name: bond0.1924
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.50.29
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1924
+        - name: bond0.1925
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.52.29
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1925
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.50.1
+          next-hop-interface: bond0.1924
+          table-id: 254
+        - destination: 192.168.52.0/24
+          next-hop-address: 192.168.52.1
+          next-hop-interface: bond0.1925
+          table-id: 100
