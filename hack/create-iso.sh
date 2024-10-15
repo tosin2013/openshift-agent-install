@@ -4,19 +4,7 @@
 set -e
 
 # Where are we pulling cluster configuration from - make a `clusters` directory and store your config there, it's in .gitignore
-# Use SITE_CONFIG_DIR as an environment variable, default to $HOME if not set
-SITE_CONFIG_DIR="${SITE_CONFIG_DIR:-"examples"}"
-
-# Use GENERATED_ASSET_PATH as an environment variable, default to "playbooks/generated_manifests" if not set
-GENERATED_ASSET_PATH="${GENERATED_ASSET_PATH:-"${HOME}"}"
-
-# if debug env is set to true set debug to ${DEBUG}
-if [ "${DEBUG}" == "true" ]; then
-    DEBUG="-vvv"
-else
-    DEBUG=""
-fi
-
+SITE_CONFIG_DIR="${SITE_CONFIG_DIR:-examples}"
 #SITE_CONFIG_DIR="clusters"
 
 # Check to see if the generated asset path exists
