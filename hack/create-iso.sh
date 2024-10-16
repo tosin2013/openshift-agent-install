@@ -7,10 +7,17 @@ set -e
 SITE_CONFIG_DIR="${SITE_CONFIG_DIR:-examples}"
 #SITE_CONFIG_DIR="clusters"
 
+# Check if GENERATED_ASSET_PATH is set, if not, use the home directory
+if [ -z "${GENERATED_ASSET_PATH}" ]; then
+    GENERATED_ASSET_PATH="${HOME}/generated_assets"
+fi
+
 # Check to see if the generated asset path exists
 if [ ! -d "${GENERATED_ASSET_PATH}" ]; then
     mkdir -p "${GENERATED_ASSET_PATH}"
 fi
+
+echo "Generated asset path is: ${GENERATED_ASSET_PATH}"
 
 # Check to see if there was an argument passed for the cluster config
 if [ -z "$1" ]; then
