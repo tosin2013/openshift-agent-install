@@ -123,7 +123,7 @@ nodes:
           next-hop-interface: bond0.1925
           table-id: 100
 
-  - hostname: lab-ctlplane-3
+  - hostname: lab-ctlplane-2
     role: master
     rootDeviceHints:
       deviceName: /dev/vda
