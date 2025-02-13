@@ -9,7 +9,7 @@ rhel_version=$(rpm -E %{rhel})
 if [ "$rhel_version" -eq 8 ]; then
     oc_version="stable-4.15"
 else
-    oc_version="stable-4.16"
+    oc_version="stable-4.17"
 fi
 
 # Download and extract OpenShift CLI
