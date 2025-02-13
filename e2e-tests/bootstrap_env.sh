@@ -61,6 +61,78 @@ install_system_packages() {
     fi
     print_status "libvirt module enabled" 0
 
+    print_section "Installing kcli"
+    sudo dnf -y copr enable karmab/kcli ; sudo dnf -y install kcli
+    print_status "kcli installed" 0
+
+    print_section "Installing Cockpit"
+    sudo dnf install -y cockpit cockpit-machines
+    sudo systemctl enable --now cockpit.socket
+    print_status "Cockpit installed and enabled" 0
+}
+#!/bin/bash
+
+# --- Helper Functions ---
+print_status() {
+    if [ $2 -eq 0 ]; then
+        echo -e "\033[0;32m✓ $1\033[0m"
+    else
+        echo -e "\033[0;31m✗ $1\033[0m"
+        exit 1
+    fi
+}
+
+print_section() {
+    echo -e "\n\033[1;33m$1\033[0m"
+    echo "================================"
+}
+
+print_info() {
+    echo -e "\033[0;34m$1\033[0m"
+}
+
+check_sudo() {
+    if [ "$EUID" -ne 0 ]; then
+        echo -e "\033[0;31mPlease run this script with sudo privileges\033[0m"
+        exit 1
+    fi
+}
+
+# --- Package Management ---
+install_system_packages() {
+    print_section "Installing System Packages"
+    packages=(nmstate ansible-core bind-utils libguestfs-tools cloud-init virt-install qemu-img virt-manager selinux-policy-targeted)
+    for package in "${packages[@]}"; do
+        if ! rpm -q $package &>/dev/null; then
+            print_info "Installing $package..."
+            sudo dnf install -y $package || print_status "Failed to install $package" 1
+            print_status "$package installed successfully" 0
+        else
+            print_status "$package is already installed" 0
+        fi
+    done
+
+    if ! command -v yq &>/dev/null; then
+        print_info "Installing yq..."
+        VERSION=v4.45.1 
+        BINARY=yq_linux_amd64
+        sudo wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY} -O /usr/bin/yq &&\
+        sudo chmod +x /usr/bin/yq
+        print_status "yq installed successfully" 0
+    else
+        print_status "yq is already installed" 0
+    fi
+
+    print_section "Enabling libvirt"
+    dnf install -y libvirt libvirt-daemon libvirt-daemon-driver-qemu
+    sudo usermod -aG libvirt lab-user && sudo chmod 775 /var/lib/libvirt/images
+    sudo systemctl start libvirtd && sudo usermod -aG libvirt lab-user
+    if [[ $? -ne 0 ]]; then
+        print_status "Failed to enable libvirt module" 1
+        exit 1
+    fi
+    print_status "libvirt module enabled" 0
+
     print_section "Installing Cockpit"
     sudo dnf install -y cockpit cockpit-machines
     sudo systemctl enable --now cockpit.socket
@@ -157,7 +229,7 @@ setup_vyos_router() {
     # fi
 
     IPADDR=$(sudo virsh net-dhcp-leases default | grep vyos-builder | sort -k1 -k2 | tail -1 | awk '{print $5}' | sed 's/\/24//g')
-    VYOS_VERSION="1.5-rolling-202409250007"
+    VYOS_VERSION="1.5-rolling-202502131743"
     ISO_LOC="https://github.com/vyos/vyos-nightly-build/releases/download/${VYOS_VERSION}/vyos-${VYOS_VERSION}-generic-amd64.iso"
     if [ ! -f "$HOME/vyos-${VYOS_VERSION}-generic-amd64.iso" ]; then
         cd "$HOME" || exit 1 # Handle cd failure
