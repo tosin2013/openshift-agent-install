@@ -6,3 +6,5 @@ clusters/**
 playbooks/generated_manifests/**
 .vscode/
 .vscode/**
+cline_docs/
+hack/freeipa_vars.sh
