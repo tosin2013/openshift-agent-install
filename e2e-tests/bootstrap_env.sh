@@ -47,6 +47,11 @@ install_system_packages() {
         fi
     done
 
+    # Ensure nmstate is installed and up to date
+    print_info "Ensuring nmstate is up to date..."
+    sudo dnf install -y nmstate || print_status "Failed to install/update nmstate" 1
+    print_status "nmstate installation verified" 0
+
     if ! command -v yq &>/dev/null; then
         print_info "Installing yq..."
         VERSION=v4.45.1 
@@ -81,6 +86,45 @@ install_system_packages() {
     sudo dnf install -y cockpit cockpit-machines
     sudo systemctl enable --now cockpit.socket
     print_status "Cockpit installed and enabled" 0
+}
+
+# --- OpenShift CLI Installation ---
+install_openshift_cli() {
+    print_section "Installing OpenShift CLI Tools"
+    
+    # Create bin directory
+    mkdir -p "${SCRIPT_DIR}/../bin"
+    cd "${SCRIPT_DIR}/../bin"
+
+    # Determine the RHEL version and set appropriate OCP version
+    rhel_version=$(rpm -E %{rhel})
+    if [ "$rhel_version" -eq 8 ]; then
+        oc_version="stable-4.15"
+    else
+        oc_version="stable-4.17"
+    fi
+
+    print_info "Downloading and installing OpenShift CLI version: $oc_version"
+
+    # Download and extract OpenShift CLI
+    wget https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/$oc_version/openshift-client-linux.tar.gz || print_status "Failed to download OpenShift CLI" 1
+    tar zxvf openshift-client-linux.tar.gz || print_status "Failed to extract OpenShift CLI" 1
+    rm -f openshift-client-linux.tar.gz
+
+    # Download and extract OpenShift Installer
+    wget https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/$oc_version/openshift-install-linux.tar.gz || print_status "Failed to download OpenShift Installer" 1
+    tar zxvf openshift-install-linux.tar.gz || print_status "Failed to extract OpenShift Installer" 1
+    rm -f openshift-install-linux.tar.gz
+
+    # Clean up and set permissions
+    rm -f README.md
+    chmod a+x oc kubectl openshift-install
+    sudo cp oc kubectl openshift-install /usr/local/bin/
+
+    print_status "OpenShift CLI tools installed successfully" 0
+    
+    # Return to original directory
+    cd "${SCRIPT_DIR}"
 }
 
 install_container_tools() {
@@ -127,30 +171,30 @@ handle_selinux_policies() {
 
 # --- Network Configuration ---
 configure_infrastructure() {
-  print_section "Configuring Infrastructure"
-  # Deploy FreeIPA VM
-  export vm_name="freeipa"
-  export ip_address=$(sudo kcli info vm "$vm_name" "$vm_name" | grep ip: | awk '{print $2}' | head -1)
-  if [ -z "$ip_address" ]; then
-    echo "Error: FreeIPA VM IP address not found"
-    source "${SCRIPT_DIR}/../hack/deploy-freeipa.sh"
-  fi
-  
-  # Use functions from vyos-router.sh
-  export ACTION="create"
-  source "${SCRIPT_DIR}/../hack/vyos-router.sh"
+    print_section "Configuring Infrastructure"
+    # Deploy FreeIPA VM
+    export vm_name="freeipa"
+    export ip_address=$(sudo kcli info vm "$vm_name" "$vm_name" | grep ip: | awk '{print $2}' | head -1)
+    if [ -z "$ip_address" ]; then
+        echo "Error: FreeIPA VM IP address not found"
+        source "${SCRIPT_DIR}/../hack/deploy-freeipa.sh"
+    fi
+    
+    # Use functions from vyos-router.sh
+    export ACTION="create"
+    source "${SCRIPT_DIR}/../hack/vyos-router.sh"
 
-  print_status "Infrastructure configured successfully" 0
+    print_status "Infrastructure configured successfully" 0
 }
 
 # --- Environment Setup ---
 setup_virtualization() {
-  print_section "Setting up Virtualization"
-  print_info "Enabling libvirtd..."
-  sudo systemctl enable --now libvirtd || print_status "Failed to enable libvirtd" 1
-  print_status "libvirtd enabled successfully" 0
-  # Configure LVM for libvirt
-  source "${SCRIPT_DIR}/../hack/configure-lvm.sh"
+    print_section "Setting up Virtualization"
+    print_info "Enabling libvirtd..."
+    sudo systemctl enable --now libvirtd || print_status "Failed to enable libvirtd" 1
+    print_status "libvirtd enabled successfully" 0
+    # Configure LVM for libvirt
+    source "${SCRIPT_DIR}/../hack/configure-lvm.sh"
 }
 
 setup_registry_auth() {
@@ -178,11 +222,11 @@ setup_registry_auth() {
     fi
 }
 
-
 # --- Main Script ---
 check_sudo
 
 install_system_packages
+install_openshift_cli
 configure_selinux
 install_container_tools
 setup_virtualization
