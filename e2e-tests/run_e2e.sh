@@ -28,6 +28,15 @@ print_info() {
     echo -e "${BLUE}$1${NC}"
 }
 
+function check_freeipa() {
+    export vm_name="freeipa"
+    export ip_address=$(sudo kcli info vm "$vm_name" "$vm_name" | grep ip: | awk '{print $2}' | head -1)
+    if [ -z "$ip_address" ]; then
+        echo "Error: FreeIPA VM IP address not found"
+        exit 1
+    fi
+    echo "FreeIPA IP address: $ip_address"
+}
 # --- Core Test Functions ---
 
 create_test_iso() {
@@ -44,6 +53,11 @@ create_test_iso() {
     if [[ ! "$config_dir" =~ ^(examples|site-config)/ ]]; then
         config_dir="$config_dir"
     fi
+
+    # updating dns server in the config
+    check_freeipa
+    yq e -i '.dns_servers[0] = "'${ip_address}'"' "examples/${config_dir}/cluster.yml" || print_status "Failed to update dns server in cluster.yml" 1
+    yq e -i 'del(.dns_servers[1])' "examples/${config_dir}/cluster.yml" || print_status "Failed to delete dns server in cluster.yml" 1
 
     ./hack/create-iso.sh "$config_dir" || print_status "Failed to create ISO" 1
 
