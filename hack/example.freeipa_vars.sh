@@ -8,6 +8,7 @@ TERRAFORM_VERSION="0.13.4"
 DOMAIN="example.com"
 DNS_FORWARDER="1.1.1.1"
 PRIVATE_IP="freeipa"
+ZONE_NAME=""
 IDM_HOSTNAME="idm"
 
 INFRA_PROVIDER="kcli" # aws or digitalocean or kcli
@@ -34,6 +35,7 @@ DNS_VARIABLES_FILE=""
 ### KCLI variables
 export ANSIBLE_SAFE_VERSION="0.0.12"
 export INVENTORY="rhel9-equinix"
+export TARGET_SERVER="rhel9-equinix"
 # Optional Qubinode Navigator integration - comment out to use direct configuration
 #export ANSIBLE_VAULT_FILE="/opt/qubinode_navigator/inventories/$INVENTORY/group_vars/control/vault.yml"
 #export ANSIBLE_ALL_VARIABLES="/opt/qubinode_navigator/inventories/${INVENTORY}/group_vars/all.yml"
@@ -49,7 +51,7 @@ FREEIPA_REPO_LOC=${FREEIPA_REPO_LOC:-"${PWD}"}
 KCLI_NETWORK="default"
 # Use COMMUNI=TY_VERSION="true" for centos9stream
 # Use COMMUNITY_VERSION="false" for rhel8
-COMMUNITY_VERSION="false"
+export COMMUNITY_VERSION="false"
 
 
 ### DO NOT EDIT PAST THIS LINE

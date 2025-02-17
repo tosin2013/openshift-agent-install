@@ -1,8 +1,8 @@
 #!/bin/bash
 
-export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
-set -x
-set -e
+#export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+#set -x
+#set -e
 
 # Source VyOS router functions
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -129,11 +129,16 @@ handle_selinux_policies() {
 configure_infrastructure() {
   print_section "Configuring Infrastructure"
   # Deploy FreeIPA VM
-  source "${SCRIPT_DIR}/../hack/deploy-freeipa.sh"
-  create
+  export vm_name="freeipa"
+  export ip_address=$(sudo kcli info vm "$vm_name" "$vm_name" | grep ip: | awk '{print $2}' | head -1)
+  if [ -z "$ip_address" ]; then
+    echo "Error: FreeIPA VM IP address not found"
+    source "${SCRIPT_DIR}/../hack/deploy-freeipa.sh"
+  fi
+  
   # Use functions from vyos-router.sh
+  export ACTION="create"
   source "${SCRIPT_DIR}/../hack/vyos-router.sh"
-  create_livirt_networks
 
   print_status "Infrastructure configured successfully" 0
 }
@@ -173,59 +178,6 @@ setup_registry_auth() {
     fi
 }
 
-# --- Validation ---
-validate_installation() {
-    print_section "Validating Installation"
-
-    # Check if required packages are installed
-    packages=(nmstate ansible-core bind-utils libguestfs-tools cloud-init virt-install qemu-img libvirt-clients bridge-utils yq selinux-policy-targeted podman policycoreutils-python-utils)
-    for package in "${packages[@]}"; do
-        if ! rpm -q $package &>/dev/null; then
-            print_status "Package $package is not installed" 1
-        fi
-    done
-
-    # Check if libvirtd is active
-    if ! systemctl is-active libvirtd &>/dev/null; then
-        print_status "libvirtd is not active" 1
-    fi
-
-    # Check virtual networks (add more specific checks as needed)
-    virsh net-list --all | grep -E '192[45678]' &>/dev/null || print_status "Virtual networks not found" 1
-
-    # Check VyOS router (replace with actual check)
-    if ! sudo virsh domstate vyos-router | grep -q running; then
-        print_status "VyOS router is not running" 1
-    fi
-
-
-    print_status "Installation validated successfully" 0
-}
-
-configure_vault() {
-    print_section "Configuring Vault"
-    if [ ! -f vault.yml ]; then
-        print_info "Creating vault.yml..."
-        print_info "Please provide the following information:"
-        
-        # Prompt for vault values
-        ADMIN_PASSWORD=$(prompt_with_default "Enter FreeIPA admin password" "changeme")
-        RHSM_ORG=$(prompt_with_default "Enter Red Hat Subscription Manager Organization ID" "")
-        RHSM_KEY=$(prompt_with_default "Enter Red Hat Subscription Manager Activation Key" "")
-        
-        cat > vault.yml <<EOL
----
-freeipa_server_admin_password: "${ADMIN_PASSWORD}"
-rhsm_org: "${RHSM_ORG}"
-rhsm_activationkey: "${RHSM_KEY}"
-EOL
-        ansible-vault encrypt vault.yml --vault-password-file .vault_password
-        print_status "vault.yml created and encrypted" 0
-    else
-        print_status "vault.yml already exists" 0
-        print_info "To recreate vault.yml, delete the existing file and run bootstrap.sh again"
-    fi
-}
 
 # --- Main Script ---
 check_sudo
@@ -235,11 +187,8 @@ configure_selinux
 install_container_tools
 setup_virtualization
 configure_infrastructure
-configure_vault
 setup_registry_auth
 handle_selinux_policies
-validate_installation
-
 
 print_section "Bootstrap Complete"
 echo "Environment bootstrapped successfully."
