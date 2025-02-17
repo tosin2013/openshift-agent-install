@@ -36,7 +36,7 @@ check_sudo() {
 # --- Package Management ---
 install_system_packages() {
     print_section "Installing System Packages"
-    packages=(nmstate ansible-core bind-utils libguestfs-tools cloud-init virt-install qemu-img virt-manager selinux-policy-targeted python3-pip)
+    packages=(nmstate ansible-core bind-utils libguestfs cloud-init virt-install qemu-img virt-manager selinux-policy-targeted python3-pip)
     for package in "${packages[@]}"; do
         if ! rpm -q $package &>/dev/null; then
             print_info "Installing $package..."
@@ -46,6 +46,15 @@ install_system_packages() {
             print_status "$package is already installed" 0
         fi
     done
+
+    # Install Ansible collections
+    print_info "Installing Ansible collections..."
+    if [ -f "${SCRIPT_DIR}/../playbooks/collections/requirements.yml" ]; then
+        ansible-galaxy collection install -r "${SCRIPT_DIR}/../playbooks/collections/requirements.yml" || print_status "Failed to install Ansible collections" 1
+        print_status "Ansible collections installed successfully" 0
+    else
+        print_status "Ansible collections requirements file not found" 1
+    fi
 
     # Ensure nmstate is installed and up to date
     print_info "Ensuring nmstate is up to date..."
@@ -105,7 +114,10 @@ install_openshift_cli() {
     fi
 
     print_info "Downloading and installing OpenShift CLI version: $oc_version"
-
+    if [ -f "oc" ]; then
+        print_status "OpenShift CLI tools already installed" 0
+        return
+    fi
     # Download and extract OpenShift CLI
     wget https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/$oc_version/openshift-client-linux.tar.gz || print_status "Failed to download OpenShift CLI" 1
     tar zxvf openshift-client-linux.tar.gz || print_status "Failed to extract OpenShift CLI" 1
@@ -120,6 +132,7 @@ install_openshift_cli() {
     rm -f README.md
     chmod a+x oc kubectl openshift-install
     sudo cp oc kubectl openshift-install /usr/local/bin/
+    sudo cp oc kubectl openshift-install /usr/bin/
 
     print_status "OpenShift CLI tools installed successfully" 0
     

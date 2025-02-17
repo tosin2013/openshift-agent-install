@@ -1,6 +1,13 @@
 #!/bin/bash
 
 # This script validates the environment for end-to-end tests targeting OpenShift 4.17
+export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+set -x
+set -e
+
+
+# Set script directory
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # Colors for output
 RED='\033[0;31m'
@@ -30,7 +37,7 @@ print_info() {
 
 # Check if a command exists
 command_exists() {
-    command -v "$1" >/dev/null 2>&1
+    type "$1" >/dev/null 2>&1
 }
 
 # --- System Package Validation ---
@@ -45,6 +52,30 @@ validate_system_packages() {
             print_status "$package is not installed" 1
         fi
     done
+
+    # Check Ansible collections
+    print_info "Checking Ansible collections..."
+    if [ -f "${SCRIPT_DIR}/../playbooks/collections/requirements.yml" ]; then
+        # List installed collections and compare with requirements
+        ansible-galaxy collection list > /tmp/installed_collections
+        while IFS= read -r line; do
+            if [[ $line =~ ^#.* ]] || [[ -z $line ]]; then
+                continue
+            fi
+            if [[ "$line" =~ ^---$ ]]; then
+                continue
+            fi
+            collection_name=$(echo "$line" | awk -F': ' '{print $2}')
+            if grep -q "$collection_name" /tmp/installed_collections; then
+                print_status "Ansible collection $collection_name is installed" 0
+            else
+                print_status "Ansible collection $collection_name is not installed" 1
+            fi
+        done < "${SCRIPT_DIR}/../playbooks/collections/requirements.yml"
+        rm -f /tmp/installed_collections
+    else
+        print_status "Ansible collections requirements file not found" 1
+    fi
 
     # Check yq installation
     if command_exists yq; then
@@ -80,6 +111,7 @@ validate_openshift_cli() {
     print_section "Validating OpenShift CLI Tools"
     
     # Check oc installation
+    whereis oc
     if command_exists oc; then
         print_status "oc is installed" 0
         # Validate oc version
@@ -184,14 +216,21 @@ validate_os() {
 }
 
 # --- Main Validation ---
-print_section "Starting Environment Validation"
+validate_environment() {
+    print_section "Starting Environment Validation"
 
-validate_os
-validate_system_packages
-validate_openshift_cli
-validate_container_tools
-validate_selinux
-validate_infrastructure
-validate_registry_auth
+    validate_os
+    validate_system_packages
+    validate_openshift_cli
+    validate_container_tools
+    validate_selinux
+    validate_infrastructure
+    validate_registry_auth
 
-print_section "Environment Validation Complete"
+    print_section "Environment Validation Complete"
+}
+
+# Execute validation if script is run directly
+if [[ "${BASH_SOURCE[0]}" == "${0}" ]]; then
+    validate_environment
+fi

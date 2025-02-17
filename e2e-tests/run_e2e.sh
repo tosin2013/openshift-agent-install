@@ -42,7 +42,7 @@ create_test_iso() {
 
     # Prepend examples/ if the path doesn't start with it or site-config/
     if [[ ! "$config_dir" =~ ^(examples|site-config)/ ]]; then
-        config_dir="examples/$config_dir"
+        config_dir="$config_dir"
     fi
 
     ./hack/create-iso.sh "$config_dir" || print_status "Failed to create ISO" 1
