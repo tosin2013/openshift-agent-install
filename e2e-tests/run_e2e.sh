@@ -151,6 +151,7 @@ fi
 source e2e-tests/validate_env.sh
 validate_environment # Assuming validate_env.sh defines this function
 
+export GENERATED_ASSET_PATH="/home/lab-user/generated_assets"
 # 2. ISO Creation
 create_test_iso "$site_config"
 

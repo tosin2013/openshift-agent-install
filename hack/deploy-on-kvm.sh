@@ -19,7 +19,12 @@ fi
 
 USE_REDFISH=true
 # Use GENERATED_ASSET_PATH as an environment variable, default to "playbooks/generated_manifests" if not set
-GENERATED_ASSET_PATH="${GENERATED_ASSET_PATH:-"${HOME}"}"
+if [ -z "${GENERATED_ASSET_PATH}" ]; then
+    GENERATED_ASSET_PATH="${HOME}/generated_assets"
+else 
+    echo "GENERATED_ASSET_PATH is set to ${GENERATED_ASSET_PATH}"
+fi
+
 
 # Check if Redfish option is enabled
 if [ "$2" == "--redfish" ]; then

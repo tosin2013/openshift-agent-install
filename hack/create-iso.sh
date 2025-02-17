@@ -11,6 +11,8 @@ SITE_CONFIG_DIR="${SITE_CONFIG_DIR:-examples}"
 # Check if GENERATED_ASSET_PATH is set, if not, use the home directory
 if [ -z "${GENERATED_ASSET_PATH}" ]; then
     GENERATED_ASSET_PATH="${HOME}/generated_assets"
+else 
+    echo "GENERATED_ASSET_PATH is set to ${GENERATED_ASSET_PATH}"
 fi
 
 # Check to see if the generated asset path exists
