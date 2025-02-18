@@ -56,16 +56,21 @@ function create_dns_entries(){
       --extra-vars "value=${APPS_ENDPOINT}" \
       --extra-vars "freeipa_server_domain=${DOMAIN}" --extra-vars "action=present" -vvv || exit $?
 
-      # Check if configure-dns.sh exists
-      if [ ! -f "${SCRIPT_DIR}/configure-dns.sh" ]; then
-          echo "configure-dns.sh not found. Skipping..."
-      else
-          # Replace nameserver 127.0.0.1 in /etc/resolv.conf with the IPA server
-          # This is needed for the installer to be able to resolve the API and Apps endpoints
-          "${SCRIPT_DIR}/configure-dns.sh"
-      fi
+      export vm_name="freeipa"
+      export ip_address=$(sudo kcli info vm "$vm_name" "$vm_name" | grep ip: | awk '{print $2}' | head -1)
+      export interface_name="bond0" # "System eth0"
+      echo "VM $vm_name created with IP address $ip_address"
+
+      # Remove old DNS entries
+      sudo nmcli connection modify "${interface_name}" ipv4.dns ""
+
+      # Add new DNS entries
+      sudo nmcli connection modify "${interface_name}" ipv4.dns $ip_address,147.75.207.207
+      sudo nmcli connection reload
+
+      # List the DNS information using nmcli
+      sudo nmcli connection show "${interface_name}" | grep ipv4.dns
+      sudo systemctl restart NetworkManager
 }
 
 create_dns_entries
-
-exit 1
