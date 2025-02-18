@@ -192,6 +192,6 @@ echo "Implement actual test commands here"
 print_status "Tests executed successfully (placeholder)" 0
 
 # 6. Environment Cleanup
-cleanup_test_env "$nodes_yaml"
+#cleanup_test_env "$nodes_yaml"
 
 print_section "End-to-End Tests Complete"
