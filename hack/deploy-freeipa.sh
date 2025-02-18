@@ -52,7 +52,7 @@ else
 fi
 
 cd /opt/freeipa-workshop-deployer
-sudo cp "${SCRIPT_DIR}/hack/freeipa_vars.sh" vars.sh
+sudo cp "${SCRIPT_DIR}/../hack/freeipa_vars.sh" vars.sh
 sudo ./bootstrap.sh 
 
 # Create basic all.yml if it doesn't exist

@@ -27,19 +27,6 @@ print_info() {
     echo -e "${BLUE}$1${NC}"
 }
 
-cleanup_vyos_router() {
-    print_section "Cleaning up VyOS Router"
-    
-    # Call the vyos-router.sh script with delete action
-    export ACTION="delete"
-    if [ -f hack/vyos-router.sh ]; then
-        bash hack/vyos-router.sh
-        print_status "VyOS router cleanup completed" $?
-    else
-        print_status "VyOS router script not found" 1
-    fi
-}
-
 cleanup_test_env() {
     print_section "Cleaning up Test Environment"
 
@@ -78,31 +65,10 @@ cleanup_test_env() {
     fi
 }
 
-cleanup_networks() {
-    print_section "Cleaning up Virtual Networks"
-    
-    # Clean up the test networks
-    for network in 1924 1925 1926 1927 1928; do
-        if sudo virsh net-list --all | grep -q "^$network"; then
-            print_info "Destroying network $network"
-            sudo virsh net-destroy "$network" || true
-            sudo virsh net-undefine "$network" || true
-        fi
-    done
-    print_status "Network cleanup completed" 0
-}
-
 # --- Main Cleanup Flow ---
 
 print_section "Starting E2E Environment Cleanup"
+ sudo rm -rf ~/generated_assets/
 
-# 1. Cleanup VyOS Router
-cleanup_vyos_router
-
-# 2. Cleanup Test Environment
-cleanup_test_env "$1"
-
-# 3. Cleanup Networks
-cleanup_networks
 
 print_section "E2E Environment Cleanup Complete"

@@ -1,8 +1,8 @@
 #!/bin/bash
 
-#export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
-#set -x
-#set -e
+# export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+# set -x
+# set -e
 
 # Source VyOS router functions
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
@@ -97,6 +97,46 @@ install_system_packages() {
     print_status "Cockpit installed and enabled" 0
 }
 
+# --- Ansible Vault Setup ---
+setup_ansible_vault() {
+    print_section "Setting up Ansible Vault"
+    # Generate vault password if it doesn't exist
+    if [ ! -f "/home/lab-user/.vault_password" ]; then
+        print_info "Generating vault password..."
+        openssl rand -base64 32 > /home/lab-user/.vault_password
+        chmod 600 /home/lab-user/.vault_password
+        chown lab-user:users /home/lab-user/.vault_password
+        print_status "Vault password generated" 0
+    else
+        print_status "Vault password file exists" 0
+    fi
+
+    # Create and encrypt vault.yml
+    if [ ! -f "${SCRIPT_DIR}/../vault.yml" ]; then
+        print_info "Creating vault.yml..."
+        # Get FreeIPA admin password from environment or freeipa_vars.sh
+        if [ -f "${SCRIPT_DIR}/../hack/freeipa_vars.sh" ]; then
+            source "${SCRIPT_DIR}/../hack/freeipa_vars.sh"
+            # Create temporary vault file
+            cat > "${SCRIPT_DIR}/../vault.yml.tmp" << EOF
+---
+# FreeIPA server admin password for DNS management
+freeipa_server_admin_password: "${FREEIPA_ADMIN_PASSWORD}"
+EOF
+            # Encrypt the vault file
+            cd "${SCRIPT_DIR}/.."
+            ansible-vault encrypt --vault-password-file=/home/lab-user/.vault_password vault.yml.tmp
+            mv vault.yml.tmp vault.yml
+            chmod 600 vault.yml
+            print_status "vault.yml created and encrypted" 0
+        else
+            print_status "freeipa_vars.sh not found - cannot create vault.yml" 1
+        fi
+    else
+        print_status "vault.yml exists" 0
+    fi
+}
+
 # --- OpenShift CLI Installation ---
 install_openshift_cli() {
     print_section "Installing OpenShift CLI Tools"
@@ -137,7 +177,7 @@ install_openshift_cli() {
     print_status "OpenShift CLI tools installed successfully" 0
     
     # Return to original directory
-    cd "${SCRIPT_DIR}"
+    cd ../
 }
 
 install_container_tools() {
@@ -158,27 +198,14 @@ configure_selinux() {
     if ! rpm -q policycoreutils-python-utils &>/dev/null; then
         sudo dnf install -y policycoreutils-python-utils
     fi
-
-    # Set SELinux contexts and booleans (replace with actual commands)
-    # Example:
-    # sudo semanage fcontext -a -t httpd_sys_content_t "/var/lib/libvirt/images(/.*)?"
-    # sudo restorecon -R /var/lib/libvirt/images
-
     print_status "SELinux configured successfully" 0
 }
 
 handle_selinux_policies() {
     print_section "Handling SELinux Policies"
-
-    # Check and set booleans for libvirt, if semanage is available
     if command -v semanage &>/dev/null; then
-        # Example:
-        # if ! semanage boolean -l | grep -q virt_use_nfs; then
-        #     sudo semanage boolean -m --on virt_use_nfs
-        # fi
         :
     fi
-
     print_status "SELinux policies handled successfully" 0
 }
 
@@ -246,6 +273,7 @@ setup_virtualization
 configure_infrastructure
 setup_registry_auth
 handle_selinux_policies
+setup_ansible_vault  # Added ansible vault setup
 
 print_section "Bootstrap Complete"
 echo "Environment bootstrapped successfully."

@@ -38,7 +38,7 @@ The `-E` flag with sudo preserves the environment variables we set. The script n
 
 ```bash
 # Using the default examples directory
-./e2e-tests/run_e2e.sh sno-bond0-signal-vlan
+sudo ./e2e-tests/run_e2e.sh sno-bond0-signal-vlan
 
 # Or using a custom site config directory
 SITE_CONFIG_DIR=site-config ./e2e-tests/run_e2e.sh raza-sno.lab.kemo.network
@@ -54,7 +54,7 @@ GENERATED_ASSET_PATH=/path/to/assets ./e2e-tests/run_e2e.sh sno-bond0-signal-vla
 # - Test VMs
 # - Generated assets
 # - Virtual networks
-./e2e-tests/delete_e2e.sh sno-bond0-signal-vlan
+sudo ./e2e-tests/delete_e2e.sh sno-bond0-signal-vlan
 
 # If using custom site config:
 SITE_CONFIG_DIR=site-config ./e2e-tests/delete_e2e.sh raza-sno.lab.kemo.network

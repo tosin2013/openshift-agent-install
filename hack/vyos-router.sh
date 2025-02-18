@@ -2,10 +2,10 @@
 
 # Source VyOS router functions
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-ls -lath .
+#ls -lath .
 
-if [ -f hack/freeipa_vars.sh ]; then
-  source hack/freeipa_vars.sh
+if [ -f ${SCRIPT_DIR}/../hack/freeipa_vars.sh ]; then
+  source ${SCRIPT_DIR}/../hack/freeipa_vars.sh
 else 
   exit 1
 fi

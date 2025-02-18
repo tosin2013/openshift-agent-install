@@ -1,6 +1,9 @@
 #!/bin/bash
 
 # This script runs end-to-end tests targeting OpenShift 4.17
+export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+set -x
+set -e
 
 # Colors for output
 RED='\033[0;31m'
@@ -56,13 +59,20 @@ create_test_iso() {
 
     # updating dns server in the config
     check_freeipa
-    yq e -i '.dns_servers[0] = "'${ip_address}'"' "examples/${config_dir}/cluster.yml" || print_status "Failed to update dns server in cluster.yml" 1
-    yq e -i 'del(.dns_servers[1])' "examples/${config_dir}/cluster.yml" || print_status "Failed to delete dns server in cluster.yml" 1
+    if [[ ! "$config_dir" =~ ^(examples|site-config)/ ]]; then
+        config_path="examples/${config_dir}/cluster.yml"
+    else
+        config_path="${config_dir}/cluster.yml"
+    fi
+    yq e -i '.dns_servers[0] = "'${ip_address}'"' "$config_path" || print_status "Failed to update dns server in cluster.yml" 1
+    yq e -i 'del(.dns_servers[1])' "$config_path" || print_status "Failed to delete dns server in cluster.yml" 1
 
     ./hack/create-iso.sh "$config_dir" || print_status "Failed to create ISO" 1
 
-    print_status "Test ISO created successfully" 0
-    echo "Config dir used: $config_dir"
+print_status "Test ISO created successfully" 0
+echo "Config dir used: $config_dir"
+
+./hack/configure_dns_entries.sh $config_dir || print_status "Failed to configure DNS entries" 1
 }
 
 deploy_test_vms() {

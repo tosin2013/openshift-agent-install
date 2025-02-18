@@ -205,6 +205,37 @@ validate_registry_auth() {
     fi
 }
 
+# --- Ansible Vault Validation ---
+validate_ansible_vault() {
+    print_section "Validating Ansible Vault Setup"
+    
+    # Check vault password file
+    if [ -f "/home/lab-user/.vault_password" ]; then
+        # Verify permissions
+        PERMS=$(stat -c "%a" /home/lab-user/.vault_password)
+        OWNER=$(stat -c "%U:%G" /home/lab-user/.vault_password)
+        if [ "$PERMS" = "600" ] && [ "$OWNER" = "lab-user:users" ]; then
+            print_status "Vault password file exists with correct permissions" 0
+        else
+            print_status "Vault password file has incorrect permissions" 1
+        fi
+    else
+        print_status "Vault password file not found" 1
+    fi
+
+    # Check vault.yml
+    if [ -f "vault.yml" ]; then
+        # Verify if file is encrypted
+        if grep -q "ANSIBLE_VAULT" "vault.yml"; then
+            print_status "vault.yml exists and is encrypted" 0
+        else
+            print_status "vault.yml exists but is not encrypted" 1
+        fi
+    else
+        print_status "vault.yml not found" 1
+    fi
+}
+
 # --- Operating System Validation ---
 validate_os() {
     print_section "Validating Operating System"
@@ -226,6 +257,7 @@ validate_environment() {
     validate_selinux
     validate_infrastructure
     validate_registry_auth
+    validate_ansible_vault
 
     print_section "Environment Validation Complete"
 }
