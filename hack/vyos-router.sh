@@ -32,28 +32,47 @@ function create_livirt_networks(){
     array=( "1924" "1925" "1926" "1927"  "1928" )
     for i in "${array[@]}"
     do
-        echo "$i"
+        echo "Checking network $i..."
 
-        tmp=$(sudo virsh net-list | grep "$i" | awk '{ print $3}')
-        if ([ "x$tmp" == "x" ] || [ "x$tmp" != "xyes" ])
-        then
-            echo "$i network does not exist creating it"
-            # Try additional commands here...
+        # Check if network exists and is active using sudo for the entire pipeline
+        if sudo bash -c "virsh net-list --all | grep -q '^[[:space:]]*$i[[:space:]]*active'"; then
+            echo "Network $i exists and is active"
+            continue
+        fi
 
-            cat << EOF > /tmp/$i.xml
+        echo "Creating network $i..."
+
+        # Create network XML with proper permissions
+        sudo bash -c "cat > /tmp/$i.xml << EOF
 <network>
-<name>$i</name>
-<bridge name='virbr$(echo "${i:0-1}")' stp='on' delay='0'/>
-<domain name='$i' localOnly='yes'/>
+  <name>$i</name>
+  <bridge name='virbr$(echo "${i:0-1}")' stp='on' delay='0'/>
+  <domain name='$i' localOnly='yes'/>
 </network>
-EOF
+EOF"
 
-            sudo virsh net-define /tmp/$i.xml
-            sudo virsh net-start $i
-            sudo virsh net-autostart  $i
-    else
-            echo "$i network already exists"
-    fi
+        # Define network with error handling
+        if ! sudo virsh net-define /tmp/$i.xml; then
+            echo "Error: Failed to define network $i"
+            continue
+        fi
+
+        # Start network with error handling
+        if ! sudo virsh net-start $i; then
+            echo "Error: Failed to start network $i"
+            continue
+        fi
+
+        # Enable autostart with error handling
+        if ! sudo virsh net-autostart $i; then
+            echo "Error: Failed to set autostart for network $i"
+            continue
+        fi
+
+        echo "Successfully created and configured network $i"
+        
+        # Cleanup
+        sudo rm -f /tmp/$i.xml
     done
 }
 
