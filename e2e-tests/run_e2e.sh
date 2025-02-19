@@ -12,6 +12,12 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
+if [ -f hack/freeipa_vars.sh ]; then
+  source hack/freeipa_vars.sh
+else 
+  exit 1
+fi
+
 # Print with color
 print_status() {
     if [ $2 -eq 0 ]; then
@@ -64,6 +70,7 @@ create_test_iso() {
     else
         config_path="${config_dir}/cluster.yml"
     fi
+    yq e -i '.base_domain = "'${DOMAIN}'"' "$config_path" || print_status "Failed to update base domain in cluster.yml" 1
     yq e -i '.dns_servers[0] = "'${ip_address}'"' "$config_path" || print_status "Failed to update dns server in cluster.yml" 1
     yq e -i 'del(.dns_servers[1])' "$config_path" || print_status "Failed to delete dns server in cluster.yml" 1
 
