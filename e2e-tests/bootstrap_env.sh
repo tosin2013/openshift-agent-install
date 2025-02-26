@@ -150,7 +150,7 @@ install_openshift_cli() {
     if [ "$rhel_version" -eq 8 ]; then
         oc_version="stable-4.15"
     else
-        oc_version="stable-4.17"
+        oc_version="stable-4.18"
     fi
 
     print_info "Downloading and installing OpenShift CLI version: $oc_version"
