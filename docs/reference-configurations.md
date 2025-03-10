@@ -1,87 +1,73 @@
 ---
 layout: default
 title: Reference Configurations
-description: Reference configurations for OpenShift Agent-based installations
+description: Reference configurations for the OpenShift Agent-based Installation Helper
 ---
 
 # Reference Configurations
 
-This guide provides reference configurations for various OpenShift Agent-based installation scenarios.
+This guide provides reference configurations for using the OpenShift Agent-based Installation Helper tools.
 
 ## Overview
 
-Reference configurations help ensure consistent and reliable OpenShift deployments. This guide includes:
+This helper repository provides pre-defined configurations and automation for common OpenShift deployment patterns:
 - Single-Node OpenShift (SNO)
 - Three-Node Compact Cluster
 - Standard HA Cluster
-- Platform-Specific Configurations
-- Network Configurations
-- Storage Configurations
+- Platform-specific configurations (Bare Metal, vSphere, platform=none)
+
+## Using the Configuration Templates
+
+### 1. Basic Usage
+
+```bash
+# Copy an example configuration
+cp examples/sno/cluster.yml my-cluster/
+cp examples/sno/nodes.yml my-cluster/
+
+# Generate the installation media
+./hack/create-iso.sh my-cluster
+```
 
 ## Single-Node OpenShift (SNO)
 
 ### Basic SNO Configuration
 
 ```yaml
-apiVersion: v1alpha1
-kind: AgentConfig
-metadata:
-  name: sno-cluster
-spec:
-  rendezvousIP: 192.168.1.10
-  hosts:
-    - hostname: sno-node
-      role: master
-      rootDeviceHints:
-        deviceName: /dev/sda
+# cluster.yml
+cluster_name: my-sno
+base_domain: example.com
+platform_type: none
+control_plane_replicas: 1
+app_node_replicas: 0
+
+network_config:
+  api_vips:
+    - 192.168.70.46
+  app_vips:
+    - 192.168.70.46
+  machine_network_cidrs:
+    - 192.168.70.0/23
+
+# nodes.yml
+nodes:
+  - hostname: sno-node
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: ens3
+        mac_address: "52:54:00:00:00:01"
+    networkConfig:
       interfaces:
         - name: ens3
-          macAddress: "52:54:00:00:00:01"
-      networkConfig:
-        interfaces:
-          - name: ens3
-            type: ethernet
-            state: up
-            ipv4:
-              enabled: true
-              address:
-                - ip: 192.168.1.10
-                  prefix-length: 24
-```
-
-### SNO with Bonded Network
-
-```yaml
-apiVersion: v1alpha1
-kind: AgentConfig
-metadata:
-  name: sno-bonded
-spec:
-  hosts:
-    - hostname: sno-node
-      role: master
-      interfaces:
-        - name: ens3
-          macAddress: "52:54:00:00:00:01"
-        - name: ens4
-          macAddress: "52:54:00:00:00:02"
-      networkConfig:
-        interfaces:
-          - name: bond0
-            type: bond
-            state: up
-            ipv4:
-              enabled: true
-              address:
-                - ip: 192.168.1.10
-                  prefix-length: 24
-            link-aggregation:
-              mode: 802.3ad
-              options:
-                miimon: '100'
-              port:
-                - ens3
-                - ens4
+          type: ethernet
+          state: up
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.70.46
+                prefix-length: 23
 ```
 
 ## Three-Node Compact Cluster
@@ -89,202 +75,96 @@ spec:
 ### Basic Compact Configuration
 
 ```yaml
-apiVersion: v1alpha1
-kind: AgentConfig
-metadata:
-  name: compact-cluster
-spec:
-  hosts:
-    - hostname: master-0
-      role: master
-      rootDeviceHints:
-        deviceName: /dev/sda
-      networkConfig:
-        interfaces:
-          - name: ens3
-            type: ethernet
-            state: up
-            ipv4:
-              enabled: true
-              address:
-                - ip: 192.168.1.10
-                  prefix-length: 24
-    - hostname: master-1
-      role: master
-      networkConfig:
-        interfaces:
-          - name: ens3
-            type: ethernet
-            state: up
-            ipv4:
-              enabled: true
-              address:
-                - ip: 192.168.1.11
-                  prefix-length: 24
-    - hostname: master-2
-      role: master
-      networkConfig:
-        interfaces:
-          - name: ens3
-            type: ethernet
-            state: up
-            ipv4:
-              enabled: true
-              address:
-                - ip: 192.168.1.12
-                  prefix-length: 24
+# cluster.yml
+cluster_name: compact-cluster
+base_domain: example.com
+platform_type: baremetal
+control_plane_replicas: 3
+app_node_replicas: 0
+
+# nodes.yml
+nodes:
+  - hostname: master-0
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda
+    networkConfig:
+      interfaces:
+        - name: ens3
+          type: ethernet
+          state: up
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.70.10
+                prefix-length: 23
+  # ... master-1 and master-2 configurations
 ```
 
-## Standard HA Cluster
-
-### HA Cluster Configuration
-
-```yaml
-apiVersion: v1alpha1
-kind: AgentConfig
-metadata:
-  name: ha-cluster
-spec:
-  hosts:
-    - hostname: master-0
-      role: master
-    - hostname: master-1
-      role: master
-    - hostname: master-2
-      role: master
-    - hostname: worker-0
-      role: worker
-    - hostname: worker-1
-      role: worker
-  networking:
-    clusterNetwork:
-      - cidr: 10.128.0.0/14
-        hostPrefix: 23
-    serviceNetwork:
-      - 172.30.0.0/16
-    machineNetwork:
-      - cidr: 192.168.1.0/24
-```
-
-## Platform-Specific Configurations
+## Platform-Specific Examples
 
 ### Bare Metal Configuration
 
 ```yaml
-apiVersion: v1alpha1
-kind: AgentConfig
-metadata:
-  name: baremetal-cluster
-spec:
-  hosts:
-    - hostname: master-0
-      role: master
-      bmcAddress: redfish://192.168.1.100/redfish/v1/Systems/1
-      bmcCredentialsName: bmc-secret
-      bootMACAddress: "52:54:00:00:00:01"
-      rootDeviceHints:
-        deviceName: /dev/sda
+# cluster.yml
+platform_type: baremetal
+bmc_config:
+  username: ADMIN
+  password: ADMIN
+  disable_certificate_verification: true
+
+# nodes.yml
+nodes:
+  - hostname: master-0
+    role: master
+    bmc:
+      address: redfish://192.168.1.100/redfish/v1/Systems/1
+      username: ADMIN
+      password: ADMIN
+    rootDeviceHints:
+      deviceName: /dev/sda
 ```
 
 ### VMware Configuration
 
 ```yaml
-apiVersion: v1alpha1
-kind: AgentConfig
-metadata:
-  name: vsphere-cluster
-spec:
-  platform:
-    vsphere:
-      vcenters:
-        - server: vcenter.example.com
-          username: administrator@vsphere.local
-          password: password
-          datacenters:
-            - datacenter1
+# cluster.yml
+platform_type: vsphere
+vsphere_config:
+  vcenter: vcenter.example.com
+  username: administrator@vsphere.local
+  password: password
+  datacenter: datacenter1
+  cluster: cluster1
+  network: VM Network
+  datastore: datastore1
 ```
 
-## Network Configurations
+## Helper Scripts
 
-### Advanced Network Configuration
+The repository provides several helper scripts for common tasks:
 
-```yaml
-apiVersion: v1alpha1
-kind: AgentConfig
-metadata:
-  name: network-config
-spec:
-  networking:
-    networkType: OVNKubernetes
-    clusterNetwork:
-      - cidr: 10.128.0.0/14
-        hostPrefix: 23
-    serviceNetwork:
-      - 172.30.0.0/16
-    machineNetwork:
-      - cidr: 192.168.1.0/24
-  hosts:
-    - hostname: master-0
-      networkConfig:
-        interfaces:
-          - name: bond0
-            type: bond
-            state: up
-            link-aggregation:
-              mode: 802.3ad
-              port:
-                - ens3
-                - ens4
-          - name: bond0.100
-            type: vlan
-            state: up
-            vlan:
-              base-iface: bond0
-              id: 100
-```
+```bash
+# Generate installation media
+./hack/create-iso.sh <cluster-dir>
 
-## Storage Configurations
+# Validate configuration
+./hack/validate-config.sh <cluster-dir>
 
-### Local Storage Configuration
-
-```yaml
-apiVersion: v1alpha1
-kind: AgentConfig
-metadata:
-  name: storage-config
-spec:
-  hosts:
-    - hostname: master-0
-      role: master
-      rootDeviceHints:
-        deviceName: /dev/sda
-      storage:
-        disks:
-          - device: /dev/sdb
-            partitions:
-              - size: 100GiB
-                start: 0GiB
-                label: data
-```
-
-### External Storage Configuration
-
-```yaml
-apiVersion: storage.k8s.io/v1
-kind: StorageClass
-metadata:
-  name: nfs-storage
-provisioner: kubernetes.io/nfs
-parameters:
-  server: nfs-server.example.com
-  path: /exports
-  readOnly: "false"
+# Deploy using Ansible
+cd playbooks/
+ansible-playbook -e "@../my-cluster/cluster.yml" deploy.yml
 ```
 
 ## Related Documentation
 
-- [Installation Guide](installation-guide)
-- [Network Configuration](network-configuration)
-- [Storage Configuration](storage-configuration)
-- [Platform Guides](platform-guides)
-- [Deployment Patterns](deployment-patterns) 
+- [Installation Guide](./installation-guide.md)
+- [Network Configuration](./network-configuration.md)
+- [Platform Guides](./platform-guides.md)
+- [Deployment Patterns](./deployment-patterns.md)
+
+## External Resources
+
+- [OpenShift Agent-Based Installation Overview](https://docs.openshift.com/container-platform/latest/installing/installing_with_agent_based_installer/preparing-to-install-with-agent-based-installer.html)
+- [Platform-Specific Installation Guides](https://docs.openshift.com/container-platform/latest/installing/index.html)
+- [Post-Installation Configuration](https://docs.openshift.com/container-platform/latest/post_installation_configuration/cluster-tasks.html) 

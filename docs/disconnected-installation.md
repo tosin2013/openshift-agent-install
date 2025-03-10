@@ -25,6 +25,21 @@ A disconnected installation is useful when your environment:
   - 16 GB RAM
   - 100 GB storage
 
+### Registry Options
+
+You can use several container registry solutions for your disconnected environment:
+
+1. [Red Hat Quay](https://access.redhat.com/documentation/en-us/red_hat_quay/3.10) - Enterprise container registry platform
+2. [Harbor Registry](https://goharbor.io/) - Cloud native registry project
+3. [JFrog Artifactory](https://jfrog.com/artifactory/) - Universal artifact repository
+4. [Docker Registry](https://docs.docker.com/registry/) - Basic container registry
+
+For automated registry setup and disconnected installation assistance, you can use the [OpenShift 4 Disconnected Helper](https://github.com/tosin2013/ocp4-disconnected-helper) tool, which provides:
+- Automated registry setup (Harbor, JFrog)
+- Image mirroring utilities
+- Disconnected installation helpers
+- Troubleshooting tools
+
 ### Software Requirements
 ```bash
 # Install required packages
@@ -40,6 +55,9 @@ sudo dnf install -y \
 
 ### 1. Configure Mirror Registry
 
+Choose one of the following registry setup options:
+
+#### Option 1: Basic Docker Registry
 ```bash
 # Create registry certificates
 mkdir -p /opt/registry/certs
@@ -64,6 +82,27 @@ podman run --name mirror-registry \
   -e "REGISTRY_HTTP_TLS_CERTIFICATE=/certs/registry.crt" \
   -e "REGISTRY_HTTP_TLS_KEY=/certs/registry.key" \
   -d docker.io/library/registry:2
+```
+
+#### Option 2: Red Hat Quay
+For Quay installation instructions, see [Installing Red Hat Quay on RHEL](https://access.redhat.com/documentation/en-us/red_hat_quay/3.10/html/deploy_red_hat_quay_on_rhel/index).
+
+#### Option 3: Harbor Registry
+For Harbor setup using the disconnected helper:
+```bash
+# Using the disconnected helper tool
+git clone https://github.com/tosin2013/ocp4-disconnected-helper
+cd ocp4-disconnected-helper
+ansible-playbook -i inventory setup-harbor-registry.yml
+```
+
+#### Option 4: JFrog Registry
+For JFrog setup using the disconnected helper:
+```bash
+# Using the disconnected helper tool
+git clone https://github.com/tosin2013/ocp4-disconnected-helper
+cd ocp4-disconnected-helper
+ansible-playbook -i inventory setup-jfrog-registry.yml
 ```
 
 ### 2. Mirror OpenShift Images
@@ -243,3 +282,10 @@ dig registry.example.com
 - [Network Configuration](network-configuration)
 - [Configuration Guide](configuration-guide)
 - [Troubleshooting Guide](troubleshooting)
+
+### External Resources
+- [Red Hat Quay Documentation](https://access.redhat.com/documentation/en-us/red_hat_quay/3.10)
+- [Harbor Documentation](https://goharbor.io/docs/latest/working-with-projects/create-projects/)
+- [JFrog Container Registry Documentation](https://www.jfrog.com/confluence/display/JFROG/Get+Started%3A+JFrog+Container+Registry)
+- [OpenShift 4 Disconnected Helper](https://github.com/tosin2013/ocp4-disconnected-helper)
+- [OpenShift 4.17 Disconnected Installation Documentation](https://docs.openshift.com/container-platform/4.17/installing/disconnected_install/installing-mirroring-disconnected.html)

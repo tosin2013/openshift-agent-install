@@ -1,211 +1,140 @@
 ---
 layout: default
 title: Network Configuration
-description: Guide for configuring networking in OpenShift Agent-based installations
+description: Guide for configuring networking using the OpenShift Agent-based Installation Helper
 ---
 
 # Network Configuration Guide
 
-This guide covers network configuration for OpenShift Agent-based installations.
+This guide covers network configuration using the OpenShift Agent-based Installation Helper tools and playbooks.
 
 ## Overview
 
-Proper network configuration is crucial for a successful OpenShift Agent-based installation. This guide covers:
-- Network Requirements
-- DNS Configuration
-- Load Balancer Setup
-- Network Policies
-- Advanced Networking Features
+This helper repository simplifies network configuration for OpenShift Agent-based installations by providing:
+- Pre-defined network configuration templates
+- Ansible playbooks for network validation
+- Helper scripts for common network setups
+- Automated network configuration generation
 
-## Network Requirements
+## Using the Network Configuration Tools
 
-### Minimum Requirements
+### 1. Define Network Configuration
 
-- A dedicated network for cluster communication
-- Non-overlapping subnets for:
-  - Machine Network (for nodes)
-  - Service Network (for services)
-  - Cluster Network (for pods)
-- Internet access (for connected installations) or appropriate proxy configuration
-
-### Example Network Configuration
+Create your network configuration in your cluster's variables file:
 
 ```yaml
-apiVersion: v1alpha1
-kind: AgentConfig
-metadata:
-  name: cluster-network
-spec:
-  networking:
-    clusterNetwork:
-      - cidr: 10.128.0.0/14
-        hostPrefix: 23
-    serviceNetwork:
-      - 172.30.0.0/16
-    machineNetwork:
-      - cidr: 192.168.1.0/24
+# cluster.yml
+network_config:
+  api_vips:
+    - 192.168.70.46
+  app_vips:
+    - 192.168.70.46
+  machine_network_cidrs:
+    - 192.168.70.0/23
+  cluster_network_cidr: 10.128.0.0/14
+  cluster_network_host_prefix: 23
+  service_network_cidrs:
+    - 172.30.0.0/16
+  network_type: OVNKubernetes
 ```
 
-## DNS Configuration
+### 2. Generate Network Configuration
 
-### Required DNS Records
+Use the provided playbook to generate your network configuration:
 
-1. API Endpoints:
-```
-api.cluster_name.domain.com
-api-int.cluster_name.domain.com
-```
-
-2. Ingress Wildcard:
-```
-*.apps.cluster_name.domain.com
+```bash
+cd playbooks/
+ansible-playbook -e "@your-cluster-vars.yml" create-manifests.yml
 ```
 
-### Example DNS Configuration
+### 3. Network Configuration Examples
 
+#### Single Node OpenShift (SNO)
 ```yaml
-apiVersion: v1
-kind: ConfigMap
-metadata:
-  name: dns-config
-  namespace: openshift-config
-data:
-  Corefile: |
-    cluster.local:5353 {
-        forward . 192.168.1.53
-        errors
-        health
-    }
+nodes:
+  - hostname: sno
+    interfaces:
+      - name: enp97s0f0
+        mac_address: D0:50:99:DD:58:95
+    networkConfig:
+      interfaces:
+        - name: enp97s0f0.70
+          type: vlan
+          state: up
+          vlan:
+            id: 70
+            base-iface: enp97s0f0
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.70.46
+                prefix-length: 23
 ```
 
-## Load Balancer Setup
-
-### Required Endpoints
-
-| Port      | Backend Protocol | Description           |
-|-----------|-----------------|------------------------|
-| 6443      | TCP            | Kubernetes API         |
-| 22623     | TCP            | Machine Config Server  |
-| 443, 80   | TCP            | Router/Ingress        |
-
-### Example HAProxy Configuration
-
-```
-frontend kubernetes_api
-    bind *:6443
-    mode tcp
-    option tcplog
-    default_backend kubernetes_api
-
-backend kubernetes_api
-    mode tcp
-    balance roundrobin
-    server bootstrap bootstrap.example.com:6443 check
-    server master0 master0.example.com:6443 check
-    server master1 master1.example.com:6443 check
-    server master2 master2.example.com:6443 check
-```
-
-## Network Policies
-
-### Default Network Policies
-
+#### Three-Node Cluster with Bonding
 ```yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: deny-by-default
-spec:
-  podSelector: {}
-  policyTypes:
-  - Ingress
-  - Egress
+nodes:
+  - hostname: master-0
+    interfaces:
+      - name: ens3
+        mac_address: "52:54:00:00:00:01"
+      - name: ens4
+        mac_address: "52:54:00:00:00:02"
+    networkConfig:
+      interfaces:
+        - name: bond0
+          type: bond
+          state: up
+          link-aggregation:
+            mode: 802.3ad
+            port:
+              - ens3
+              - ens4
 ```
 
-### Example Allow Policy
+## Network Validation
 
-```yaml
-apiVersion: networking.k8s.io/v1
-kind: NetworkPolicy
-metadata:
-  name: allow-same-namespace
-spec:
-  podSelector: {}
-  ingress:
-  - from:
-    - podSelector: {}
-```
+The repository provides validation tools to ensure your network configuration is correct:
 
-## Advanced Features
+```bash
+# Run network validation playbook
+./scripts/validate-network.sh your-cluster-vars.yml
 
-### OVN-Kubernetes Configuration
-
-```yaml
-apiVersion: operator.openshift.io/v1
-kind: Network
-metadata:
-  name: cluster
-spec:
-  defaultNetwork:
-    ovnKubernetesConfig:
-      mtu: 1400
-      genevePort: 6081
-```
-
-### IPsec Encryption
-
-```yaml
-apiVersion: operator.openshift.io/v1
-kind: Network
-metadata:
-  name: cluster
-spec:
-  defaultNetwork:
-    ovnKubernetesConfig:
-      ipsecConfig: {}
+# Verify DNS configuration
+./scripts/verify-dns.sh your-cluster-name.domain
 ```
 
 ## Troubleshooting
 
-### Common Network Issues
+### Common Issues
 
-1. DNS Resolution
+1. VIP Configuration
 ```bash
-# Test DNS resolution
-dig api.cluster_name.domain.com
-dig test.apps.cluster_name.domain.com
+# Check VIP accessibility
+./scripts/check-vips.sh your-cluster-vars.yml
 ```
 
-2. Load Balancer Connectivity
+2. Network Connectivity
 ```bash
-# Test API endpoint
-curl -k https://api.cluster_name.domain.com:6443/version
+# Validate node connectivity
+./scripts/verify-connectivity.sh your-cluster-vars.yml
 ```
 
-3. Pod-to-Pod Communication
+3. DNS Resolution
 ```bash
-# Test pod connectivity
-oc debug node/<node_name>
-chroot /host
-ping <pod_ip>
-```
-
-### Network Diagnostics
-
-```bash
-# Check network operator status
-oc get clusteroperator network
-
-# View network configuration
-oc get network.config.openshift.io cluster -o yaml
-
-# Check pod networking
-oc get pods -n openshift-network-operator
+# Verify DNS setup
+./scripts/verify-dns.sh your-cluster-vars.yml
 ```
 
 ## Related Documentation
 
-- [Installation Guide](installation-guide)
-- [Configuration Guide](configuration-guide)
-- [Troubleshooting Guide](troubleshooting)
-- [Security Guide](security-guide)
+- [Installation Guide](./installation-guide.md)
+- [Configuration Guide](./configuration-guide.md)
+- [Troubleshooting Guide](./troubleshooting.md)
+- [Advanced Networking](./advanced-networking.md)
+
+## External Resources
+
+- [OpenShift Agent-Based Installation Overview](https://docs.openshift.com/container-platform/latest/installing/installing_with_agent_based_installer/preparing-to-install-with-agent-based-installer.html)
+- [RHEL Network Configuration](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9/html/configuring_and_managing_networking/index)
+- [NMState Network Configuration](https://nmstate.io/examples.html)

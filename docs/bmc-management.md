@@ -1,6 +1,6 @@
 # BMC Management Guide
 
-This guide provides detailed information about Baseboard Management Controller (BMC) configuration and management in OpenShift Agent-based installations.
+This guide provides detailed information about Baseboard Management Controller (BMC) configuration and management in OpenShift Agent-based installations. For a comprehensive introduction to BMC technology, see the [DMTF BMC Management Specifications](https://www.dmtf.org/standards/pmci).
 
 ## Table of Contents
 
@@ -13,17 +13,20 @@ This guide provides detailed information about Baseboard Management Controller (
 
 ## Overview
 
-Baseboard Management Controller (BMC) management is crucial for remote server management and automation in OpenShift deployments. This guide covers both production BMC configurations and development/testing environments using BMC emulation.
+Baseboard Management Controller (BMC) management is crucial for remote server management and automation in OpenShift deployments. This guide covers both production BMC configurations and development/testing environments using BMC emulation. For foundational understanding, see [Intel's BMC Technical Overview](https://www.intel.com/content/www/us/en/servers/ipmi/ipmi-technical-resources.html).
 
 ## BMC Configuration
 
+For detailed BMC configuration best practices, see [Red Hat's BMC Configuration Guide](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/managing_systems_using_the_rhel_8_web_console/configuring-server-management-using-the-rhel-web-console_system-management-using-the-rhel-8-web-console).
+
 ### Supported BMC Types
 
-- Redfish
-- IPMI
-- iDRAC (Dell)
-- iLO (HPE)
-- XCC (Lenovo)
+For detailed specifications of each BMC type, refer to:
+- [Redfish Specification](https://www.dmtf.org/standards/redfish)
+- [IPMI Specification](https://www.intel.com/content/www/us/en/products/docs/servers/ipmi/ipmi-second-gen-interface-spec-v2-rev1-1.html)
+- [Dell iDRAC Documentation](https://www.dell.com/support/kbdoc/en-us/000178115/idrac-support-matrix)
+- [HPE iLO Documentation](https://support.hpe.com/hpesc/public/docDisplay?docId=a00018324en_us)
+- [Lenovo XCC Documentation](https://sysmgt.lenovofiles.com/help/topic/com.lenovo.systems.management.xcc.doc/dw1lm_c_chapter1_introduction.html)
 
 ### Basic BMC Setup
 
@@ -39,6 +42,8 @@ nodes:
 ```
 
 ## Redfish Integration
+
+For comprehensive Redfish implementation guidelines, see the [DMTF Redfish Implementation Guide](https://www.dmtf.org/sites/default/files/standards/documents/DSP2046_2023.1.pdf).
 
 ### Configuration
 
@@ -96,6 +101,8 @@ sudo systemctl enable --now sushy-emulator
 
 ## Testing Environment
 
+For detailed information about virtual BMC testing environments, see [Metal3-io's Documentation](https://metal3.io/documentation.html).
+
 ### Virtual BMC Setup
 
 1. **Prerequisites**:
@@ -146,69 +153,24 @@ sudo podman logs sushy-emulator
 
 ## Security Considerations
 
-1. **Certificate Management**:
-   - Use SSL certificates in production
-   - Configure proper certificate verification
-   - Manage trusted CA certificates
-
-2. **Access Control**:
-   - Implement strong password policies
-   - Use dedicated service accounts
-   - Regular credential rotation
-
-3. **Network Security**:
-   - Isolate BMC network
-   - Configure proper firewall rules
-   - Use VLANs for separation
+For comprehensive BMC security guidelines, refer to:
+- [NIST Security Guidelines for BMC](https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-193.pdf)
+- [DMTF Security Protocol and Data Model](https://www.dmtf.org/sites/default/files/standards/documents/DSP0274_1.0.0.pdf)
+- [OpenBMC Security Guide](https://github.com/openbmc/docs/blob/master/security/SECURITY.md)
 
 ## Production Recommendations
 
-1. **High Availability**:
-   - Redundant BMC network
-   - Backup power supplies
-   - Fallback authentication methods
-
-2. **Monitoring**:
-   - BMC health checks
-   - Error logging and alerts
-   - Performance monitoring
-
-3. **Maintenance**:
-   - Regular firmware updates
-   - Configuration backups
-   - Documentation updates
+For production deployment best practices, see:
+- [Red Hat's Enterprise Hardware Management Guide](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/managing_systems_using_the_rhel_8_web_console/managing-systems-using-the-rhel-8-web-console_system-management-using-the-rhel-8-web-console)
+- [DMTF Platform Management Components White Paper](https://www.dmtf.org/sites/default/files/standards/documents/DSP2018_1.0.0.pdf)
+- [Intel Data Center BMC Management Guide](https://www.intel.com/content/www/us/en/products/docs/servers/enterprise-servers/server-management-white-paper.html)
 
 ## Troubleshooting
 
-### Common Issues
-
-1. **Connection Problems**:
-   - Verify network connectivity
-   - Check firewall rules
-   - Validate BMC IP configuration
-
-2. **Authentication Issues**:
-   - Verify credentials
-   - Check account privileges
-   - Review SSL certificate status
-
-3. **Performance Issues**:
-   - Monitor resource usage
-   - Check network latency
-   - Review system logs
-
-### Diagnostic Commands
-
-```bash
-# Check BMC network interface
-ip addr show sushy-bmc
-
-# Test Redfish endpoint
-curl -k https://<bmc-ip>/redfish/v1/Systems
-
-# View service logs
-journalctl -u sushy-emulator
-```
+For detailed troubleshooting procedures, refer to:
+- [Red Hat's BMC Troubleshooting Guide](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/managing_systems_using_the_rhel_8_web_console/troubleshooting-problems-with-managing-systems-using-the-rhel-8-web-console_system-management-using-the-rhel-8-web-console)
+- [OpenBMC Debugging Guide](https://github.com/openbmc/docs/blob/master/development/dev-environment.md)
+- [Metal3-io Troubleshooting Guide](https://metal3.io/documentation/troubleshooting.html)
 
 ## Related Documentation
 

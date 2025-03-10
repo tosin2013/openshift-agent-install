@@ -19,9 +19,13 @@ OpenShift supports various identity providers to authenticate users:
 - Google
 - Azure Active Directory
 
+For a complete overview of supported identity providers, see the [Understanding authentication](https://docs.openshift.com/container-platform/4.18/authentication/understanding-authentication.html) documentation.
+
 ## Configuration Methods
 
 ### 1. HTPasswd Provider
+
+For detailed HTPasswd configuration steps, see the [Configuring HTPasswd identity provider](https://docs.openshift.com/container-platform/4.18/authentication/identity_providers/configuring-htpasswd-identity-provider.html) documentation.
 
 ```yaml
 apiVersion: config.openshift.io/v1
@@ -53,6 +57,8 @@ oc apply -f oauth-config.yaml
 ```
 
 ### 2. LDAP Authentication
+
+For comprehensive LDAP setup instructions, see the [Configuring LDAP identity provider](https://docs.openshift.com/container-platform/4.18/authentication/identity_providers/configuring-ldap-identity-provider.html) documentation.
 
 ```yaml
 apiVersion: config.openshift.io/v1
@@ -101,6 +107,8 @@ oc apply -f oauth-ldap-config.yaml
 
 ### 3. OpenID Connect Provider
 
+For detailed OpenID Connect configuration, see the [Configuring OpenID Connect identity provider](https://docs.openshift.com/container-platform/4.18/authentication/identity_providers/configuring-oidc-identity-provider.html) documentation.
+
 ```yaml
 apiVersion: config.openshift.io/v1
 kind: OAuth
@@ -139,6 +147,8 @@ oc apply -f oauth-oidc-config.yaml
 
 ## Role-Based Access Control (RBAC)
 
+For comprehensive information about RBAC, see the [Using RBAC to define and apply permissions](https://docs.openshift.com/container-platform/4.18/authentication/using-rbac.html) documentation.
+
 ### 1. Cluster Roles
 
 ```yaml
@@ -170,6 +180,8 @@ roleRef:
 ```
 
 ## Group Synchronization
+
+For detailed information about group synchronization, see the [Syncing LDAP groups](https://docs.openshift.com/container-platform/4.18/authentication/ldap-syncing.html) documentation.
 
 ### 1. LDAP Group Sync
 
@@ -210,6 +222,8 @@ oc get groups
 
 ## Security Best Practices
 
+For comprehensive security guidelines, see the [OpenShift Container Platform security and compliance](https://docs.openshift.com/container-platform/4.18/security/index.html) documentation.
+
 ### 1. Password Policies
 
 ```yaml
@@ -225,6 +239,8 @@ spec:
 
 ### 2. Certificate Management
 
+For detailed certificate management information, see the [Replacing the default ingress certificate](https://docs.openshift.com/container-platform/4.18/security/certificates/replacing-default-ingress-certificate.html) documentation.
+
 ```bash
 # Rotate OAuth certificates
 oc -n openshift-config delete secret v4-0-config-system-oauth-template-secret
@@ -234,6 +250,8 @@ oc get secrets -n openshift-config
 ```
 
 ### 3. Audit Logging
+
+For more information about audit logging, see the [Configuring the audit log policy](https://docs.openshift.com/container-platform/4.18/security/audit-log-policy-config.html) documentation.
 
 ```yaml
 apiVersion: config.openshift.io/v1
@@ -246,6 +264,8 @@ spec:
 ```
 
 ## Troubleshooting
+
+For comprehensive troubleshooting guidance, see the [Troubleshooting OpenShift authentication and OAuth](https://docs.openshift.com/container-platform/4.18/authentication/identity_providers/configuring-oauth-identity-provider.html#oauth-troubleshooting) documentation.
 
 ### Common Issues
 
@@ -287,4 +307,11 @@ oc get routes -n openshift-authentication
 - [Installation Guide](installation-guide)
 - [Configuration Guide](configuration-guide)
 - [Security Guide](security-guide)
-- [Troubleshooting Guide](troubleshooting) 
+- [Troubleshooting Guide](troubleshooting)
+
+## External Resources
+
+- [OpenShift Container Platform Documentation](https://docs.openshift.com/container-platform/4.18/welcome/index.html)
+- [Red Hat Customer Portal](https://access.redhat.com/documentation/en-us/openshift_container_platform)
+- [OpenShift Blog](https://www.openshift.com/blog)
+- [OpenShift Authentication Operator](https://github.com/openshift/cluster-authentication-operator) 

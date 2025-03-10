@@ -10,6 +10,8 @@ This guide covers advanced networking features and configurations for OpenShift 
 
 ## Network Interface Bonding
 
+For detailed information about Linux bonding modes, see [Linux Ethernet Bonding Driver HOWTO](https://www.kernel.org/doc/Documentation/networking/bonding.txt).
+
 ### Mode Selection
 
 Common bonding modes:
@@ -18,6 +20,8 @@ Common bonding modes:
 - Mode 4 (802.3ad)
 - Mode 5 (balance-tlb)
 - Mode 6 (balance-alb)
+
+For more details on bonding modes, see [Red Hat's Network Bonding Documentation](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/configuring_and_managing_networking/configuring-network-bonding_configuring-and-managing-networking).
 
 ### Example Bond Configuration
 
@@ -43,6 +47,8 @@ networkConfig:
 ```
 
 ## VLAN Configuration
+
+For more information about VLANs in OpenShift, refer to the [OpenShift VLAN Configuration Guide](https://docs.openshift.com/container-platform/latest/networking/hardware_networks/configuring-sriov-device.html#nw-sriov-network-attachment_configuring-sriov-device).
 
 ### Single VLAN Setup
 
@@ -87,6 +93,8 @@ networkConfig:
 
 ## SR-IOV Configuration
 
+For comprehensive SR-IOV setup and configuration, see the [OpenShift SR-IOV Network Operator Documentation](https://docs.openshift.com/container-platform/latest/networking/hardware_networks/using-sriov-operator.html).
+
 ### Device Configuration
 
 ```yaml
@@ -129,6 +137,8 @@ spec:
 
 ## Multi-Network Configuration
 
+For detailed information about multi-network setups, see the [Kubernetes Network Plugins (CNI) Documentation](https://kubernetes.io/docs/concepts/extend-kubernetes/compute-storage-net/network-plugins/).
+
 ### Secondary Network Interface
 
 ```yaml
@@ -156,6 +166,8 @@ spec:
 
 ## Quality of Service (QoS)
 
+Learn more about Kubernetes QoS classes in the [official Kubernetes QoS documentation](https://kubernetes.io/docs/concepts/workloads/pods/pod-qos/).
+
 ### Traffic Shaping
 
 ```yaml
@@ -176,6 +188,8 @@ spec:
 ```
 
 ## Network Security
+
+For comprehensive network security best practices, see [OpenShift's Security Guide](https://docs.openshift.com/container-platform/latest/security/index.html).
 
 ### Encryption Configuration
 
@@ -213,6 +227,8 @@ spec:
 ```
 
 ## Advanced Troubleshooting
+
+For additional troubleshooting techniques, refer to [OpenShift's Networking Troubleshooting Documentation](https://docs.openshift.com/container-platform/latest/support/troubleshooting/troubleshooting-network-issues.html).
 
 ### Network Performance Testing
 
@@ -255,6 +271,8 @@ ping -s 8972 -M do <destination_ip>
 
 ## Performance Tuning
 
+For more information about network performance tuning, see [Red Hat's Performance Tuning Guide](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/monitoring_and_managing_system_status_and_performance/index).
+
 ### Network Tuning Parameters
 
 ```yaml
@@ -278,7 +296,14 @@ spec:
 
 ## Related Documentation
 
-- [Network Configuration](network-configuration)
-- [Installation Guide](installation-guide)
-- [Security Guide](security-guide)
-- [Troubleshooting Guide](troubleshooting) 
+- [OpenShift Network Configuration](https://docs.openshift.com/container-platform/latest/networking/understanding-networking.html)
+- [OpenShift Installation Guide](https://docs.openshift.com/container-platform/latest/installing/index.html)
+- [OpenShift Security Guide](https://docs.openshift.com/container-platform/latest/security/index.html)
+- [OpenShift Troubleshooting Guide](https://docs.openshift.com/container-platform/latest/support/troubleshooting/troubleshooting-installations.html)
+
+## Additional Resources
+
+- [Kubernetes Networking Documentation](https://kubernetes.io/docs/concepts/cluster-administration/networking/)
+- [CNI Specification](https://github.com/containernetworking/cni/blob/master/SPEC.md)
+- [OpenShift Networking Blog Posts](https://www.openshift.com/blog/tag/networking)
+- [Red Hat Customer Portal - Networking](https://access.redhat.com/documentation/en-us/openshift_container_platform/latest/html/networking/index) 
