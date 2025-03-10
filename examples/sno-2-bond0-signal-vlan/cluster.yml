@@ -2,7 +2,7 @@
 use_site_configs: false
 
 # pull_secret path is the path to the pull-secret for the cluster
-pull_secret_path: ~/ocp-install-pull-secret.json
+pull_secret_path:  /home/lab-user/pullsecret.json
 
 # ssh_public_key_path is the path to the SSH public key to use for the cluster
 # if this is not set then a new key pair will be generated

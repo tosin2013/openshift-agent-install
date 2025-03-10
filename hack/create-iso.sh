@@ -11,6 +11,8 @@ SITE_CONFIG_DIR="${SITE_CONFIG_DIR:-examples}"
 # Check if GENERATED_ASSET_PATH is set, if not, use the home directory
 if [ -z "${GENERATED_ASSET_PATH}" ]; then
     GENERATED_ASSET_PATH="${HOME}/generated_assets"
+else 
+    echo "GENERATED_ASSET_PATH is set to ${GENERATED_ASSET_PATH}"
 fi
 
 # Check to see if the generated asset path exists
@@ -59,25 +61,35 @@ echo -e "\n - Templating the manifests for the cluster..."
 # Run the templating playbook
 ansible-playbook -e "@${SITE_CONFIG_DIR}/${1}/cluster.yml" -e "@${SITE_CONFIG_DIR}/${1}/nodes.yml" -e "generated_asset_path=${GENERATED_ASSET_PATH}" playbooks/create-manifests.yml ${DEBUG} || { echo "Failed to template manifests"; exit 1; }
 
+# Function to generate post-install instructions
+generate_instructions() {
+    cat << EOF
+ISO created successfully!
+Location: ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/agent.x86_64.iso
+=============================================================
+Next steps:
+  1. Copy the ISO to a location accessible by the baremetal/virtual hosts
+  2. Attach and boot the hosts from the ISO
+  3. Watch the installation process with:
+     ./bin/openshift-install agent wait-for bootstrap-complete --dir ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/
+     ./bin/openshift-install agent wait-for install-complete --dir ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/
+  4. Access the cluster from the Web GUI with:
+     kubeadmin / $(cat ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/auth/kubeadmin-password)
+     https://console-openshift-console.apps.${CLUSTER_NAME}.${BASE_DOMAIN}/
+  5. Access the cluster with via the CLI with:
+     oc --kubeconfig ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/auth/kubeconfig get co
+=============================================================
+EOF
+}
+
 # Generate the ABI ISO
 echo "============================================================="
 echo -e "\nGenerating Install ISO...\n"
 ls -lath ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/  || { echo "Failed to list directory"; exit 1; }
 ./bin/openshift-install agent create image --dir ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/  || { echo "Failed to generate ISO"; exit 1; }
 
-# Display footer
-echo -e "\nISO created successfully!"
-echo "Location: ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/agent.x86_64.iso"
-echo "============================================================="
-echo "Next steps:"
-echo "  1. Copy the ISO to a location accessible by the baremetal/virtual hosts"
-echo "  2. Attach and boot the hosts from the ISO"
-echo "  3. Watch the installation process with:"
-echo "     ./bin/openshift-install agent wait-for bootstrap-complete --dir ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/"
-echo "     ./bin/openshift-install agent wait-for install-complete --dir ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/"
-echo "  4. Access the cluster from the Web GUI with:"
-echo "     kubeadmin / $(cat ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/auth/kubeadmin-password)"
-echo "     https://console-openshift-console.apps.${CLUSTER_NAME}.${BASE_DOMAIN}/"
-echo "  5. Access the cluster with via the CLI with:"
-echo "     oc --kubeconfig ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/auth/kubeconfig get co"
-echo "============================================================="
+# Save instructions to file and display them
+INSTRUCTIONS_FILE="${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/post-install-instructions.txt"
+generate_instructions | tee "${INSTRUCTIONS_FILE}"
+
+echo -e "\nPost-installation instructions have been saved to: ${INSTRUCTIONS_FILE}"

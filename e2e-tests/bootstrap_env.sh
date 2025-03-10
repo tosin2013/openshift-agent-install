@@ -1,76 +1,11 @@
 #!/bin/bash
 
-# --- Helper Functions ---
-print_status() {
-    if [ $2 -eq 0 ]; then
-        echo -e "\033[0;32m✓ $1\033[0m"
-    else
-        echo -e "\033[0;31m✗ $1\033[0m"
-        exit 1
-    fi
-}
+# export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
+# set -x
+# set -e
 
-print_section() {
-    echo -e "\n\033[1;33m$1\033[0m"
-    echo "================================"
-}
-
-print_info() {
-    echo -e "\033[0;34m$1\033[0m"
-}
-
-check_sudo() {
-    if [ "$EUID" -ne 0 ]; then
-        echo -e "\033[0;31mPlease run this script with sudo privileges\033[0m"
-        exit 1
-    fi
-}
-
-# --- Package Management ---
-install_system_packages() {
-    print_section "Installing System Packages"
-    packages=(nmstate ansible-core bind-utils libguestfs-tools cloud-init virt-install qemu-img virt-manager selinux-policy-targeted)
-    for package in "${packages[@]}"; do
-        if ! rpm -q $package &>/dev/null; then
-            print_info "Installing $package..."
-            sudo dnf install -y $package || print_status "Failed to install $package" 1
-            print_status "$package installed successfully" 0
-        else
-            print_status "$package is already installed" 0
-        fi
-    done
-
-    if ! command -v yq &>/dev/null; then
-        print_info "Installing yq..."
-        VERSION=v4.45.1 
-        BINARY=yq_linux_amd64
-        sudo wget https://github.com/mikefarah/yq/releases/download/${VERSION}/${BINARY} -O /usr/bin/yq &&\
-        sudo chmod +x /usr/bin/yq
-        print_status "yq installed successfully" 0
-    else
-        print_status "yq is already installed" 0
-    fi
-
-    print_section "Enabling libvirt"
-    dnf install -y libvirt libvirt-daemon libvirt-daemon-driver-qemu
-    sudo usermod -aG libvirt lab-user && sudo chmod 775 /var/lib/libvirt/images
-    sudo systemctl start libvirtd && sudo usermod -aG libvirt lab-user
-    if [[ $? -ne 0 ]]; then
-        print_status "Failed to enable libvirt module" 1
-        exit 1
-    fi
-    print_status "libvirt module enabled" 0
-
-    print_section "Installing kcli"
-    sudo dnf -y copr enable karmab/kcli ; sudo dnf -y install kcli
-    print_status "kcli installed" 0
-
-    print_section "Installing Cockpit"
-    sudo dnf install -y cockpit cockpit-machines
-    sudo systemctl enable --now cockpit.socket
-    print_status "Cockpit installed and enabled" 0
-}
-#!/bin/bash
+# Source VyOS router functions
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
 # --- Helper Functions ---
 print_status() {
@@ -101,7 +36,7 @@ check_sudo() {
 # --- Package Management ---
 install_system_packages() {
     print_section "Installing System Packages"
-    packages=(nmstate ansible-core bind-utils libguestfs-tools cloud-init virt-install qemu-img virt-manager selinux-policy-targeted)
+    packages=(nmstate ansible-core bind-utils libguestfs cloud-init virt-install qemu-img virt-manager selinux-policy-targeted python3-pip)
     for package in "${packages[@]}"; do
         if ! rpm -q $package &>/dev/null; then
             print_info "Installing $package..."
@@ -112,6 +47,20 @@ install_system_packages() {
         fi
     done
 
+    # Install Ansible collections
+    print_info "Installing Ansible collections..."
+    if [ -f "${SCRIPT_DIR}/../playbooks/collections/requirements.yml" ]; then
+        ansible-galaxy collection install -r "${SCRIPT_DIR}/../playbooks/collections/requirements.yml" || print_status "Failed to install Ansible collections" 1
+        print_status "Ansible collections installed successfully" 0
+    else
+        print_status "Ansible collections requirements file not found" 1
+    fi
+
+    # Ensure nmstate is installed and up to date
+    print_info "Ensuring nmstate is up to date..."
+    sudo dnf install -y nmstate || print_status "Failed to install/update nmstate" 1
+    print_status "nmstate installation verified" 0
+
     if ! command -v yq &>/dev/null; then
         print_info "Installing yq..."
         VERSION=v4.45.1 
@@ -121,6 +70,15 @@ install_system_packages() {
         print_status "yq installed successfully" 0
     else
         print_status "yq is already installed" 0
+    fi
+
+    # Install kcli
+    if ! command -v kcli &>/dev/null; then
+        print_info "Installing kcli..."
+        pip3 install kcli || print_status "Failed to install kcli" 1
+        print_status "kcli installed successfully" 0
+    else
+        print_status "kcli is already installed" 0
     fi
 
     print_section "Enabling libvirt"
@@ -137,6 +95,89 @@ install_system_packages() {
     sudo dnf install -y cockpit cockpit-machines
     sudo systemctl enable --now cockpit.socket
     print_status "Cockpit installed and enabled" 0
+}
+
+# --- Ansible Vault Setup ---
+setup_ansible_vault() {
+    print_section "Setting up Ansible Vault"
+    # Generate vault password if it doesn't exist
+    if [ ! -f "/home/lab-user/.vault_password" ]; then
+        print_info "Generating vault password..."
+        openssl rand -base64 32 > /home/lab-user/.vault_password
+        chmod 600 /home/lab-user/.vault_password
+        chown lab-user:users /home/lab-user/.vault_password
+        print_status "Vault password generated" 0
+    else
+        print_status "Vault password file exists" 0
+    fi
+
+    # Create and encrypt vault.yml
+    if [ ! -f "${SCRIPT_DIR}/../vault.yml" ]; then
+        print_info "Creating vault.yml..."
+        # Get FreeIPA admin password from environment or freeipa_vars.sh
+        if [ -f "${SCRIPT_DIR}/../hack/freeipa_vars.sh" ]; then
+            source "${SCRIPT_DIR}/../hack/freeipa_vars.sh"
+            # Create temporary vault file
+            cat > "${SCRIPT_DIR}/../vault.yml.tmp" << EOF
+---
+# FreeIPA server admin password for DNS management
+freeipa_server_admin_password: "${FREEIPA_ADMIN_PASSWORD}"
+EOF
+            # Encrypt the vault file
+            cd "${SCRIPT_DIR}/.."
+            ansible-vault encrypt --vault-password-file=/home/lab-user/.vault_password vault.yml.tmp
+            mv vault.yml.tmp vault.yml
+            chmod 600 vault.yml
+            print_status "vault.yml created and encrypted" 0
+        else
+            print_status "freeipa_vars.sh not found - cannot create vault.yml" 1
+        fi
+    else
+        print_status "vault.yml exists" 0
+    fi
+}
+
+# --- OpenShift CLI Installation ---
+install_openshift_cli() {
+    print_section "Installing OpenShift CLI Tools"
+    
+    # Create bin directory
+    mkdir -p "${SCRIPT_DIR}/../bin"
+    cd "${SCRIPT_DIR}/../bin"
+
+    # Determine the RHEL version and set appropriate OCP version
+    rhel_version=$(rpm -E %{rhel})
+    if [ "$rhel_version" -eq 8 ]; then
+        oc_version="stable-4.15"
+    else
+        oc_version="stable-4.18"
+    fi
+
+    print_info "Downloading and installing OpenShift CLI version: $oc_version"
+    if [ -f "oc" ]; then
+        print_status "OpenShift CLI tools already installed" 0
+        return
+    fi
+    # Download and extract OpenShift CLI
+    wget https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/$oc_version/openshift-client-linux.tar.gz || print_status "Failed to download OpenShift CLI" 1
+    tar zxvf openshift-client-linux.tar.gz || print_status "Failed to extract OpenShift CLI" 1
+    rm -f openshift-client-linux.tar.gz
+
+    # Download and extract OpenShift Installer
+    wget https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/$oc_version/openshift-install-linux.tar.gz || print_status "Failed to download OpenShift Installer" 1
+    tar zxvf openshift-install-linux.tar.gz || print_status "Failed to extract OpenShift Installer" 1
+    rm -f openshift-install-linux.tar.gz
+
+    # Clean up and set permissions
+    rm -f README.md
+    chmod a+x oc kubectl openshift-install
+    sudo cp oc kubectl openshift-install /usr/local/bin/
+    sudo cp oc kubectl openshift-install /usr/bin/
+
+    print_status "OpenShift CLI tools installed successfully" 0
+    
+    # Return to original directory
+    cd ../
 }
 
 install_container_tools() {
@@ -157,122 +198,33 @@ configure_selinux() {
     if ! rpm -q policycoreutils-python-utils &>/dev/null; then
         sudo dnf install -y policycoreutils-python-utils
     fi
-
-    # Set SELinux contexts and booleans (replace with actual commands)
-    # Example:
-    # sudo semanage fcontext -a -t httpd_sys_content_t "/var/lib/libvirt/images(/.*)?"
-    # sudo restorecon -R /var/lib/libvirt/images
-
     print_status "SELinux configured successfully" 0
 }
 
 handle_selinux_policies() {
     print_section "Handling SELinux Policies"
-
-    # Check and set booleans for libvirt, if semanage is available
     if command -v semanage &>/dev/null; then
-        # Example:
-        # if ! semanage boolean -l | grep -q virt_use_nfs; then
-        #     sudo semanage boolean -m --on virt_use_nfs
-        # fi
         :
     fi
-
     print_status "SELinux policies handled successfully" 0
 }
 
 # --- Network Configuration ---
-configure_virtual_networks() {
-    print_section "Configuring Virtual Networks"
-    array=( "1924" "1925" "1926" "1927" "1928" )
-    for i in "${array[@]}"; do
-        tmp=$(sudo virsh net-list | grep "$i" | awk '{ print $3}')
-        if ([ "x$tmp" == "x" ] || [ "x$tmp" != "xyes" ]); then
-            echo "$i network does not exist creating it"
-            cat << EOF > /tmp/$i.xml
-<network>
-<name>$i</name>
-<bridge name='virbr$(echo "${i:0-1}")' stp='on' delay='0'/>
-<domain name='$i' localOnly='yes'/>
-</network>
-EOF
-
-            sudo virsh net-define /tmp/$i.xml
-            sudo virsh net-start $i
-            sudo virsh net-autostart $i
-        else
-            echo "$i network already exists"
-        fi
-    done
-    print_status "Virtual networks configured successfully" 0
-}
-
-setup_vyos_router() {
-    print_section "Setting up VyOS Router"
-    # Check for required variables (replace with actual checks/defaults)
-    # : ${GUID:?"GUID is not set"}
-    # : ${ZONE_NAME:?"ZONE_NAME is not set"}
-    # : ${TARGET_SERVER:?"TARGET_SERVER is not set"}
-    # : ${CLUSTER_FILE_PATH:?"CLUSTER_FILE_PATH is not set"}
-    # : ${ANSIBLE_ALL_VARIABLES:?"ANSIBLE_ALL_VARIABLES is not set"}
-
-    # if [ ! -z "$ZONE_NAME" ]; then
-    #   DOMAIN="${GUID}.${ZONE_NAME}"
-    #   ${USE_SUDO} yq e -i '.domain = "'${DOMAIN}'"' /opt/qubinode_navigator/inventories/${TARGET_SERVER}/group_vars/all.yml
-    #   ${USE_SUDO} yq e -i '.base_domain = "'${DOMAIN}'"' ${CLUSTER_FILE_PATH}
-    #   DNS_FORWARDER=$(yq eval '.dns_forwarder' "${ANSIBLE_ALL_VARIABLES}")
-    #   ${USE_SUDO} yq e -i '.dns_servers[0] = "'${DNS_FORWARDER}'"' ${CLUSTER_FILE_PATH}
-    #   ${USE_SUDO} yq e -i '.dns_search_domains[0] = "'${DOMAIN}'"' ${CLUSTER_FILE_PATH}
-    #   ${USE_SUDO} yq e -i 'del(.dns_search_domains[1])' ${CLUSTER_FILE_PATH}
-    # else
-    #   DOMAIN=$(yq eval '.domain' "${ANSIBLE_ALL_VARIABLES}")
-    # fi
-
-    IPADDR=$(sudo virsh net-dhcp-leases default | grep vyos-builder | sort -k1 -k2 | tail -1 | awk '{print $5}' | sed 's/\/24//g')
-    VYOS_VERSION="1.5-rolling-202502131743"
-    ISO_LOC="https://github.com/vyos/vyos-nightly-build/releases/download/${VYOS_VERSION}/vyos-${VYOS_VERSION}-generic-amd64.iso"
-    if [ ! -f "$HOME/vyos-${VYOS_VERSION}-generic-amd64.iso" ]; then
-        cd "$HOME" || exit 1 # Handle cd failure
-        curl -OL "$ISO_LOC" || print_status "Failed to download VyOS ISO" 1
+configure_infrastructure() {
+    print_section "Configuring Infrastructure"
+    # Deploy FreeIPA VM
+    export vm_name="freeipa"
+    export ip_address=$(sudo kcli info vm "$vm_name" "$vm_name" | grep ip: | awk '{print $2}' | head -1)
+    if [ -z "$ip_address" ]; then
+        echo "Error: FreeIPA VM IP address not found"
+        source "${SCRIPT_DIR}/../hack/deploy-freeipa.sh"
     fi
+    
+    # Use functions from vyos-router.sh
+    export ACTION="create"
+    source "${SCRIPT_DIR}/../hack/vyos-router.sh"
 
-    VM_NAME="vyos-router"
-    sudo mv "$HOME/${VM_NAME}.qcow2" /var/lib/libvirt/images/ 2>/dev/null || true # Suppress error if file doesn't exist
-    sudo cp "$HOME/vyos-${VYOS_VERSION}-generic-amd64.iso" "$HOME/seed.iso" || print_status "Failed to copy VyOS ISO" 1
-    sudo mv "$HOME/seed.iso" /var/lib/libvirt/images/seed.iso || print_status "Failed to move seed ISO" 1
-
-    sudo qemu-img create -f qcow2 /var/lib/libvirt/images/"$VM_NAME".qcow2 20G || print_status "Failed to create QCOW2 image" 1
-
-    sudo virt-install -n "$VM_NAME" \
-       --ram 4096 \
-       --vcpus 2 \
-       --cdrom /var/lib/libvirt/images/seed.iso \
-       --os-variant debian10 \
-       --network network=default,model=e1000e,mac=$(date +%s | md5sum | head -c 6 | sed -e 's/\([0-9A-Fa-f]\{2\}\)/\1:/g' -e 's/\(.*\):$/\1/' | sed -e 's/^/52:54:00:/') \
-       --network network=1924,model=e1000e \
-       --network network=1925,model=e1000e \
-       --network network=1926,model=e1000e \
-       --network network=1927,model=e1000e \
-       --network network=1928,model=e1000e \
-       --graphics vnc \
-       --hvm \
-       --virt-type kvm \
-       --disk path=/var/lib/libvirt/images/"$VM_NAME".qcow2,bus=virtio \
-       --import \
-       --noautoconsole || print_status "Failed to install VM" 1
-
-    # if [ ! -f "$HOME/vyos-config.sh" ]; then
-    #     cd "$HOME" || exit 1
-    #     curl -OL "https://raw.githubusercontent.com/tosin2013/demo-virt/rhpds/demo.redhat.com/vyos-config-1.5.sh"
-    #     mv vyos-config-1.5.sh vyos-config.sh
-    #     chmod +x vyos-config.sh
-    #     export vm_name="freeipa" # Where does this come from?
-    #     export ip_address=$(sudo kcli info vm "$vm_name" "$vm_name" | grep ip: | awk '{print $2}' | head -1) # kcli not available
-    #     sed -i "s/1.1.1.1/${ip_address}/g" vyos-config.sh
-    #     sed -i "s/example.com/${DOMAIN}/g" vyos-config.sh
-    # fi
-
-    print_status "VyOS router setup successfully" 0
+    print_status "Infrastructure configured successfully" 0
 }
 
 # --- Environment Setup ---
@@ -281,7 +233,8 @@ setup_virtualization() {
     print_info "Enabling libvirtd..."
     sudo systemctl enable --now libvirtd || print_status "Failed to enable libvirtd" 1
     print_status "libvirtd enabled successfully" 0
-    # Add any other virtualization setup commands here if needed
+    # Configure LVM for libvirt
+    source "${SCRIPT_DIR}/../hack/configure-lvm.sh"
 }
 
 setup_registry_auth() {
@@ -309,48 +262,18 @@ setup_registry_auth() {
     fi
 }
 
-# --- Validation ---
-validate_installation() {
-    print_section "Validating Installation"
-
-    # Check if required packages are installed
-    packages=(nmstate ansible-core bind-utils libguestfs-tools cloud-init virt-install qemu-img libvirt-clients bridge-utils yq selinux-policy-targeted podman policycoreutils-python-utils)
-    for package in "${packages[@]}"; do
-        if ! rpm -q $package &>/dev/null; then
-            print_status "Package $package is not installed" 1
-        fi
-    done
-
-    # Check if libvirtd is active
-    if ! systemctl is-active libvirtd &>/dev/null; then
-        print_status "libvirtd is not active" 1
-    fi
-
-    # Check virtual networks (add more specific checks as needed)
-    virsh net-list --all | grep -E '192[45678]' &>/dev/null || print_status "Virtual networks not found" 1
-
-    # Check VyOS router (replace with actual check)
-    if ! sudo virsh domstate vyos-router | grep -q running; then
-        print_status "VyOS router is not running" 1
-    fi
-
-
-    print_status "Installation validated successfully" 0
-}
-
-
 # --- Main Script ---
 check_sudo
 
 install_system_packages
+install_openshift_cli
 configure_selinux
 install_container_tools
-configure_virtual_networks
-setup_vyos_router
 setup_virtualization
+configure_infrastructure
 setup_registry_auth
 handle_selinux_policies
-validate_installation
+setup_ansible_vault  # Added ansible vault setup
 
 print_section "Bootstrap Complete"
 echo "Environment bootstrapped successfully."

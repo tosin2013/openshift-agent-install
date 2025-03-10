@@ -1,0 +1,43 @@
+title: OpenShift Agent Install
+description: Documentation for OpenShift Agent Install
+remote_theme: pages-themes/cayman@v0.2.0
+baseurl: "/openshift-agent-install"
+url: ""
+
+# Repository settings
+examples_repo: "https://github.com/tosin2013/openshift-agent-install/tree/main/examples"
+repo_name: "tosin2013/openshift-agent-install"
+branch: "main"
+
+# Build settings
+markdown: kramdown
+kramdown:
+  input: GFM
+  syntax_highlighter: rouge
+  syntax_highlighter_opts:
+    css_class: highlight
+
+# Theme settings
+show_downloads: false
+google_analytics:
+
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
+
+# Exclude from processing
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - vendor
+  - .bundle
+  - .jekyll-cache
+  - .sass-cache
+
+# Default layout for pages
+defaults:
+  -
+    scope:
+      path: "" # an empty string here means all files in the project
+    values:
+      layout: default
