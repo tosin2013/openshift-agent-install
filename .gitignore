@@ -8,3 +8,18 @@ playbooks/generated_manifests/**
 .vscode/**
 cline_docs/
 hack/freeipa_vars.sh
+
+# Jekyll specific files
+docs/_site/
+docs/_site/**
+docs/.jekyll-cache/
+docs/.jekyll-cache/**
+docs/vendor/
+docs/vendor/**
+docs/.bundle/
+docs/.bundle/**
+docs/.sass-cache/
+docs/.sass-cache/**
+.jekyll-metadata
+*~
+.DS_Store
