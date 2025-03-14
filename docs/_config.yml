@@ -2,7 +2,7 @@ title: OpenShift Agent Install
 description: Documentation for OpenShift Agent Install
 remote_theme: pages-themes/cayman@v0.2.0
 baseurl: "/openshift-agent-install"
-url: ""
+url: "https://red-hat-se-rto.github.io"
 
 # Repository settings
 examples_repo: "https://github.com/tosin2013/openshift-agent-install/tree/main/examples"

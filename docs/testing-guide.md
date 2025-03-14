@@ -48,6 +48,7 @@ Required packages and tools:
 1. **Environment Setup**
    ```bash
    # Bootstrap the environment
+   # copy hack/example.freeipa_vars.sh to hack/freeipa_vars.sh and modify the variables
    ./e2e-tests/bootstrap_env.sh
    
    # Validate the environment

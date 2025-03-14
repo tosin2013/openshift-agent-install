@@ -1,4 +1,181 @@
-# OpenShift Agent Based Installer Helper
+# OpenShift Agent-Based Installer Helper
+
+This repository contains helper utilities and documentation for deploying OpenShift clusters using the agent-based installer.
+
+## Prerequisites
+
+- VMware vSphere environment with required permissions
+- OpenShift pull secret
+- DNS server configured for the cluster domain
+- DHCP server (if using DHCP configuration) or static IP addresses
+- Required tools:
+  - nmstate
+  - ansible-core
+  - bind-utils
+  - libguestfs-tools
+  - podman
+
+## Example Configurations
+
+The repository includes several example configurations for different deployment scenarios:
+
+### VMware DHCP Example (`examples/vmware-dhcp-example`)
+
+Basic single-zone deployment using DHCP for IP address assignment:
+- 3 control plane nodes
+- 2 worker nodes
+- Single vSphere cluster/zone
+- DHCP-based networking
+- Simplified network configuration
+
+### VMware Static IP Example (`examples/vmware-example`)
+
+Single-zone deployment using static IP addresses:
+- 3 control plane nodes
+- 3 worker nodes
+- Single vSphere cluster/zone
+- Static IP configuration
+- NMState network configuration
+- Supports disk UUID enablement for OpenShift storage
+
+### VMware Multi-AZ Example (`examples/vmware-multi-az-example`)
+
+Advanced multi-zone deployment for high availability:
+- 3 control plane nodes (one per zone)
+- 3 worker nodes (one per zone)
+- Three vSphere zones (zone-a, zone-b, zone-c)
+- Supports both DHCP and static IP configurations
+- Zone-specific resource pools
+- Enhanced fault tolerance
+
+## Configuration Files
+
+Each example includes two main configuration files:
+
+### nodes.yml
+
+Defines the node configuration including:
+- Node counts (control plane and worker replicas)
+- Individual node specifications:
+  - Hostname
+  - Role (master/worker)
+  - MAC address
+  - Network interface configuration (DHCP or static IP)
+  - Root device hints
+  - Zone assignment (for multi-AZ deployments)
+
+For static IP configuration, each node includes:
+```yaml
+networkConfig:
+  interfaces:
+    - name: ens192
+      type: ethernet
+      state: up
+      mac-address: "00:50:56:80:B9:C8"
+      ipv4:
+        enabled: true
+        address:
+          - ip: "192.168.16.21"
+            prefix-length: 24
+        dhcp: false
+  routes:
+    config:
+      - destination: 0.0.0.0/0
+        next-hop-address: "192.168.16.1"
+        next-hop-interface: ens192
+        table-id: 254
+```
+
+### cluster.yml
+
+Defines the cluster-wide configuration including:
+- Cluster metadata (name, domain)
+- vSphere platform settings
+- Network configuration
+- VM specifications
+- Zone-specific settings (for multi-AZ)
+
+## VMware-Specific Configuration
+
+### VM Settings
+
+The Ansible playbook configures VMs with specific settings required for OpenShift:
+
+1. Basic VM Configuration:
+   - EFI boot enabled
+   - Paravirtual SCSI controller
+   - VMware Tools
+   - Memory/CPU hot-add enabled
+
+2. Storage Configuration:
+   - Disk UUID enabled (required for OpenShift storage)
+   ```yaml
+   advanced_settings:
+     - key: "disk.EnableUUID"
+       value: "TRUE"
+   ```
+
+3. Network Configuration:
+   - VMXNET3 network adapter
+   - MAC address preservation
+   - Static IP or DHCP support
+
+### Multi-AZ Support
+
+For multi-AZ deployments:
+1. Define zone-specific settings in cluster.yml:
+   ```yaml
+   vsphere_zones:
+     - name: zone-a
+       cluster: "Cluster-1"
+       resource_pool: "zone-a"
+     - name: zone-b
+       cluster: "Cluster-2"
+       resource_pool: "zone-b"
+     - name: zone-c
+       cluster: "Cluster-3"
+       resource_pool: "zone-c"
+   ```
+
+2. Assign nodes to zones in nodes.yml:
+   ```yaml
+   - hostname: master-0
+     role: master
+     zone: zone-a
+     # ... other node configuration
+   ```
+
+## Usage
+
+1. Choose the appropriate example configuration (DHCP, Static, or Multi-AZ)
+2. Copy and modify the configuration files for your environment
+3. Update the following in your configuration:
+   - vCenter credentials and connection details
+   - Cluster name and base domain
+   - Network settings (CIDR ranges, VIPs)
+   - MAC addresses for your environment
+   - IP addresses (for static configuration)
+   - Resource pools and folders (especially for multi-AZ)
+4. Generate the ISO:
+   ```bash
+   ./hack/create-iso.sh examples/vmware-example
+   ```
+5. Deploy VMs using the Ansible playbook:
+   ```bash
+   ansible-playbook -e "@examples/vmware-example/cluster.yml" -e "@examples/vmware-example/nodes.yml" -e "vcenter_password=YOUR_PASSWORD" -e "iso_path=/path/to/agent.x86_64.iso" vmware-deploy/site.yml
+   ```
+6. Monitor the installation using the instructions in the post-install file
+
+## Important Notes
+
+- For DHCP deployments, ensure your DHCP server is properly configured to assign IP addresses based on MAC addresses
+- For multi-AZ deployments, verify that your vSphere environment has the necessary zones and resource pools configured
+- Always verify network connectivity between zones in multi-AZ deployments
+- Backup your configuration files before making modifications
+
+## Support
+
+For issues and feature requests, please open an issue in the repository.
 
 This repo holds some utilities to easily leverage the OpenShift Agent-Based Installer.  Supports bare metal, vSphere, and platform=none deployments in SNO/3 Node/HA configurations.
 
@@ -11,6 +188,40 @@ This repo holds some utilities to easily leverage the OpenShift Agent-Based Inst
 - Ansible Collections for the automation: `ansible-galaxy install -r playbooks/collections/requirements.yml`
 - Red Hat OpenShift Pull Secret saved to a file: https://console.redhat.com/openshift/downloads#tool-pull-secret
 - Any other Pull Secret for a disconnected registry, joined with the Red Hat OpenShift Pull Secret
+
+## Important Configuration Steps
+
+### Network Configuration
+
+Before deploying your cluster, ensure you update the IP addresses in the `nodes.yml` file to match your network environment. The file is located in your cluster configuration directory (e.g., `examples/vmware-example/nodes.yml`).
+
+Key networking points to configure:
+1. Update each node's IP address to match your network subnet
+2. Update the gateway address in the routes section
+3. Ensure the prefix-length matches your network mask
+4. Verify DNS server settings
+
+Example for a node in the 192.168.16.x subnet:
+```yaml
+networkConfig:
+  interfaces:
+    - name: ens192
+      type: ethernet
+      state: up
+      mac-address: "EC:F4:BB:C0:B9:C8"
+      ipv4:
+        enabled: true
+        address:
+          - ip: "192.168.16.21"  # Update this to match your network
+            prefix-length: 24
+        dhcp: false
+  routes:
+    config:
+      - destination: 0.0.0.0/0
+        next-hop-address: "192.168.16.1"  # Update this to your gateway
+        next-hop-interface: ens192
+        table-id: 254
+```
 
 ## Usage - Declarative
 

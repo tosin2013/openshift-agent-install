@@ -82,6 +82,13 @@ Next steps:
 EOF
 }
 
+# Get the current user and group
+CURRENT_USER=$(whoami)
+CURRENT_GROUP=$(id -gn)
+
+# Change ownership of the generated assets directory
+sudo chown -R ${CURRENT_USER}:${CURRENT_GROUP} ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/
+
 # Generate the ABI ISO
 echo "============================================================="
 echo -e "\nGenerating Install ISO...\n"
