@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script runs end-to-end tests targeting OpenShift 4.17
+# This script runs end-to-end tests targeting OpenShift 4.18
 export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
 set -x
 set -e
