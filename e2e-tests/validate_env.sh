@@ -1,6 +1,6 @@
 #!/bin/bash
 
-# This script validates the environment for end-to-end tests targeting OpenShift 4.17
+# This script validates the environment for end-to-end tests targeting OpenShift 4.18
 # export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
 # set -x
 # set -e
@@ -119,7 +119,7 @@ validate_openshift_cli() {
         if [ "$rhel_version" -eq 8 ]; then
             expected_version="4.15"
         else
-            expected_version="4.17"
+            expected_version="4.18"
         fi
         if oc version | grep -q "$expected_version"; then
             print_status "oc version is correct ($expected_version)" 0
