@@ -1,0 +1,31 @@
+# OpenShift Appliance Upgrade Variables
+# For upgrading appliance-based clusters from 4.19 to 4.20
+#
+# Usage:
+#   ansible-playbook playbooks/build-appliance.yml \
+#     -e @examples/appliance-upgrade-4.20/appliance-vars.yml
+#
+# After building:
+#   1. Attach upgrade-4.20.iso to each node
+#   2. oc apply -f upgrade-machine-config-4.20.yaml
+#   3. Nodes will reboot and upgrade to 4.20
+
+# Build type for upgrade
+build_type: "upgrade-iso"
+
+# Target OCP version
+ocp_version: "4.20"
+ocp_channel: "stable"
+cpu_architecture: "x86_64"
+
+# Assets directory (use different dir than install to avoid conflicts)
+assets_dir: "/opt/appliance-upgrade-assets"
+
+# Pull secret location
+pull_secret_path: "~/pull-secret.json"
+
+# Note: disk_size_gb is not needed for upgrade-iso builds
+# Note: operators and additional_images are not needed for upgrade
+
+
+

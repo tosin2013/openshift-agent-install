@@ -1,0 +1,60 @@
+# OpenShift SNO Disconnected Node Configuration
+# For use with Agent-Based Installer + Mirror Registry method
+#
+# Network: Bond0 + VLAN 1924 via vyos-router (192.168.50.1)
+# This matches the network pattern used in cnv-single-bond0-vlan
+
+# Node counts
+control_plane_replicas: 1
+app_node_replicas: 0
+
+# Network octect for IP generation
+octect: 192.168.50
+
+# Node definitions
+nodes:
+  - hostname: sno-disconnected
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:bb:00:01"
+      - name: enp2s0
+        mac_address: "52:54:00:bb:00:02"
+    networkConfig:
+      interfaces:
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            dhcp: false
+            enabled: true
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: '140'
+            port:
+              - enp1s0
+              - enp2s0
+        - name: bond0.1924
+          type: vlan
+          state: up
+          ipv4:
+            address:
+              - ip: 192.168.50.110
+                prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1924
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.50.1
+            next-hop-interface: bond0.1924
+            table-id: 254
+
+
+

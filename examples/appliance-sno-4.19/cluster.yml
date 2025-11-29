@@ -1,0 +1,56 @@
+# OpenShift Appliance SNO Cluster Configuration
+# For use with playbooks/build-appliance.yml
+#
+# This example deploys a Single Node OpenShift (SNO) cluster
+# using the appliance method for fully disconnected environments.
+# Network: VLAN 1924 via vyos-router (192.168.50.1)
+
+# Site config (set to false for appliance builds)
+use_site_configs: false
+
+# Pull secret path (appliance embeds this in the disk image)
+pull_secret_path: ~/pull-secret.json
+
+# Cluster metadata
+base_domain: example.com
+cluster_name: appliance-sno
+
+# Platform type (must be none for SNO)
+platform_type: none
+
+# VIPs - for SNO, these are the same as the node IP
+api_vips:
+  - 192.168.50.100
+app_vips:
+  - 192.168.50.100
+
+# Optional NTP Servers
+ntp_servers:
+  - 216.239.35.0
+  - 216.239.35.4
+
+# DNS Server definitions (FreeIPA or other DNS)
+dns_servers:
+  - 192.168.122.161
+dns_search_domains:
+  - example.com
+
+# Network configuration
+cluster_network_cidr: 10.128.0.0/14
+cluster_network_host_prefix: 23
+service_network_cidrs:
+  - 172.30.0.0/16
+machine_network_cidrs:
+  - 192.168.50.0/24
+
+# Network type
+network_type: OVNKubernetes
+
+# Rendezvous IP (same as node IP for SNO)
+rendezvous_ip: 192.168.50.100
+
+# ZTP manifests (not needed for appliance)
+create_ztp_manifests: false
+
+# Architecture
+cluster_architecture: x86_64

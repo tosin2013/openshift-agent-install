@@ -1,0 +1,478 @@
+---
+# Build OpenShift Appliance for Disconnected Deployments
+# ADR Reference: ADR-0014 (Disconnected Deployment Methods)
+#
+# This playbook builds self-contained OpenShift appliance disk images
+# that include the full OCP payload for true air-gap installations.
+#
+# Usage:
+#   # Build appliance for install
+#   ansible-playbook playbooks/build-appliance.yml \
+#     -e @examples/appliance-sno-4.19/cluster.yml \
+#     -e @examples/appliance-sno-4.19/nodes.yml \
+#     -e @examples/appliance-sno-4.19/appliance-vars.yml
+#
+#   # Build upgrade ISO
+#   ansible-playbook playbooks/build-appliance.yml \
+#     -e build_type=upgrade-iso \
+#     -e ocp_version=4.20 \
+#     -e @examples/appliance-upgrade-4.20/appliance-vars.yml
+#
+# Outputs:
+#   Install: appliance.raw, appliance.iso, agentconfig.noarch.iso
+#   Upgrade: upgrade-x.y.z.iso, upgrade-machine-config-x.y.z.yaml
+
+- name: Build OpenShift Appliance for Disconnected Deployments
+  hosts: localhost
+  gather_facts: true
+  become: true
+
+  vars:
+    # Build configuration
+    build_type: "appliance"  # appliance, live-iso, upgrade-iso
+    ocp_version: "4.19"
+    ocp_channel: "stable"
+    cpu_architecture: "x86_64"
+    disk_size_gb: 200
+    target_device: "/dev/sda"
+    
+    # Paths
+    assets_dir: "/opt/appliance-assets"
+    appliance_repo: "https://github.com/openshift/appliance.git"
+    appliance_image: "quay.io/edge-infrastructure/openshift-appliance"
+    generated_asset_path: "{{ ansible_env.HOME }}/generated_assets"
+    
+    # Optional features
+    include_operators: false
+    operators: []
+    additional_images: []
+    enable_default_sources: false
+    stop_local_registry: false
+    
+    # Pull secret location
+    pull_secret_path: "{{ ansible_env.HOME }}/.docker/config.json"
+    pull_secret_alt_path: "/root/pull-secret.json"
+
+  tasks:
+    # =========================================================================
+    # Prerequisites Validation
+    # =========================================================================
+    - name: Display build configuration
+      ansible.builtin.debug:
+        msg:
+          - "╔════════════════════════════════════════════════════════════╗"
+          - "║          OpenShift Appliance Build                         ║"
+          - "╠════════════════════════════════════════════════════════════╣"
+          - "║  Build Type: {{ build_type }}"
+          - "║  OCP Version: {{ ocp_version }}"
+          - "║  Channel: {{ ocp_channel }}"
+          - "║  Architecture: {{ cpu_architecture }}"
+          - "║  Disk Size: {{ disk_size_gb }}GB"
+          - "║  Assets Dir: {{ assets_dir }}"
+          - "╚════════════════════════════════════════════════════════════╝"
+
+    - name: Check for podman
+      ansible.builtin.command: which podman
+      register: podman_check
+      changed_when: false
+      failed_when: podman_check.rc != 0
+
+    - name: Display podman version
+      ansible.builtin.command: podman --version
+      register: podman_version
+      changed_when: false
+
+    - name: Check for pull secret
+      block:
+        - name: Check primary pull secret location
+          ansible.builtin.stat:
+            path: "{{ pull_secret_path }}"
+          register: pull_secret_primary
+
+        - name: Check alternate pull secret location
+          ansible.builtin.stat:
+            path: "{{ pull_secret_alt_path }}"
+          register: pull_secret_alt
+          when: not pull_secret_primary.stat.exists
+
+        - name: Set pull secret path
+          ansible.builtin.set_fact:
+            actual_pull_secret_path: "{{ pull_secret_path if pull_secret_primary.stat.exists else pull_secret_alt_path }}"
+
+        - name: Fail if no pull secret found
+          ansible.builtin.fail:
+            msg: "Pull secret not found at {{ pull_secret_path }} or {{ pull_secret_alt_path }}"
+          when: not pull_secret_primary.stat.exists and not pull_secret_alt.stat.exists
+
+    - name: Create assets directory
+      ansible.builtin.file:
+        path: "{{ assets_dir }}"
+        state: directory
+        mode: '0755'
+
+    - name: Check available disk space
+      ansible.builtin.shell: df -BG "{{ assets_dir }}" | tail -1 | awk '{print $4}' | sed 's/G//'
+      register: free_space
+      changed_when: false
+
+    - name: Validate disk space
+      ansible.builtin.fail:
+        msg: "Insufficient disk space: {{ free_space.stdout }}GB available, {{ disk_size_gb }}GB required"
+      when: free_space.stdout | int < disk_size_gb | int
+
+    - name: Display prerequisites status
+      ansible.builtin.debug:
+        msg:
+          - "✅ podman: {{ podman_version.stdout }}"
+          - "✅ Pull secret: {{ actual_pull_secret_path }}"
+          - "✅ Disk space: {{ free_space.stdout }}GB available"
+
+    # =========================================================================
+    # Clone Appliance Repository (for reference)
+    # =========================================================================
+    - name: Clone openshift-appliance repository for reference
+      ansible.builtin.git:
+        repo: "{{ appliance_repo }}"
+        dest: "{{ assets_dir }}/appliance-repo"
+        version: main
+        force: true
+      ignore_errors: true
+
+    # =========================================================================
+    # Generate Appliance Configuration
+    # =========================================================================
+    - name: Read pull secret
+      ansible.builtin.slurp:
+        src: "{{ actual_pull_secret_path }}"
+      register: pull_secret_content
+
+    - name: Get SSH public key if available
+      block:
+        - name: Check for RSA key
+          ansible.builtin.stat:
+            path: "{{ ansible_env.HOME }}/.ssh/id_rsa.pub"
+          register: rsa_key
+
+        - name: Check for ED25519 key
+          ansible.builtin.stat:
+            path: "{{ ansible_env.HOME }}/.ssh/id_ed25519.pub"
+          register: ed25519_key
+
+        - name: Read SSH key
+          ansible.builtin.slurp:
+            src: "{{ ansible_env.HOME }}/.ssh/id_rsa.pub"
+          register: ssh_key_content
+          when: rsa_key.stat.exists
+
+        - name: Read ED25519 SSH key
+          ansible.builtin.slurp:
+            src: "{{ ansible_env.HOME }}/.ssh/id_ed25519.pub"
+          register: ssh_key_content
+          when: not rsa_key.stat.exists and ed25519_key.stat.exists
+
+        - name: Set SSH key fact
+          ansible.builtin.set_fact:
+            ssh_public_key: "{{ ssh_key_content.content | b64decode | trim }}"
+          when: ssh_key_content is defined and ssh_key_content.content is defined
+
+    - name: Generate appliance-config.yaml
+      ansible.builtin.copy:
+        dest: "{{ assets_dir }}/appliance-config.yaml"
+        mode: '0644'
+        content: |
+          apiVersion: v1beta1
+          kind: ApplianceConfig
+          ocpRelease:
+            version: {{ ocp_version }}
+            channel: {{ ocp_channel }}
+            cpuArchitecture: {{ cpu_architecture }}
+          {% if build_type != 'upgrade-iso' %}
+          diskSizeGB: {{ disk_size_gb }}
+          {% endif %}
+          pullSecret: '{{ pull_secret_content.content | b64decode | trim }}'
+          {% if ssh_public_key is defined %}
+          sshKey: '{{ ssh_public_key }}'
+          {% endif %}
+          enableDefaultSources: {{ enable_default_sources | lower }}
+          stopLocalRegistry: {{ stop_local_registry | lower }}
+          {% if additional_images | length > 0 %}
+          additionalImages:
+          {% for image in additional_images %}
+            - name: {{ image }}
+          {% endfor %}
+          {% endif %}
+          {% if include_operators and operators | length > 0 %}
+          operators:
+          {% for op in operators %}
+            - catalog: registry.redhat.io/redhat/redhat-operator-index:v{{ ocp_version }}
+              packages:
+                - name: {{ op }}
+          {% endfor %}
+          {% endif %}
+
+    - name: Display generated config (without secrets)
+      ansible.builtin.shell: grep -v "pullSecret" "{{ assets_dir }}/appliance-config.yaml"
+      register: config_display
+      changed_when: false
+
+    - name: Show config
+      ansible.builtin.debug:
+        msg: "{{ config_display.stdout_lines }}"
+
+    # =========================================================================
+    # Build Appliance
+    # =========================================================================
+    - name: Build appliance disk image
+      when: build_type == 'appliance'
+      block:
+        - name: Pull appliance builder image
+          ansible.builtin.command:
+            cmd: podman pull {{ appliance_image }}
+          register: pull_result
+          changed_when: "'Pulling' in pull_result.stdout or 'Copying' in pull_result.stderr"
+
+        - name: Run appliance build
+          ansible.builtin.shell:
+            cmd: |
+              podman run --rm --privileged --net=host \
+                -v "{{ assets_dir }}:/assets:Z" \
+                {{ appliance_image }} build --log-level info
+          register: build_result
+          changed_when: true
+
+        - name: Display build output
+          ansible.builtin.debug:
+            msg: "{{ build_result.stdout_lines[-20:] }}"
+
+        - name: Check for appliance.raw
+          ansible.builtin.stat:
+            path: "{{ assets_dir }}/appliance.raw"
+          register: appliance_raw
+
+        - name: Fail if appliance.raw not created
+          ansible.builtin.fail:
+            msg: "Appliance build failed - appliance.raw not found"
+          when: not appliance_raw.stat.exists
+
+        - name: Get appliance.raw size
+          ansible.builtin.shell: du -h "{{ assets_dir }}/appliance.raw" | cut -f1
+          register: appliance_size
+          changed_when: false
+
+        - name: Display appliance build success
+          ansible.builtin.debug:
+            msg:
+              - "╔════════════════════════════════════════════════════════════╗"
+              - "║          Appliance Disk Image Built Successfully           ║"
+              - "╠════════════════════════════════════════════════════════════╣"
+              - "║  Output: {{ assets_dir }}/appliance.raw"
+              - "║  Size: {{ appliance_size.stdout }}"
+              - "╚════════════════════════════════════════════════════════════╝"
+
+    # =========================================================================
+    # Build Deployment ISO
+    # =========================================================================
+    - name: Build deployment ISO
+      when: build_type == 'appliance'
+      block:
+        - name: Check for appliance.raw before building ISO
+          ansible.builtin.stat:
+            path: "{{ assets_dir }}/appliance.raw"
+          register: appliance_for_iso
+
+        - name: Build deployment ISO
+          ansible.builtin.shell:
+            cmd: |
+              podman run --rm --privileged \
+                -v "{{ assets_dir }}:/assets:Z" \
+                {{ appliance_image }} build iso --target-device {{ target_device }}
+          register: iso_result
+          when: appliance_for_iso.stat.exists
+          changed_when: true
+
+        - name: Check for appliance.iso
+          ansible.builtin.stat:
+            path: "{{ assets_dir }}/appliance.iso"
+          register: appliance_iso
+
+        - name: Get appliance.iso size
+          ansible.builtin.shell: du -h "{{ assets_dir }}/appliance.iso" | cut -f1
+          register: iso_size
+          when: appliance_iso.stat.exists
+          changed_when: false
+
+        - name: Display ISO build success
+          ansible.builtin.debug:
+            msg: "✅ Deployment ISO created: {{ assets_dir }}/appliance.iso ({{ iso_size.stdout }})"
+          when: appliance_iso.stat.exists
+
+    # =========================================================================
+    # Build Live ISO
+    # =========================================================================
+    - name: Build live ISO
+      when: build_type == 'live-iso'
+      block:
+        - name: Pull appliance builder image
+          ansible.builtin.command:
+            cmd: podman pull {{ appliance_image }}
+          changed_when: true
+
+        - name: Run live ISO build
+          ansible.builtin.shell:
+            cmd: |
+              podman run --rm --privileged --net=host \
+                -v "{{ assets_dir }}:/assets:Z" \
+                {{ appliance_image }} build live-iso --log-level info
+          register: live_iso_result
+          changed_when: true
+
+        - name: Check for live ISO
+          ansible.builtin.stat:
+            path: "{{ assets_dir }}/appliance.iso"
+          register: live_iso
+
+        - name: Display live ISO success
+          ansible.builtin.debug:
+            msg: "✅ Live ISO created: {{ assets_dir }}/appliance.iso"
+          when: live_iso.stat.exists
+
+    # =========================================================================
+    # Build Upgrade ISO
+    # =========================================================================
+    - name: Build upgrade ISO
+      when: build_type == 'upgrade-iso'
+      block:
+        - name: Pull appliance builder image
+          ansible.builtin.command:
+            cmd: podman pull {{ appliance_image }}
+          changed_when: true
+
+        - name: Run upgrade ISO build
+          ansible.builtin.shell:
+            cmd: |
+              podman run --rm --privileged \
+                -v "{{ assets_dir }}:/assets:Z" \
+                {{ appliance_image }} build upgrade-iso --log-level info
+          register: upgrade_iso_result
+          changed_when: true
+
+        - name: Find upgrade ISO
+          ansible.builtin.find:
+            paths: "{{ assets_dir }}"
+            patterns: "upgrade-*.iso"
+          register: upgrade_iso_files
+
+        - name: Find upgrade MachineConfig
+          ansible.builtin.find:
+            paths: "{{ assets_dir }}"
+            patterns: "upgrade-machine-config-*.yaml"
+          register: upgrade_mc_files
+
+        - name: Display upgrade ISO success
+          ansible.builtin.debug:
+            msg:
+              - "╔════════════════════════════════════════════════════════════╗"
+              - "║          Upgrade ISO Built Successfully                    ║"
+              - "╠════════════════════════════════════════════════════════════╣"
+              - "║  ISO: {{ upgrade_iso_files.files[0].path | default('Not found') }}"
+              - "║  MachineConfig: {{ upgrade_mc_files.files[0].path | default('Not found') }}"
+              - "╠════════════════════════════════════════════════════════════╣"
+              - "║  To upgrade:"
+              - "║  1. Attach ISO to each node"
+              - "║  2. oc apply -f {{ upgrade_mc_files.files[0].path | default('upgrade-machine-config.yaml') }}"
+              - "╚════════════════════════════════════════════════════════════╝"
+          when: upgrade_iso_files.files | length > 0
+
+    # =========================================================================
+    # Generate Config Image (for install builds)
+    # =========================================================================
+    - name: Generate config-image for cluster deployment
+      when: 
+        - build_type in ['appliance', 'live-iso']
+        - cluster_name is defined
+      block:
+        - name: Create generated assets directory
+          ansible.builtin.file:
+            path: "{{ generated_asset_path }}/{{ cluster_name }}"
+            state: directory
+            mode: '0755'
+
+        - name: Include create-manifests tasks
+          ansible.builtin.include_tasks: create-manifests-tasks.yml
+          vars:
+            use_site_configs: false
+
+        - name: Check for openshift-install binary
+          ansible.builtin.stat:
+            path: "{{ playbook_dir }}/../bin/openshift-install"
+          register: oi_binary
+
+        - name: Download openshift-install if not present
+          when: not oi_binary.stat.exists
+          block:
+            - name: Create bin directory
+              ansible.builtin.file:
+                path: "{{ playbook_dir }}/../bin"
+                state: directory
+                mode: '0755'
+
+            - name: Download openshift-install
+              ansible.builtin.shell:
+                cmd: |
+                  cd {{ playbook_dir }}/..
+                  ./download-openshift-cli.sh
+              changed_when: true
+
+        - name: Generate config-image
+          ansible.builtin.shell:
+            cmd: |
+              {{ playbook_dir }}/../bin/openshift-install agent create config-image \
+                --dir {{ generated_asset_path }}/{{ cluster_name }}/
+          register: config_image_result
+          changed_when: true
+
+        - name: Check for config-image
+          ansible.builtin.find:
+            paths: "{{ generated_asset_path }}/{{ cluster_name }}"
+            patterns: "*.iso"
+          register: config_iso_files
+
+        - name: Display config-image success
+          ansible.builtin.debug:
+            msg: "✅ Config image created: {{ config_iso_files.files[0].path }}"
+          when: config_iso_files.files | length > 0
+
+    # =========================================================================
+    # Summary
+    # =========================================================================
+    - name: Display final summary
+      ansible.builtin.debug:
+        msg: |
+          ╔════════════════════════════════════════════════════════════╗
+          ║          OpenShift Appliance Build Complete                ║
+          ╠════════════════════════════════════════════════════════════╣
+          ║  Build Type: {{ build_type }}
+          ║  OCP Version: {{ ocp_version }}
+          ║  Assets Directory: {{ assets_dir }}
+          ╠════════════════════════════════════════════════════════════╣
+          ║  Next Steps:
+          {% if build_type == 'appliance' %}
+          ║  1. Boot target machine from appliance.iso
+          ║  2. Mount agentconfig.noarch.iso (config-image)
+          ║  3. Cluster will install automatically
+          ║
+          ║  For lab testing:
+          ║  ./hack/deploy-on-kvm.sh examples/{{ cluster_name | default('appliance-sno-4.19') }}/nodes.yml
+          {% elif build_type == 'upgrade-iso' %}
+          ║  1. Attach upgrade ISO to each node
+          ║  2. oc apply -f upgrade-machine-config-{{ ocp_version }}.yaml
+          ║  3. Nodes will reboot and upgrade
+          {% elif build_type == 'live-iso' %}
+          ║  1. Boot target machine from appliance.iso (live)
+          ║  2. Mount agentconfig.noarch.iso (config-image)
+          ║  3. Cluster will install automatically
+          {% endif %}
+          ╚════════════════════════════════════════════════════════════╝
+
+
+
