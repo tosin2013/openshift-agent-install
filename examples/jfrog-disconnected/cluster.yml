@@ -1,0 +1,90 @@
+# JFrog Disconnected OpenShift Cluster Configuration
+# Use with ocp_jfrog_agent_deployment DAG
+# ADR References: ADR 0004 (JFrog), ADR 0020 (Passthrough Mode)
+
+use_site_configs: false
+
+# Pull secret - combined Red Hat + JFrog registry credentials
+pull_secret_path: /root/pull-secret.json
+
+# SSH public key for cluster access
+# ssh_public_key_path: ~/.ssh/id_rsa.pub
+
+# Cluster metadata
+base_domain: example.com
+cluster_name: ocp-jfrog
+
+# OpenShift Version - starting with 4.20.4 for upgrade path to 4.20.6
+openshift_version: "4.20.4"
+
+# Platform type (baremetal, vsphere, none)
+# Use 'none' for SNO, 'baremetal' for 3+ nodes
+platform_type: baremetal
+
+# VIPs - API and Ingress
+api_vips:
+  - 192.168.122.100
+
+app_vips:
+  - 192.168.122.101
+
+# NTP Servers
+ntp_servers:
+  - 192.168.122.177  # FreeIPA server
+
+# DNS Configuration - FreeIPA
+dns_servers:
+  - 192.168.122.177
+dns_search_domains:
+  - example.com
+
+# Pod Network CIDR
+cluster_network_cidr: 10.128.0.0/14
+cluster_network_host_prefix: 23
+
+# Service Network CIDR
+service_network_cidrs:
+  - 172.30.0.0/16
+
+# Machine Network CIDR
+machine_network_cidrs:
+  - 192.168.122.0/24
+
+# Network Type
+network_type: OVNKubernetes
+
+# Rendezvous IP (bootstrap node)
+rendezvous_ip: 192.168.122.110
+
+# Disconnected Registry Configuration (JFrog)
+# These will be used to generate ImageContentSourcePolicy
+imageContentSources:
+  - mirrors:
+    - jfrog.example.com:8443/mirror/quay.io
+    source: quay.io
+  - mirrors:
+    - jfrog.example.com:8443/mirror/registry.redhat.io
+    source: registry.redhat.io
+  - mirrors:
+    - jfrog.example.com:8443/mirror/registry.access.redhat.com
+    source: registry.access.redhat.com
+  - mirrors:
+    - jfrog.example.com:8443/mirror/registry.connect.redhat.com
+    source: registry.connect.redhat.com
+
+# Additional CA Trust Bundle for JFrog registry
+# This will be populated by setup-certificates.yml
+additionalTrustBundlePath: /etc/pki/disconnected-ca/ca.crt
+
+# Proxy Configuration (if needed)
+# proxy:
+#   http_proxy: http://proxy.example.com:3128
+#   https_proxy: http://proxy.example.com:3128
+#   no_proxy:
+#     - .svc.cluster.local
+#     - 192.168.122.0/24
+#     - .example.com
+#     - jfrog.example.com
+
+create_ztp_manifests: false
+cluster_architecture: x86_64

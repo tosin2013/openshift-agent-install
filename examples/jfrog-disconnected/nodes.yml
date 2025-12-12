@@ -1,0 +1,100 @@
+# JFrog Disconnected OpenShift Nodes Configuration
+# 3-node converged cluster (control plane + compute)
+# Use with ocp_jfrog_agent_deployment DAG
+
+control_plane_replicas: 3
+app_node_replicas: 0
+
+nodes:
+  - hostname: ocp-jfrog-master-0
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:aa:bb:01"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          ipv4:
+            address:
+              - ip: 192.168.122.110
+                prefix-length: 24
+            dhcp: false
+            enabled: true
+      dns-resolver:
+        config:
+          server:
+            - 192.168.122.177
+          search:
+            - example.com
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.122.1
+            next-hop-interface: enp1s0
+            table-id: 254
+
+  - hostname: ocp-jfrog-master-1
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:aa:bb:02"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          ipv4:
+            address:
+              - ip: 192.168.122.111
+                prefix-length: 24
+            dhcp: false
+            enabled: true
+      dns-resolver:
+        config:
+          server:
+            - 192.168.122.177
+          search:
+            - example.com
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.122.1
+            next-hop-interface: enp1s0
+            table-id: 254
+
+  - hostname: ocp-jfrog-master-2
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:aa:bb:03"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          ipv4:
+            address:
+              - ip: 192.168.122.112
+                prefix-length: 24
+            dhcp: false
+            enabled: true
+      dns-resolver:
+        config:
+          server:
+            - 192.168.122.177
+          search:
+            - example.com
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.122.1
+            next-hop-interface: enp1s0
+            table-id: 254
