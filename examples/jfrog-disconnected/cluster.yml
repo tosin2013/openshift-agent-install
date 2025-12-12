@@ -56,25 +56,23 @@ network_type: OVNKubernetes
 # Rendezvous IP (bootstrap node)
 rendezvous_ip: 192.168.50.110
 
-# Disconnected Registry Configuration (JFrog)
-# These will be used to generate ImageContentSourcePolicy
-imageContentSources:
-  - mirrors:
-    - jfrog.example.com:8443/mirror/quay.io
+# Disconnected Registry Configuration (JFrog Passthrough - ADR 0020)
+# Used by install-config.yml.j2 template to generate imageContentSources
+disconnected_registries:
+  - target: jfrog.example.com:8443/mirror/quay.io
     source: quay.io
-  - mirrors:
-    - jfrog.example.com:8443/mirror/registry.redhat.io
+  - target: jfrog.example.com:8443/mirror/registry.redhat.io
     source: registry.redhat.io
-  - mirrors:
-    - jfrog.example.com:8443/mirror/registry.access.redhat.com
+  - target: jfrog.example.com:8443/mirror/registry.access.redhat.com
     source: registry.access.redhat.com
-  - mirrors:
-    - jfrog.example.com:8443/mirror/registry.connect.redhat.com
+  - target: jfrog.example.com:8443/mirror/registry.connect.redhat.com
     source: registry.connect.redhat.com
 
 # Additional CA Trust Bundle for JFrog registry
-# This will be populated by setup-certificates.yml
+# The cert content will be read from this path by the DAG
 additionalTrustBundlePath: /etc/pki/disconnected-ca/ca.crt
+additional_trust_bundle_policy: Always
+# additional_trust_bundle will be set dynamically by reading the cert file
 
 # Proxy Configuration (if needed)
 # proxy:
