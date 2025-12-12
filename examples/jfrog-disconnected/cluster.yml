@@ -23,18 +23,18 @@ platform_type: baremetal
 
 # VIPs - API and Ingress
 api_vips:
-  - 192.168.122.100
+  - 192.168.50.100
 
 app_vips:
-  - 192.168.122.101
+  - 192.168.50.101
 
 # NTP Servers
 ntp_servers:
-  - 192.168.122.177  # FreeIPA server
+  - 192.168.50.1  # Gateway/NTP server
 
-# DNS Configuration - FreeIPA
+# DNS Configuration
 dns_servers:
-  - 192.168.122.177
+  - 192.168.50.1
 dns_search_domains:
   - example.com
 
@@ -48,13 +48,13 @@ service_network_cidrs:
 
 # Machine Network CIDR
 machine_network_cidrs:
-  - 192.168.122.0/24
+  - 192.168.50.0/24
 
 # Network Type
 network_type: OVNKubernetes
 
 # Rendezvous IP (bootstrap node)
-rendezvous_ip: 192.168.122.110
+rendezvous_ip: 192.168.50.110
 
 # Disconnected Registry Configuration (JFrog)
 # These will be used to generate ImageContentSourcePolicy
@@ -82,7 +82,7 @@ additionalTrustBundlePath: /etc/pki/disconnected-ca/ca.crt
 #   https_proxy: http://proxy.example.com:3128
 #   no_proxy:
 #     - .svc.cluster.local
-#     - 192.168.122.0/24
+#     - 192.168.50.0/24
 #     - .example.com
 #     - jfrog.example.com
 

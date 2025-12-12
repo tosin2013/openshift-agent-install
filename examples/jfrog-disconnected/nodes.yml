@@ -20,20 +20,20 @@ nodes:
           state: up
           ipv4:
             address:
-              - ip: 192.168.122.110
+              - ip: 192.168.50.110
                 prefix-length: 24
             dhcp: false
             enabled: true
       dns-resolver:
         config:
           server:
-            - 192.168.122.177
+            - 192.168.50.1
           search:
             - example.com
       routes:
         config:
           - destination: 0.0.0.0/0
-            next-hop-address: 192.168.122.1
+            next-hop-address: 192.168.50.1
             next-hop-interface: enp1s0
             table-id: 254
 
@@ -51,20 +51,20 @@ nodes:
           state: up
           ipv4:
             address:
-              - ip: 192.168.122.111
+              - ip: 192.168.50.111
                 prefix-length: 24
             dhcp: false
             enabled: true
       dns-resolver:
         config:
           server:
-            - 192.168.122.177
+            - 192.168.50.1
           search:
             - example.com
       routes:
         config:
           - destination: 0.0.0.0/0
-            next-hop-address: 192.168.122.1
+            next-hop-address: 192.168.50.1
             next-hop-interface: enp1s0
             table-id: 254
 
@@ -82,19 +82,19 @@ nodes:
           state: up
           ipv4:
             address:
-              - ip: 192.168.122.112
+              - ip: 192.168.50.112
                 prefix-length: 24
             dhcp: false
             enabled: true
       dns-resolver:
         config:
           server:
-            - 192.168.122.177
+            - 192.168.50.1
           search:
             - example.com
       routes:
         config:
           - destination: 0.0.0.0/0
-            next-hop-address: 192.168.122.1
+            next-hop-address: 192.168.50.1
             next-hop-interface: enp1s0
             table-id: 254
