@@ -25,6 +25,42 @@ Examples are provided for different deployment patterns:
 - `examples/sno-4.20-standard/` - Standard SNO 4.20 deployment
 - `examples/ha-4.21-disconnected/` - HA 4.21 disconnected deployment
 
+## DNS Setup
+
+This project uses **dnsmasq** as a lightweight DNS server for OpenShift cluster deployments. For each cluster, only 3 DNS records are needed:
+- `api.<cluster_name>.<domain>` → API VIP
+- `api-int.<cluster_name>.<domain>` → API VIP
+- `*.apps.<cluster_name>.<domain>` → App VIP
+
+### Quick DNS Setup
+
+```bash
+# Install and configure dnsmasq
+sudo ./hack/setup-dnsmasq.sh
+
+# Add DNS entries for your cluster
+sudo ./hack/configure-dnsmasq-entries.sh add examples/sno-4.20-standard/cluster.yml
+
+# Test DNS resolution
+dig @localhost api.sno-4-20.example.com
+```
+
+For detailed DNS configuration, troubleshooting, and migration from FreeIPA, see [DNS Setup Guide](docs/dns-setup.md).
+
+## E2E Testing and Bootstrap
+
+For end-to-end testing in a KVM environment with automated infrastructure setup:
+
+```bash
+# Bootstrap complete environment (installs packages, DNS, VyOS router, etc.)
+sudo ./e2e-tests/bootstrap_env.sh
+
+# Run E2E tests
+./e2e-tests/run_e2e.sh
+```
+
+The bootstrap script automatically sets up dnsmasq for DNS resolution, replacing the previous FreeIPA-based approach.
+
 ## Usage - Declarative
 
 In the `examples` directory you'll find sample cluster configuration variables.  By defining the cluster in its own folder with the `cluster.yml` and `nodes.yml` files, you can easily template and generate the ABI ISO in one shot with:
