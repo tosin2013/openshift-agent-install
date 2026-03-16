@@ -97,3 +97,48 @@ spec:
 ### 4. Delete the ImageContentSourcePolicies
 ### 5. Configure ImageTagMirrorSet and ImageDigestMirrorSet - see templated manifests
 ### 6. Create OpenShift Update Service
+
+---
+
+## OpenShift 4.20/4.21 Disconnected Deployment
+
+### ImageDigestMirrorSet Support
+
+OpenShift 4.20 and 4.21 fully support ImageDigestMirrorSet for disconnected registries. The playbook templates in this repository automatically generate the correct format based on the `disconnected_registries` configuration in your `cluster.yml`.
+
+**Key differences from earlier versions:**
+- ImageContentSourcePolicy is deprecated in favor of ImageDigestMirrorSet
+- The playbook templates handle both formats for compatibility
+- OpenShift 4.21 removes OpenShiftSDN networking (OVNKubernetes only)
+
+### Example Configuration
+
+See `examples/ha-4.21-disconnected/` for a complete HA cluster example with:
+- Disconnected registry mirror configuration using `disconnected_registries`
+- Additional trust bundle for internal CA certificates
+- 3-node compact cluster (control plane only, no workers)
+- Bond + VLAN networking (802.3ad LACP mode)
+- Separate API/App VIPs for HA deployments
+
+### Pull Secret Merging
+
+For disconnected deployments, you must merge your Red Hat pull secret with your disconnected registry credentials into a single combined pull secret file.
+
+**Helper script for merging pull secrets:**
+```bash
+# Download the helper script
+curl -OL https://raw.githubusercontent.com/kenmoini/disconnected-openshift/main/scripts/join-auths.sh
+chmod +x join-auths.sh
+
+# Merge your pull secrets
+./join-auths.sh ~/ocp-install-pull-secret.json ~/disconnected-registry-pull-secret.json > ~/ocp-install-pull-secret-combined.json
+```
+
+Reference: https://github.com/kenmoini/disconnected-openshift/blob/main/scripts/join-auths.sh
+
+### Network Type Considerations
+
+- **OpenShift 4.20:** OVNKubernetes is default, OpenShiftSDN deprecated but still supported
+- **OpenShift 4.21:** OVNKubernetes only (OpenShiftSDN removed completely)
+
+Ensure your `cluster.yml` sets `network_type: OVNKubernetes` for 4.21+ deployments.

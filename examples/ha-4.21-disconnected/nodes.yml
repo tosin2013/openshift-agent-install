@@ -1,0 +1,150 @@
+# Node Counts the installer will expect
+# 3 control plane nodes, 0 app nodes = compact cluster
+control_plane_replicas: 3
+app_node_replicas: 0
+
+# nodes defines the nodes to use for the cluster
+nodes:
+  - hostname: cp1
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: ens192
+        mac_address: "00:50:56:9a:21:01"
+      - name: ens224
+        mac_address: "00:50:56:9a:21:02"
+    networkConfig:
+      interfaces:
+        - name: bond0.200
+          type: vlan
+          state: up
+          vlan:
+            id: 200
+            base-iface: bond0
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.200.61
+                prefix-length: 24
+            dhcp: false
+
+        - name: bond0
+          type: bond
+          state: up
+          link-aggregation:
+            mode: 802.3ad
+            port:
+              - ens192
+              - ens224
+
+        - name: ens192
+          type: ethernet
+          state: up
+          mac-address: "00:50:56:9a:21:01"
+        - name: ens224
+          type: ethernet
+          state: up
+          mac-address: "00:50:56:9a:21:02"
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.200.1
+            next-hop-interface: bond0.200
+            table-id: 254
+
+  - hostname: cp2
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: ens192
+        mac_address: "00:50:56:9a:22:01"
+      - name: ens224
+        mac_address: "00:50:56:9a:22:02"
+    networkConfig:
+      interfaces:
+        - name: bond0.200
+          type: vlan
+          state: up
+          vlan:
+            id: 200
+            base-iface: bond0
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.200.62
+                prefix-length: 24
+            dhcp: false
+
+        - name: bond0
+          type: bond
+          state: up
+          link-aggregation:
+            mode: 802.3ad
+            port:
+              - ens192
+              - ens224
+
+        - name: ens192
+          type: ethernet
+          state: up
+          mac-address: "00:50:56:9a:22:01"
+        - name: ens224
+          type: ethernet
+          state: up
+          mac-address: "00:50:56:9a:22:02"
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.200.1
+            next-hop-interface: bond0.200
+            table-id: 254
+
+  - hostname: cp3
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: ens192
+        mac_address: "00:50:56:9a:23:01"
+      - name: ens224
+        mac_address: "00:50:56:9a:23:02"
+    networkConfig:
+      interfaces:
+        - name: bond0.200
+          type: vlan
+          state: up
+          vlan:
+            id: 200
+            base-iface: bond0
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.200.63
+                prefix-length: 24
+            dhcp: false
+
+        - name: bond0
+          type: bond
+          state: up
+          link-aggregation:
+            mode: 802.3ad
+            port:
+              - ens192
+              - ens224
+
+        - name: ens192
+          type: ethernet
+          state: up
+          mac-address: "00:50:56:9a:23:01"
+        - name: ens224
+          type: ethernet
+          state: up
+          mac-address: "00:50:56:9a:23:02"
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.200.1
+            next-hop-interface: bond0.200
+            table-id: 254
