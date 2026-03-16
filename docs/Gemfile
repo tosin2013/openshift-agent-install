@@ -1,0 +1,12 @@
+source "https://rubygems.org"
+
+# Use the same version of Jekyll as GitHub Pages
+gem "jekyll", "~> 3.9.3"
+gem "webrick", "~> 1.8"
+gem "github-pages", "~> 228"
+
+group :jekyll_plugins do
+  gem "jekyll-remote-theme"
+  gem "jekyll-seo-tag"
+  gem "kramdown-parser-gfm"
+end

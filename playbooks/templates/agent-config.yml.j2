@@ -22,7 +22,30 @@ hosts:
 {% endfor %}
 {% if node.rootDeviceHints is defined %}
     rootDeviceHints:
+{% if node.rootDeviceHints.deviceName is defined %}
       deviceName: {{ node.rootDeviceHints.deviceName }}
+{% endif %}
+{% if node.rootDeviceHints.wwn is defined %}
+      wwn: "{{ node.rootDeviceHints.wwn }}"
+{% endif %}
+{% if node.rootDeviceHints.vendor is defined %}
+      vendor: {{ node.rootDeviceHints.vendor }}
+{% endif %}
+{% if node.rootDeviceHints.model is defined %}
+      model: {{ node.rootDeviceHints.model }}
+{% endif %}
+{% if node.rootDeviceHints.serialNumber is defined %}
+      serialNumber: {{ node.rootDeviceHints.serialNumber }}
+{% endif %}
+{% if node.rootDeviceHints.minSizeGigabytes is defined %}
+      minSizeGigabytes: {{ node.rootDeviceHints.minSizeGigabytes }}
+{% endif %}
+{% if node.rootDeviceHints.hctl is defined %}
+      hctl: {{ node.rootDeviceHints.hctl }}
+{% endif %}
+{% if node.rootDeviceHints.rotational is defined %}
+      rotational: {{ node.rootDeviceHints.rotational }}
+{% endif %}
 {% endif %}
     networkConfig:
       interfaces:

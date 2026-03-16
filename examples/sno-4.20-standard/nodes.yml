@@ -1,0 +1,36 @@
+# Node Counts the installer will expect
+control_plane_replicas: 1
+app_node_replicas: 0
+
+# nodes defines the nodes to use for the cluster
+nodes:
+  - hostname: sno-420
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: ens192
+        mac_address: "00:50:56:9a:12:34"
+    networkConfig:
+      interfaces:
+        - name: ens192.100
+          type: vlan
+          state: up
+          vlan:
+            id: 100
+            base-iface: ens192
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.100.50
+                prefix-length: 24
+            dhcp: false
+        - name: ens192
+          type: ethernet
+          state: up
+          mac-address: "00:50:56:9a:12:34"
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.100.1
+            next-hop-interface: ens192.100
+            table-id: 254

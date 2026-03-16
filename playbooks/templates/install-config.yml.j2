@@ -41,13 +41,34 @@ platform:
 {% endif %}
 {% if platform_type == 'vsphere' %}
   vsphere:
-    vcenter:
-      host: {{ vcenter_host }}
-      username: {{ vcenter_username }}
+    diskType: "{{ vcenter_disk_type }}" 
+    apiVIPs:
+{% for api_vip in api_vips %}
+    - {{ api_vip }}
+{% endfor %}
+    ingressVIPs:
+{% for app_vip in app_vips %}
+    - {{ app_vip }}
+{% endfor %}
+    failureDomains: 
+    - name: {{ cluster_name }}-domain
+      region: east
+      server: {{ vcenter_host }}
+      topology:
+        computeCluster: "/{{ vcenter_datacenter }}/host/{{ vcenter_cluster }}"
+        datacenter: {{ vcenter_datacenter }}
+        datastore: "/{{ vcenter_datacenter }}/datastore/{{ vcenter_default_datastore }}" 
+        networks:
+        - "{{ vcenter_network }}"
+        folder: "/{{ vcenter_datacenter }}/vm/Workloads/{{ vcenter_folder_name }}"
+      zone: {{ cluster_name }}-zone
+    vcenters:
+    - datacenters:
+      - {{ vcenter_datacenter }}
       password: {{ vcenter_password }}
-      datacenter: {{ vcenter_datacenter }}
-      defaultDatastore: {{ vcenter_default_datastore }}
-      cluster: {{ vcenter_cluster }}
+      port: 443
+      server: {{ vcenter_host }}
+      user: {{ vcenter_username }}
 {% endif %}
 fips: false
 pullSecret: '{{ lookup('file', pull_secret_path) }}'

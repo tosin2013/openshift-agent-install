@@ -1,0 +1,18 @@
+---
+- name: Set up RH Identity Management Server (freeipa-server)
+  hosts: localhost
+  connection: local
+
+  tasks:
+
+    - name: Ensure that dns record is Added
+      community.general.ipa_dnsrecord:
+        name: "{{ key }}"
+        zone_name:  "{{ freeipa_server_domain }}"
+        record_type: 'A'
+        record_value:  "{{ value }}"
+        ipa_host: "{{ freeipa_server_fqdn }}"
+        ipa_user: admin
+        ipa_pass:  "{{ freeipa_server_admin_password }}"
+        state: "{{ action }}"
+        validate_certs: false

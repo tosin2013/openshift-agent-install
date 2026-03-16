@@ -1,0 +1,48 @@
+# Node Counts the installer will expect
+control_plane_replicas: 1
+app_node_replicas: 0
+octect: 192.168.50
+
+# nodes defines the nodes to use for the cluster
+nodes:
+  - hostname: lab-ctlplane-2
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:c0:1e:69"
+      - name: enp2s0
+        mac_address: "52:54:00:41:c6:3e"
+    networkConfig:
+      interfaces:
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            dhcp: false
+            enabled: true
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: '140'
+            port:
+            - enp1s0
+            - enp2s0
+        - name: bond0.1924
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.50.22
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 1924
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.50.1
+          next-hop-interface: bond0.1924
+          table-id: 254

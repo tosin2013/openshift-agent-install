@@ -1,0 +1,73 @@
+# Use Site Config
+use_site_configs: false
+
+# pull_secret path is the path to the pull-secret for the cluster
+pull_secret_path: /home/lab-user/pullsecret.json
+
+# ssh_public_key_path is the path to the SSH public key to use for the cluster
+# if this is not set then a new key pair will be generated
+# ssh_public_key_path: ~/.ssh/id_rsa.pub
+
+# Cluster metadata
+base_domain: example.com
+cluster_name: multipath-cluster
+
+# platform_type is the type of platform to use for the cluster (baremetal, vsphere, none)
+# For multipath SAN storage, typically use baremetal
+platform_type: baremetal
+
+# VIPs - set as a list in case this is a dual-stack cluster
+api_vips:
+  - 192.168.50.253
+
+app_vips:
+  - 192.168.50.252
+
+# Optional NTP Servers
+ntp_servers:
+  - 0.rhel.pool.ntp.org
+  - 1.rhel.pool.ntp.org
+
+# Optional DNS Server definitions
+dns_servers:
+  - 192.168.50.9
+  - 192.168.50.10
+
+dns_search_domains:
+  - example.com
+  - example.network
+
+# cluster_network_cidr is the overall CIDR space for the Pods in the cluster
+cluster_network_cidr: 10.128.0.0/14
+# cluster_network_host_prefix is the number of bits in the cluster_network_cidr that are for each node
+cluster_network_host_prefix: 23
+
+# service_network_cidrs is the CIDR space for the Services in the cluster (ClusterIP/NodePort/LoadBalancer)
+service_network_cidrs:
+  - 172.30.0.0/16
+
+# machine_network_cidr is the CIDR space for the Machines in the cluster
+machine_network_cidrs:
+  - 192.168.50.0/24
+
+# networkType is the type of network to use for the cluster (OpenShiftSDN, OVNKubernetes)
+network_type: OVNKubernetes
+
+# rendezvous_ip is the IP address of the node that will be used for the bootstrap node
+rendezvous_ip: 192.168.50.21
+
+# Optional Outbound Proxy Configuration
+# proxy:
+#   http_proxy: http://192.168.42.31:3128
+#   https_proxy: http://192.168.42.31:3128
+#   no_proxy:
+#     - .svc.cluster.local
+#     - 192.168.0.0/16
+#     - .example.network
+#     - .example.labs
+
+# Optional Additional CA Root Trust Bundle
+
+create_ztp_manifests: false
+#cluster_architecture: x86_64 # x86_64 | s390x | ppc64le | aarch64 | multi
+

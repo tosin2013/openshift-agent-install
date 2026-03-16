@@ -1,0 +1,88 @@
+# JFrog Disconnected OpenShift Cluster Configuration
+# Use with ocp_jfrog_agent_deployment DAG
+# ADR References: ADR 0004 (JFrog), ADR 0020 (Passthrough Mode)
+
+use_site_configs: false
+
+# Pull secret - combined Red Hat + JFrog registry credentials
+pull_secret_path: /root/pull-secret.json
+
+# SSH public key for cluster access
+# ssh_public_key_path: ~/.ssh/id_rsa.pub
+
+# Cluster metadata
+base_domain: example.com
+cluster_name: ocp-jfrog
+
+# OpenShift Version - starting with 4.20.4 for upgrade path to 4.20.6
+openshift_version: "4.20.4"
+
+# Platform type (baremetal, vsphere, none)
+# Use 'none' for SNO, 'baremetal' for 3+ nodes
+platform_type: baremetal
+
+# VIPs - API and Ingress
+api_vips:
+  - 192.168.50.100
+
+app_vips:
+  - 192.168.50.101
+
+# NTP Servers
+ntp_servers:
+  - 192.168.50.1  # Gateway/NTP server
+
+# DNS Configuration
+dns_servers:
+  - 192.168.50.1
+dns_search_domains:
+  - example.com
+
+# Pod Network CIDR
+cluster_network_cidr: 10.128.0.0/14
+cluster_network_host_prefix: 23
+
+# Service Network CIDR
+service_network_cidrs:
+  - 172.30.0.0/16
+
+# Machine Network CIDR
+machine_network_cidrs:
+  - 192.168.50.0/24
+
+# Network Type
+network_type: OVNKubernetes
+
+# Rendezvous IP (bootstrap node)
+rendezvous_ip: 192.168.50.110
+
+# Disconnected Registry Configuration (JFrog Passthrough - ADR 0020)
+# Used by install-config.yml.j2 template to generate imageContentSources
+disconnected_registries:
+  - target: jfrog.example.com:8443/mirror/quay.io
+    source: quay.io
+  - target: jfrog.example.com:8443/mirror/registry.redhat.io
+    source: registry.redhat.io
+  - target: jfrog.example.com:8443/mirror/registry.access.redhat.com
+    source: registry.access.redhat.com
+  - target: jfrog.example.com:8443/mirror/registry.connect.redhat.com
+    source: registry.connect.redhat.com
+
+# Additional CA Trust Bundle for JFrog registry
+# The cert content will be read from this path by the DAG
+additionalTrustBundlePath: /etc/pki/disconnected-ca/ca.crt
+additional_trust_bundle_policy: Always
+# additional_trust_bundle will be set dynamically by reading the cert file
+
+# Proxy Configuration (if needed)
+# proxy:
+#   http_proxy: http://proxy.example.com:3128
+#   https_proxy: http://proxy.example.com:3128
+#   no_proxy:
+#     - .svc.cluster.local
+#     - 192.168.50.0/24
+#     - .example.com
+#     - jfrog.example.com
+
+create_ztp_manifests: false
+cluster_architecture: x86_64

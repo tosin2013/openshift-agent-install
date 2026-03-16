@@ -1,0 +1,244 @@
+# Node Counts the installer will expect
+control_plane_replicas: 3
+app_node_replicas: 2
+
+# nodes defines the nodes to use for the cluster
+# This example demonstrates multipath SAN storage configuration using
+# combined rootDeviceHints parameters (WWN, vendor, minSizeGigabytes)
+nodes:
+  - hostname: master-0
+    role: master
+    # Multipath rootDeviceHints example using WWN (World Wide Name)
+    # The WWN is the primary identifier for SAN storage devices
+    # Additional hints (vendor, minSizeGigabytes) provide additional filtering
+    rootDeviceHints:
+      wwn: "0x60060160ba1d3f00a0d2e0d0a0d2e0d0"
+      vendor: "DGC"
+      minSizeGigabytes: 120
+    interfaces:
+      - name: enp1s0
+        mac_address: "54:52:00:19:04:73"
+      - name: enp2s0
+        mac_address: "54:52:00:27:dd:40"
+    networkConfig:
+      interfaces:
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            dhcp: false
+            enabled: true
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: '140'
+            port:
+            - enp1s0
+            - enp2s0
+        - name: bond0.100
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.50.21
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 100
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.50.1
+          next-hop-interface: bond0.100
+          table-id: 254
+
+  - hostname: master-1
+    role: master
+    # Alternative example using deviceName with WWN path
+    # This uses the /dev/disk/by-id/wwn-* symlink path
+    rootDeviceHints:
+      deviceName: "/dev/disk/by-id/wwn-0x60060160ba1d3f00a0d2e0d0a0d2e0d1"
+      vendor: "DGC"
+      minSizeGigabytes: 120
+      rotational: false
+    interfaces:
+      - name: enp1s0
+        mac_address: "54:52:00:6f:25:eb"
+      - name: enp2s0
+        mac_address: "54:52:00:2f:52:b2"
+    networkConfig:
+      interfaces:
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            dhcp: false
+            enabled: true
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: '140'
+            port:
+            - enp1s0
+            - enp2s0
+        - name: bond0.100
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.50.22
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 100
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.50.1
+          next-hop-interface: bond0.100
+          table-id: 254
+
+  - hostname: master-2
+    role: master
+    # Example using serialNumber for unique device identification
+    rootDeviceHints:
+      wwn: "0x60060160ba1d3f00a0d2e0d0a0d2e0d2"
+      serialNumber: "60060160BA1D3F00A0D2E0D0A0D2E0D2"
+      minSizeGigabytes: 120
+    interfaces:
+      - name: enp1s0
+        mac_address: "54:52:00:3d:e5:d7"
+      - name: enp2s0
+        mac_address: "54:52:00:7b:4c:b8"
+    networkConfig:
+      interfaces:
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            dhcp: false
+            enabled: true
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: '140'
+            port:
+            - enp1s0
+            - enp2s0
+        - name: bond0.100
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.50.23
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 100
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.50.1
+          next-hop-interface: bond0.100
+          table-id: 254
+
+  - hostname: worker-0
+    role: worker
+    # Example using model and vendor for device identification
+    rootDeviceHints:
+      wwn: "0x60060160ba1d3f00a0d2e0d0a0d2e0d3"
+      vendor: "DGC"
+      model: "RAID 5"
+      minSizeGigabytes: 120
+      rotational: false
+    interfaces:
+      - name: enp1s0
+        mac_address: "54:52:00:cd:7b:ea"
+      - name: enp2s0
+        mac_address: "54:52:00:7b:ee:a2"
+    networkConfig:
+      interfaces:
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            dhcp: false
+            enabled: true
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: '140'
+            port:
+            - enp1s0
+            - enp2s0
+        - name: bond0.100
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.50.24
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 100
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.50.1
+          next-hop-interface: bond0.100
+          table-id: 254
+
+  - hostname: worker-1
+    role: worker
+    # Example using hctl (SCSI address) for device identification
+    rootDeviceHints:
+      hctl: "0:0:0:0"
+      vendor: "DGC"
+      minSizeGigabytes: 120
+    interfaces:
+      - name: enp1s0
+        mac_address: "54:52:00:25:34:c3"
+      - name: enp2s0
+        mac_address: "54:52:00:a5:3e:f1"
+    networkConfig:
+      interfaces:
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            dhcp: false
+            enabled: true
+          link-aggregation:
+            mode: 802.3ad
+            options:
+              miimon: '140'
+            port:
+            - enp1s0
+            - enp2s0
+        - name: bond0.100
+          type: vlan
+          state: up
+          ipv4:
+            address:
+            - ip: 192.168.50.25
+              prefix-length: 24
+            dhcp: false
+            enabled: true
+          vlan:
+            base-iface: bond0
+            id: 100
+      routes:
+        config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.50.1
+          next-hop-interface: bond0.100
+          table-id: 254
+

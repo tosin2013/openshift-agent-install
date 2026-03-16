@@ -1,6 +1,6 @@
 # OpenShift Agent Based Installer Helper
 
-This repo holds some utilities to easily leverage the OpenShift Agent Based Installer.  Supports bare metal, vSphere, and platform=none deployments in SNO/3 Node/HA configurations.
+This repo holds some utilities to easily leverage the OpenShift Agent-Based Installer.  Supports bare metal, vSphere, and platform=none deployments in SNO/3 Node/HA configurations.
 
 ## Prerequisites
 
@@ -12,6 +12,19 @@ This repo holds some utilities to easily leverage the OpenShift Agent Based Inst
 - Red Hat OpenShift Pull Secret saved to a file: https://console.redhat.com/openshift/downloads#tool-pull-secret
 - Any other Pull Secret for a disconnected registry, joined with the Red Hat OpenShift Pull Secret.  [Handy script to join pull secret files](https://github.com/kenmoini/disconnected-openshift/blob/main/scripts/join-auths.sh).
 
+## Supported OpenShift Versions
+
+This tooling supports OpenShift 4.15 and newer. The `download-openshift-cli.sh` script automatically downloads the latest stable version of the OpenShift CLI tools.
+
+Tested and validated with:
+- OpenShift 4.20.x
+- OpenShift 4.21.x
+
+Examples are provided for different deployment patterns:
+- `examples/serenity-sno.v60.lab.kemo.network/` - SNO with disconnected registry
+- `examples/sno-4.20-standard/` - Standard SNO 4.20 deployment
+- `examples/ha-4.21-disconnected/` - HA 4.21 disconnected deployment
+
 ## Usage - Declarative
 
 In the `examples` directory you'll find sample cluster configuration variables.  By defining the cluster in its own folder with the `cluster.yml` and `nodes.yml` files, you can easily template and generate the ABI ISO in one shot with:
@@ -22,6 +35,11 @@ export SITE_CONFIG_DIR="./site-configs"
 
 # Create an ISO from the defined cluster.yml and nodes.yml file
 ./hack/create-iso.sh $FOLDER_NAME
+
+# Available examples:
+# - serenity-sno.v60.lab.kemo.network  (SNO with disconnected registry)
+# - sno-4.20-standard                   (Standard SNO 4.20 connected deployment)
+# - ha-4.21-disconnected                (HA 4.21 disconnected deployment)
 ```
 
 This script will take those defined files, generate the templates with Ansible, create the ISO, and present next step instructions.

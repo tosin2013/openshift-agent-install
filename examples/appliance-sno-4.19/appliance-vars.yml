@@ -1,0 +1,49 @@
+# OpenShift Appliance Build Variables
+# For use with playbooks/build-appliance.yml
+#
+# Usage:
+#   ansible-playbook playbooks/build-appliance.yml \
+#     -e @examples/appliance-sno-4.19/cluster.yml \
+#     -e @examples/appliance-sno-4.19/nodes.yml \
+#     -e @examples/appliance-sno-4.19/appliance-vars.yml
+
+# Build type: appliance, live-iso, upgrade-iso
+build_type: "appliance"
+
+# OCP version and channel
+ocp_version: "4.19"
+ocp_channel: "stable"
+cpu_architecture: "x86_64"
+
+# Disk size (minimum 150GB, recommended 200GB)
+disk_size_gb: 200
+
+# Target device for deployment ISO
+target_device: "/dev/sda"
+
+# Assets directory for build outputs
+assets_dir: "/opt/appliance-assets"
+
+# Pull secret location
+pull_secret_path: "~/pull-secret.json"
+
+# Optional: Include operators in appliance
+include_operators: false
+operators: []
+# Example operators:
+#   - local-storage-operator
+#   - odf-operator
+#   - openshift-gitops-operator
+
+# Optional: Additional images to include
+additional_images: []
+# Example:
+#   - quay.io/fedora/httpd-24
+#   - quay.io/openshift/origin-cli
+
+# Disable default catalog sources (required for disconnected)
+enable_default_sources: false
+
+# Keep local registry running after install
+stop_local_registry: false
+

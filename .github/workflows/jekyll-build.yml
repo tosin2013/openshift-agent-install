@@ -1,0 +1,98 @@
+name: Build Jekyll site
+
+on:
+  push:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - '.github/workflows/jekyll-build.yml'
+  pull_request:
+    branches:
+      - main
+    paths:
+      - 'docs/**'
+      - '.github/workflows/jekyll-build.yml'
+
+# Allow only one concurrent deployment
+concurrency:
+  group: "pages"
+  cancel-in-progress: true
+
+# Sets permissions of the GITHUB_TOKEN
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+
+    steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
+
+    - name: Setup Ruby
+      uses: ruby/setup-ruby@v1
+      with:
+        ruby-version: '3.2'
+        bundler-cache: true
+        working-directory: docs
+
+    - name: Cache dependencies
+      uses: actions/cache@v3
+      with:
+        path: |
+          docs/vendor/bundle
+          docs/_site
+          docs/.jekyll-cache
+        key: ${{ runner.os }}-jekyll-${{ hashFiles('docs/Gemfile.lock', 'docs/_config.yml') }}
+        restore-keys: |
+          ${{ runner.os }}-jekyll-
+
+    - name: Install dependencies
+      working-directory: docs
+      run: |
+        bundle config path vendor/bundle
+        bundle install --jobs 4 --retry 3
+
+    - name: Check Jekyll configuration
+      working-directory: docs
+      run: bundle exec jekyll doctor
+
+    - name: Build Jekyll site
+      working-directory: docs
+      run: |
+        JEKYLL_ENV=production bundle exec jekyll build --trace
+      env:
+        JEKYLL_ENV: production
+
+    - name: Test site output
+      working-directory: docs
+      run: |
+        test -d _site
+        test -f _site/index.html
+        
+    - name: Upload artifact
+      uses: actions/upload-pages-artifact@v3
+      with:
+        path: docs/_site/
+
+    - name: Deploy to GitHub Pages
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      id: deployment
+      uses: actions/deploy-pages@v4
+      with:
+        token: ${{ secrets.GITHUB_TOKEN }}
+
+    - name: Verify deployment
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+      run: |
+        # Wait for deployment to complete
+        sleep 30
+        # Verify the site is accessible
+        curl -sSf ${{ steps.deployment.outputs.page_url }} || exit 1

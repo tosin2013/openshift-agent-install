@@ -1,0 +1,27 @@
+---
+# MachineConfig for enabling multipath on control plane nodes
+# This adds the necessary kernel arguments to enable multipath I/O
+# during boot for nodes using SAN storage
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: "master"
+  name: 99-master-kargs-mpath
+spec:
+  kernelArguments:
+    - 'rd.multipath=default'
+    - 'root=/dev/disk/by-label/dm-mpath-root'
+---
+# MachineConfig for enabling multipath on worker nodes
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  labels:
+    machineconfiguration.openshift.io/role: "worker"
+  name: 99-worker-kargs-mpath
+spec:
+  kernelArguments:
+    - 'rd.multipath=default'
+    - 'root=/dev/disk/by-label/dm-mpath-root'
+
