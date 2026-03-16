@@ -42,7 +42,7 @@ if [ ! -d /opt/freeipa-workshop-deployer ]; then
   sudo mkdir -p /opt/freeipa-workshop-deployer
   sudo chown -R $USER:users /opt/freeipa-workshop-deployer
   cd /opt/
-  sudo -u $USER git clone https://github.com/tosin2013/freeipa-workshop-deployer.git
+  sudo -u $USER git clone https://github.com/Qubinode/freeipa-workshop-deployer.git
   cd freeipa-workshop-deployer
 else
   cd /opt/freeipa-workshop-deployer
@@ -52,7 +52,7 @@ else
 fi
 
 cd /opt/freeipa-workshop-deployer
-sudo cp "${SCRIPT_DIR}/../hack/freeipa_vars.sh" vars.sh
+sudo cp "${SCRIPT_DIR}/hack/freeipa_vars.sh" vars.sh
 sudo ./bootstrap.sh 
 
 # Create basic all.yml if it doesn't exist

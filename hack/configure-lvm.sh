@@ -44,11 +44,15 @@ configure_vg() {
     fi
   done
 
-  # Find the largest size with the most devices
+  # Find the devices with the largest size (in bytes for proper comparison)
   local largest_size=""
+  local largest_size_bytes=0
   for size in "${!device_sizes[@]}"; do
-    if [[ -z "$largest_size" || "${#device_sizes[$size]}" -gt "${#device_sizes[$largest_size]}" ]]; then
+    # Convert size to bytes for comparison
+    size_bytes=$(numfmt --from=iec "${size}" 2>/dev/null || echo 0)
+    if [[ $size_bytes -gt $largest_size_bytes ]]; then
       largest_size=$size
+      largest_size_bytes=$size_bytes
     fi
   done
 
