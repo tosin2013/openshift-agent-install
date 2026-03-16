@@ -7,6 +7,17 @@
 # Source VyOS router functions
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 
+# Detect the actual user (works even with sudo)
+if [ -n "$SUDO_USER" ]; then
+    ACTUAL_USER="$SUDO_USER"
+    ACTUAL_USER_HOME=$(eval echo ~$SUDO_USER)
+    ACTUAL_USER_GROUP=$(id -gn $SUDO_USER)
+else
+    ACTUAL_USER="$USER"
+    ACTUAL_USER_HOME="$HOME"
+    ACTUAL_USER_GROUP=$(id -gn)
+fi
+
 # --- Helper Functions ---
 print_status() {
     if [ $2 -eq 0 ]; then
@@ -83,8 +94,8 @@ install_system_packages() {
 
     print_section "Enabling libvirt"
     dnf install -y libvirt libvirt-daemon libvirt-daemon-driver-qemu
-    sudo usermod -aG libvirt lab-user && sudo chmod 775 /var/lib/libvirt/images
-    sudo systemctl start libvirtd && sudo usermod -aG libvirt lab-user
+    sudo usermod -aG libvirt "$ACTUAL_USER" && sudo chmod 775 /var/lib/libvirt/images
+    sudo systemctl start libvirtd && sudo usermod -aG libvirt "$ACTUAL_USER"
     if [[ $? -ne 0 ]]; then
         print_status "Failed to enable libvirt module" 1
         exit 1
@@ -101,11 +112,11 @@ install_system_packages() {
 setup_ansible_vault() {
     print_section "Setting up Ansible Vault"
     # Generate vault password if it doesn't exist
-    if [ ! -f "/home/lab-user/.vault_password" ]; then
+    if [ ! -f "${ACTUAL_USER_HOME}/.vault_password" ]; then
         print_info "Generating vault password..."
-        openssl rand -base64 32 > /home/lab-user/.vault_password
-        chmod 600 /home/lab-user/.vault_password
-        chown lab-user:users /home/lab-user/.vault_password
+        openssl rand -base64 32 > "${ACTUAL_USER_HOME}/.vault_password"
+        chmod 600 "${ACTUAL_USER_HOME}/.vault_password"
+        chown "${ACTUAL_USER}:${ACTUAL_USER_GROUP}" "${ACTUAL_USER_HOME}/.vault_password"
         print_status "Vault password generated" 0
     else
         print_status "Vault password file exists" 0
@@ -125,7 +136,7 @@ freeipa_server_admin_password: "${FREEIPA_ADMIN_PASSWORD}"
 EOF
             # Encrypt the vault file
             cd "${SCRIPT_DIR}/.."
-            ansible-vault encrypt --vault-password-file=/home/lab-user/.vault_password vault.yml.tmp
+            ansible-vault encrypt --vault-password-file="${ACTUAL_USER_HOME}/.vault_password" vault.yml.tmp
             mv vault.yml.tmp vault.yml
             chmod 600 vault.yml
             print_status "vault.yml created and encrypted" 0
@@ -148,9 +159,9 @@ install_openshift_cli() {
     # Determine the RHEL version and set appropriate OCP version
     rhel_version=$(rpm -E %{rhel})
     if [ "$rhel_version" -eq 8 ]; then
-        oc_version="stable-4.15"
+        oc_version="stable-4.20"
     else
-        oc_version="stable-4.18"
+        oc_version="stable-4.21"
     fi
 
     print_info "Downloading and installing OpenShift CLI version: $oc_version"
@@ -212,19 +223,32 @@ handle_selinux_policies() {
 # --- Network Configuration ---
 configure_infrastructure() {
     print_section "Configuring Infrastructure"
-    # Deploy FreeIPA VM
-    export vm_name="freeipa"
-    export ip_address=$(sudo kcli info vm "$vm_name" "$vm_name" | grep ip: | awk '{print $2}' | head -1)
-    if [ -z "$ip_address" ]; then
-        echo "Error: FreeIPA VM IP address not found"
-        source "${SCRIPT_DIR}/../hack/deploy-freeipa.sh"
-    fi
-    
     # Use functions from vyos-router.sh
     export ACTION="create"
     source "${SCRIPT_DIR}/../hack/vyos-router.sh"
 
     print_status "Infrastructure configured successfully" 0
+}
+
+# --- DNS Configuration ---
+setup_dns_server() {
+    print_section "Setting up DNS Server (dnsmasq)"
+
+    # Install and configure dnsmasq
+    if ! rpm -q dnsmasq &>/dev/null; then
+        print_info "Installing dnsmasq..."
+        source "${SCRIPT_DIR}/../hack/setup-dnsmasq.sh"
+    else
+        print_status "dnsmasq is already installed" 0
+    fi
+
+    # Ensure dnsmasq is running
+    if ! systemctl is-active --quiet dnsmasq; then
+        print_info "Starting dnsmasq..."
+        systemctl start dnsmasq || print_status "Failed to start dnsmasq" 1
+    fi
+
+    print_status "DNS server configured successfully" 0
 }
 
 # --- Environment Setup ---
@@ -246,14 +270,14 @@ setup_registry_auth() {
             chmod 700 "$USER_HOME/.docker"
         fi
 
-        if [ -f "/home/lab-user/pullsecret.json" ]; then
-            cp /home/lab-user/pullsecret.json "$USER_HOME/.docker/config.json"
+        if [ -f "${ACTUAL_USER_HOME}/pullsecret.json" ]; then
+            cp "${ACTUAL_USER_HOME}/pullsecret.json" "$USER_HOME/.docker/config.json"
             chmod 600 "$USER_HOME/.docker/config.json"
             chown -R "$SUDO_USER:$(id -gn $SUDO_USER)" "$USER_HOME/.docker"
             print_status "Registry authentication configured for user $SUDO_USER" 0
         else
-            print_status "Pull secret not found at /home/lab-user/pullsecret.json" 1
-            echo "Please ensure pull secret is available at /home/lab-user/pullsecret.json"
+            print_status "Pull secret not found at ${ACTUAL_USER_HOME}/pullsecret.json" 1
+            echo "Please ensure pull secret is available at ${ACTUAL_USER_HOME}/pullsecret.json"
             exit 1
         fi
     else
@@ -270,10 +294,10 @@ install_openshift_cli
 configure_selinux
 install_container_tools
 setup_virtualization
+setup_dns_server  # Setup lightweight dnsmasq DNS instead of FreeIPA
 configure_infrastructure
 setup_registry_auth
 handle_selinux_policies
-setup_ansible_vault  # Added ansible vault setup
 
 print_section "Bootstrap Complete"
 echo "Environment bootstrapped successfully."
