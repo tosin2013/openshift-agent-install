@@ -46,6 +46,95 @@ fi
 
 LIBVIRT_LIKE_OPTIONS="--connect=qemu:///system -v --memballoon none --cpu host-passthrough --autostart --noautoconsole --virt-type kvm --features kvm_hidden=on --controller type=scsi,model=virtio-scsi --cdrom=/var/lib/libvirt/images/agent.x86_64.iso --os-variant=fedora-coreos-stable --events on_reboot=restart --graphics vnc,listen=0.0.0.0,tlsport=,defaultMode='insecure' --console pty,target_type=serial"
 
+# Function to configure DNS entries in libvirt network
+configure_cluster_dns() {
+    local cluster_config=$1
+
+    echo "============================================================="
+    echo "Configuring DNS entries in libvirt network..."
+    echo "============================================================="
+
+    # Parse cluster configuration
+    local cluster_name=$(yq eval '.cluster_name' "$cluster_config")
+    local base_domain=$(yq eval '.base_domain' "$cluster_config")
+    local api_vip=$(yq eval '.api_vips[0]' "$cluster_config")
+    local app_vip=$(yq eval '.app_vips[0]' "$cluster_config")
+
+    # Validate
+    if [ -z "$cluster_name" ] || [ -z "$base_domain" ] || [ -z "$api_vip" ] || [ -z "$app_vip" ]; then
+        echo "Error: Missing required cluster configuration"
+        return 1
+    fi
+
+    echo "Cluster: ${cluster_name}.${base_domain}"
+    echo "API VIP: ${api_vip}"
+    echo "App VIP: ${app_vip}"
+
+    # Add API DNS entries
+    echo "Adding API DNS entries..."
+    sudo virsh net-update default add dns-host \
+      "<host ip='${api_vip}'><hostname>api.${cluster_name}.${base_domain}</hostname><hostname>api-int.${cluster_name}.${base_domain}</hostname></host>" \
+      --live --config 2>&1 | grep -v "already exists" || true
+
+    # Add common app hostnames (libvirt dnsmasq doesn't support wildcards)
+    echo "Adding application DNS entries..."
+    local apps="console-openshift-console oauth-openshift grafana-openshift-monitoring prometheus-k8s-openshift-monitoring alertmanager-main-openshift-monitoring thanos-querier-openshift-monitoring downloads-openshift-console"
+    for app in $apps; do
+        sudo virsh net-update default add dns-host \
+          "<host ip='${app_vip}'><hostname>${app}.apps.${cluster_name}.${base_domain}</hostname></host>" \
+          --live --config 2>&1 | grep -v "already exists" || true
+    done
+
+    echo "DNS entries configured successfully"
+    echo "Test with: dig @192.168.122.1 api.${cluster_name}.${base_domain}"
+    echo ""
+}
+
+# Function to configure host DNS to use libvirt
+configure_host_dns() {
+    echo "============================================================="
+    echo "Configuring host to use libvirt DNS..."
+    echo "============================================================="
+
+    # Detect primary connection (exclude loopback and libvirt bridges)
+    local primary_conn=$(nmcli -t -f NAME,DEVICE connection show --active | grep -v "lo\|virbr" | head -1 | cut -d: -f1)
+
+    if [ -z "$primary_conn" ]; then
+        echo "Warning: Could not detect primary network connection"
+        return 1
+    fi
+
+    echo "Primary connection: $primary_conn"
+
+    # Get current DNS servers
+    local current_dns=$(nmcli -g ipv4.dns connection show "$primary_conn" | tr ',' ' ')
+
+    # Check if 192.168.122.1 is already first
+    if echo "$current_dns" | grep -q "^192.168.122.1"; then
+        echo "Host DNS already configured with libvirt DNS as primary"
+        return 0
+    fi
+
+    # Build new DNS list: 192.168.122.1 first, then existing servers
+    local new_dns="192.168.122.1"
+    for dns in $current_dns; do
+        if [ "$dns" != "192.168.122.1" ]; then
+            new_dns="$new_dns $dns"
+        fi
+    done
+
+    echo "Setting DNS servers: $new_dns"
+
+    # Update connection
+    sudo nmcli connection modify "$primary_conn" ipv4.dns "$new_dns"
+    sudo nmcli connection up "$primary_conn"
+
+    echo "Host DNS configured successfully"
+    echo "  Primary: 192.168.122.1 (libvirt - cluster DNS)"
+    echo "  Backup: ${current_dns// /, } (upstream)"
+    echo ""
+}
+
 # Extract node names using yq
 node_names=$(yq e '.nodes[].hostname' "$yaml_file")
 
@@ -158,6 +247,33 @@ EOF
     fi
 fi
 
+# Configure DNS entries for the cluster
+echo "============================================================="
+echo "Setting up DNS configuration..."
+echo "============================================================="
+
+# Determine cluster config file path
+CLUSTER_CONFIG_FILE="${yaml_file%/nodes.yml}/cluster.yml"
+if [ ! -f "$CLUSTER_CONFIG_FILE" ]; then
+    # Try alternate path format
+    CLUSTER_CONFIG_FILE="examples/$(basename $(dirname ${yaml_file}))/cluster.yml"
+fi
+
+if [ -f "$CLUSTER_CONFIG_FILE" ]; then
+    echo "Using cluster config: $CLUSTER_CONFIG_FILE"
+
+    # Configure libvirt DNS entries
+    configure_cluster_dns "$CLUSTER_CONFIG_FILE" || echo "Warning: DNS configuration failed but continuing deployment"
+
+    # Configure host to use libvirt DNS
+    configure_host_dns || echo "Warning: Host DNS configuration failed but continuing deployment"
+else
+    echo "Warning: cluster.yml not found at $CLUSTER_CONFIG_FILE, skipping DNS configuration"
+fi
+
+echo "============================================================="
+echo ""
+
 # Loop through each node name
 for node_name in $node_names; do
     echo "Node Name: $node_name"
@@ -212,7 +328,7 @@ for node_name in $node_names; do
 done
 
 # Verify the installation if Redfish is enabled
-if [ "$USE_REDFISH" == true]; then
+if [ "$USE_REDFISH" == true ]; then
     echo "Verifying Redfish registration..."
     registered_systems=$(curl -s http://localhost:8000/redfish/v1/Systems)
     echo "Registered systems:"
