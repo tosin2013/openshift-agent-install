@@ -1,0 +1,2370 @@
+# OpenShift Agent-Based Installer - Deployment Guide (llm.txt)
+
+## Overview
+
+### Project Description
+OpenShift Agent Based Installer Helper - Utilities to easily leverage the OpenShift Agent-Based Installer for automated cluster deployments.
+
+**Repository**: https://github.com/tosin2013/openshift-agent-install
+**License**: Apache-2.0
+**Supported OpenShift Versions**: 4.15+, tested with 4.20.x and 4.21.x
+
+### Deployment Capabilities
+- **Platforms**: Bare metal, vSphere, platform=none
+- **Patterns**: Single Node OpenShift (SNO), 3-node compact clusters, HA clusters (3 control + N workers)
+- **Infrastructure**: Declarative YAML-based configuration
+- **DNS**: Automated dnsmasq-based DNS setup (replaces FreeIPA dependency)
+- **Testing**: E2E testing with KVM/libvirt automation
+
+### Key Features
+- Declarative cluster configuration via `cluster.yml` and `nodes.yml`
+- Automated ISO generation with Ansible templating
+- KVM/libvirt deployment automation with Redfish emulation
+- Automated DNS configuration and cleanup
+- Network configuration via NMState (VLAN, Bond, Bond+VLAN support)
+- Disconnected/air-gap registry support
+- Appliance image creation for edge deployments
+
+---
+
+## Prerequisites
+
+### System Requirements
+- **Operating System**: RHEL 9.x (tested on RHEL 9.5)
+- **Architecture**: x86_64
+- **Minimum Resources**:
+  - SNO: 8 vCPU, 32GB RAM, 130GB disk
+  - 3-node: 6 vCPU per node, 32GB RAM, 130GB disk
+  - HA: Control nodes (6 vCPU, 24GB RAM), Workers (12+ vCPU, 32-48GB RAM)
+
+### Required System Packages (alphabetically sorted)
+```
+ansible-core
+bind-utils
+cloud-init
+cockpit
+cockpit-machines
+curl-minimal
+dnsmasq
+dnf
+git
+jq
+kcli (pip3)
+libguestfs
+libvirt
+libvirt-daemon
+libvirt-daemon-driver-qemu
+nmstate
+podman
+policycoreutils-python-utils
+python3-devel
+python3-pip
+qemu-img
+selinux-policy-targeted
+tar
+virt-install
+virt-manager
+wget
+yq (v4.45.1+)
+```
+
+### Ansible Collections
+```yaml
+collections:
+  - community.crypto
+  - community.general
+```
+
+Install with:
+```bash
+ansible-galaxy collection install -r playbooks/collections/requirements.yml
+```
+
+### Python Packages
+```
+jmespath
+nmstate
+```
+
+### External Requirements
+- **Red Hat OpenShift Pull Secret**: https://console.redhat.com/openshift/downloads#tool-pull-secret
+- **SSH Public Key**: For cluster access (auto-generated if not provided)
+- **Disconnected Registry Pull Secret**: If using disconnected deployment (joined with RH pull secret)
+
+---
+
+## Quick Start
+
+### Fastest Path to Deployment
+
+```bash
+# 1. Bootstrap environment (one-time setup - installs packages, DNS, router)
+sudo ./e2e-tests/bootstrap_env.sh
+
+# 2. Configure environment variables (optional - defaults shown)
+export SITE_CONFIG_DIR="examples"              # Where cluster configs live
+export GENERATED_ASSET_PATH="~/generated_assets"  # Where ISOs/manifests go
+
+# 3. Download OpenShift CLI tools
+./download-openshift-cli.sh
+sudo cp ./bin/* /usr/local/bin/
+
+# 4. Create pull secret file
+cat > ~/ocp-install-pull-secret.json << 'EOF'
+{your-pull-secret-json-here}
+EOF
+
+# 5. Setup DNS server (automated in bootstrap, or run manually)
+sudo ./hack/setup-dnsmasq.sh
+
+# 6. Configure DNS entries for your cluster
+sudo ./hack/configure-dnsmasq-entries.sh add examples/sno-4.20-standard/cluster.yml
+
+# 7. Create cluster ISO
+./hack/create-iso.sh sno-4.20-standard
+
+# 8. Deploy to KVM (for testing)
+./hack/deploy-on-kvm.sh examples/sno-4.20-standard/nodes.yml --redfish
+
+# 9. Monitor installation
+./bin/openshift-install agent wait-for bootstrap-complete --dir ~/generated_assets/sno-4-20/
+./bin/openshift-install agent wait-for install-complete --dir ~/generated_assets/sno-4-20/
+
+# 10. Access cluster
+export KUBECONFIG=~/generated_assets/sno-4-20/auth/kubeconfig
+oc get nodes
+```
+
+---
+
+## Deployment Steps (Ordered Workflow)
+
+### Phase 0: Environment Bootstrap (One-Time Setup)
+
+**Purpose**: Install all dependencies, configure infrastructure, setup DNS server
+
+**Script**: `e2e-tests/bootstrap_env.sh`
+
+**Actions**:
+- Installs system packages (ansible, nmstate, libvirt, etc.)
+- Downloads and installs OpenShift CLI tools
+- Installs Ansible collections
+- Configures libvirtd and virtualization
+- Sets up dnsmasq DNS server (replaces FreeIPA)
+- Deploys VyOS router for network infrastructure
+- Configures LVM for libvirt storage
+- Sets up container registry authentication
+
+**Command**:
+```bash
+sudo ./e2e-tests/bootstrap_env.sh
+```
+
+**Validation**:
+```bash
+./e2e-tests/validate_env.sh
+```
+
+---
+
+### Phase 1: Infrastructure Preparation
+
+**Purpose**: Configure network infrastructure and DNS
+
+**Scripts**:
+- `hack/setup-dnsmasq.sh` - Install and configure dnsmasq DNS server
+- `hack/vyos-router.sh` - Deploy VyOS router VM for network infrastructure
+- `hack/configure-lvm.sh` - Configure LVM storage for libvirt
+
+**DNS Setup**:
+```bash
+# Install dnsmasq (if not done in bootstrap)
+sudo ./hack/setup-dnsmasq.sh
+
+# Add DNS entries for cluster
+sudo ./hack/configure-dnsmasq-entries.sh add examples/sno-4.20-standard/cluster.yml
+
+# Verify DNS resolution
+dig @localhost api.sno-4-20.example.com
+dig @localhost console-openshift-console.apps.sno-4-20.example.com
+```
+
+---
+
+### Phase 2: Cluster Configuration
+
+**Purpose**: Define cluster topology and network configuration
+
+**Configuration Files**:
+- `examples/<cluster-name>/cluster.yml` - Cluster metadata, VIPs, networking
+- `examples/<cluster-name>/nodes.yml` - Node definitions, MAC addresses, NMState config
+
+**Key Parameters** (see Configuration Reference section for full details):
+- `cluster_name`: Cluster identifier
+- `base_domain`: DNS domain
+- `api_vips`: API endpoint VIP(s)
+- `app_vips`: Application ingress VIP(s)
+- `platform_type`: baremetal, vsphere, or none (SNO must be "none")
+- `control_plane_replicas`: 1 (SNO), 3 (3-node/HA)
+- `app_node_replicas`: 0 (SNO/3-node), N (HA)
+
+**Example Configurations**:
+- `examples/sno-4.20-standard/` - Standard SNO deployment
+- `examples/serenity-sno.v60.lab.kemo.network/` - SNO with disconnected registry
+- `examples/ha-4.21-disconnected/` - HA cluster with disconnected registry
+
+---
+
+### Phase 3: ISO Generation
+
+**Purpose**: Generate Agent-Based Installer ISO with cluster configuration
+
+**Scripts**:
+- `hack/create-iso.sh` - Main ISO creation script
+- `playbooks/create-manifests.yml` - Ansible playbook for manifest templating
+
+**Process**:
+1. Script reads `cluster.yml` and `nodes.yml` from specified example directory
+2. Ansible playbook templates Agent-Based Installer manifests
+3. `openshift-install agent create image` generates bootable ISO
+4. ISO saved to `${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/agent.x86_64.iso`
+
+**Command**:
+```bash
+./hack/create-iso.sh sno-4.20-standard
+```
+
+**Output Location**:
+```
+~/generated_assets/sno-4-20/agent.x86_64.iso
+```
+
+---
+
+### Phase 4: Deployment Execution
+
+#### Option A: KVM/Libvirt Deployment (Testing)
+
+**Purpose**: Deploy cluster to local KVM hypervisor with automated VM creation
+
+**Script**: `hack/deploy-on-kvm.sh`
+
+**Features**:
+- Automatic VM resource allocation based on node count
+- Redfish API emulation via sushy-tools
+- Automated DNS configuration in libvirt network
+- Multi-network support (dual NICs)
+- ODF storage provisioning (optional)
+
+**Command**:
+```bash
+./hack/deploy-on-kvm.sh examples/sno-4.20-standard/nodes.yml --redfish
+```
+
+**What It Does**:
+1. Copies ISO to `/var/lib/libvirt/images/`
+2. Configures DNS entries in libvirt network
+3. Configures host to use libvirt DNS
+4. Creates VMs with specifications from `nodes.yml`
+5. Attaches ISO and boots VMs
+6. Starts sushy-tools Redfish emulator (if --redfish flag)
+
+#### Option B: Physical/vSphere Deployment
+
+**Purpose**: Deploy to bare metal or vSphere infrastructure
+
+**Process**:
+1. Copy generated ISO to accessible location
+2. Attach ISO to physical servers or vSphere VMs
+3. Boot servers from ISO
+4. Installation proceeds automatically
+
+**ISO Location**: `~/generated_assets/${CLUSTER_NAME}/agent.x86_64.iso`
+
+---
+
+### Phase 5: Installation Monitoring
+
+**Purpose**: Monitor cluster bootstrap and installation progress
+
+**Commands**:
+```bash
+# Watch bootstrap process
+./bin/openshift-install agent wait-for bootstrap-complete \
+    --dir ~/generated_assets/${CLUSTER_NAME}/
+
+# Watch full installation
+./bin/openshift-install agent wait-for install-complete \
+    --dir ~/generated_assets/${CLUSTER_NAME}/
+```
+
+**Optional Monitoring**:
+```bash
+# Watch and auto-reboot VMs on errors (KVM only)
+./hack/watch-and-reboot-kvm-vms.sh examples/sno-4.20-standard/nodes.yml
+```
+
+---
+
+### Phase 6: Cluster Access
+
+**Purpose**: Access deployed cluster via CLI and Web Console
+
+**CLI Access**:
+```bash
+export KUBECONFIG=~/generated_assets/${CLUSTER_NAME}/auth/kubeconfig
+oc get nodes
+oc get co
+```
+
+**Web Console Access**:
+```
+URL: https://console-openshift-console.apps.${CLUSTER_NAME}.${BASE_DOMAIN}/
+Username: kubeadmin
+Password: cat ~/generated_assets/${CLUSTER_NAME}/auth/kubeadmin-password
+```
+
+---
+
+### Phase 7: Cleanup (Destruction)
+
+**Purpose**: Remove cluster and clean up resources
+
+**Script**: `hack/destroy-on-kvm.sh`
+
+**Command**:
+```bash
+./hack/destroy-on-kvm.sh examples/sno-4.20-standard/nodes.yml
+```
+
+**Actions**:
+1. Removes DNS entries from libvirt network
+2. Destroys VMs
+3. Deletes VM disk images
+4. Removes ODF storage disks (if present)
+5. Deletes agent ISO
+
+**Manual DNS Cleanup** (if needed):
+```bash
+sudo ./hack/configure-dnsmasq-entries.sh remove sno-4-20 example.com
+```
+
+---
+
+## Scripts Reference (Alphabetically Sorted)
+
+### bootstrap_env.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/e2e-tests/bootstrap_env.sh`
+
+**Description**: Complete environment bootstrap script for E2E testing. Installs all dependencies, configures infrastructure, and sets up DNS server.
+
+**Usage**:
+```bash
+sudo ./e2e-tests/bootstrap_env.sh
+```
+
+**Arguments**: None
+
+**Environment Variables**:
+- `SUDO_USER` - Detected automatically when run with sudo
+- `ACTUAL_USER_HOME` - User home directory (auto-detected)
+
+**Dependencies**:
+- Root/sudo access required
+- Internet connectivity for package downloads
+
+**Workflow Phase**: Phase 0 (Environment Bootstrap)
+
+**What It Installs**:
+- System packages: nmstate, ansible-core, bind-utils, libguestfs, cloud-init, virt-install, qemu-img, virt-manager, podman
+- OpenShift CLI tools (oc, kubectl, openshift-install)
+- Ansible collections (community.general, community.crypto)
+- yq (v4.45.1)
+- kcli (via pip3)
+- dnsmasq DNS server
+- Cockpit web console
+
+**What It Configures**:
+- libvirtd service
+- dnsmasq DNS server
+- VyOS router infrastructure
+- LVM storage for libvirt
+- SELinux policies
+- Registry authentication
+
+**Example**:
+```bash
+sudo ./e2e-tests/bootstrap_env.sh
+```
+
+---
+
+### configure-dnsmasq-entries.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/configure-dnsmasq-entries.sh`
+
+**Description**: Manages DNS entries for OpenShift clusters in dnsmasq. Adds or removes DNS records based on cluster.yml configuration.
+
+**Usage**:
+```bash
+sudo ./hack/configure-dnsmasq-entries.sh {add|remove|list} [arguments]
+sudo ./hack/configure-dnsmasq-entries.sh <cluster_config.yml>  # Shortcut for 'add'
+```
+
+**Arguments**:
+- `add <cluster_config.yml>` - Add DNS entries from cluster configuration
+- `remove <cluster_name> <base_domain>` - Remove DNS entries for a cluster
+- `list` - Display all current DNS entries
+
+**Environment Variables**: None
+
+**Dependencies**:
+- dnsmasq installed and configured (run setup-dnsmasq.sh first)
+- yq command-line tool
+- Root/sudo access
+
+**Workflow Phase**: Phase 1 (Infrastructure Preparation), Phase 7 (Cleanup)
+
+**DNS Entries Created**:
+- `api.${cluster_name}.${base_domain}` → API VIP
+- `api-int.${cluster_name}.${base_domain}` → API VIP
+- `*.apps.${cluster_name}.${base_domain}` → App VIP (wildcard)
+
+**Example**:
+```bash
+# Add DNS entries for cluster
+sudo ./hack/configure-dnsmasq-entries.sh add examples/sno-4.20-standard/cluster.yml
+
+# Or use shortcut
+sudo ./hack/configure-dnsmasq-entries.sh examples/sno-4.20-standard/cluster.yml
+
+# Remove DNS entries
+sudo ./hack/configure-dnsmasq-entries.sh remove sno-4-20 example.com
+
+# List all entries
+sudo ./hack/configure-dnsmasq-entries.sh list
+
+# Test DNS resolution
+dig @localhost api.sno-4-20.example.com
+```
+
+---
+
+### configure-gui.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/configure_gui.sh`
+
+**Description**: Configures graphical user interface components for the deployment environment.
+
+**Usage**:
+```bash
+./hack/configure_gui.sh
+```
+
+**Arguments**: None
+
+**Environment Variables**: None
+
+**Dependencies**: GUI packages
+
+**Workflow Phase**: Phase 0 (Environment Bootstrap - optional)
+
+**Example**:
+```bash
+./hack/configure_gui.sh
+```
+
+---
+
+### configure-lvm.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/configure-lvm.sh`
+
+**Description**: Configures LVM (Logical Volume Manager) storage for libvirt virtual machines.
+
+**Usage**:
+```bash
+sudo ./hack/configure-lvm.sh
+```
+
+**Arguments**: None
+
+**Environment Variables**: None
+
+**Dependencies**:
+- LVM tools
+- libvirt
+- Root/sudo access
+
+**Workflow Phase**: Phase 1 (Infrastructure Preparation)
+
+**Example**:
+```bash
+sudo ./hack/configure-lvm.sh
+```
+
+---
+
+### configure-sushy-unix.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/configure-sushy-unix.sh`
+
+**Description**: Configures sushy-tools Redfish emulator for KVM virtual machines. Enables BMC-like API for power management.
+
+**Usage**:
+```bash
+./hack/configure-sushy-unix.sh
+```
+
+**Arguments**: None
+
+**Environment Variables**:
+- `SUSHY_TOOLS_IMAGE` - Container image for sushy-tools (default: quay.io/metal3-io/sushy-tools)
+
+**Dependencies**:
+- podman
+- libvirt
+- firewalld
+
+**Workflow Phase**: Phase 4 (Deployment Execution)
+
+**Example**:
+```bash
+./hack/configure-sushy-unix.sh
+```
+
+**Note**: This functionality is integrated into deploy-on-kvm.sh with --redfish flag.
+
+---
+
+### configure_dns_entries.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/configure_dns_entries.sh`
+
+**Description**: **LEGACY** - Configures DNS entries in FreeIPA server. Replaced by configure-dnsmasq-entries.sh for lightweight DNS.
+
+**Usage**:
+```bash
+./hack/configure_dns_entries.sh <site_config_dir>
+```
+
+**Arguments**:
+- `<site_config_dir>` - Directory containing cluster.yml
+
+**Environment Variables**:
+- FreeIPA connection details (from freeipa_vars.sh)
+
+**Dependencies**:
+- FreeIPA server running
+- FreeIPA admin credentials
+
+**Workflow Phase**: Phase 1 (Infrastructure Preparation - DEPRECATED)
+
+**Example**:
+```bash
+./hack/configure_dns_entries.sh sno-4.20-standard
+```
+
+**Migration Note**: Use configure-dnsmasq-entries.sh instead for new deployments.
+
+---
+
+### create-iso.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/create-iso.sh`
+
+**Description**: Main script to create Agent-Based Installer ISO. Templates manifests with Ansible and generates bootable ISO.
+
+**Usage**:
+```bash
+./hack/create-iso.sh <site_config_folder>
+```
+
+**Arguments**:
+- `<site_config_folder>` - Name of folder in ${SITE_CONFIG_DIR} containing cluster.yml and nodes.yml
+
+**Environment Variables**:
+- `SITE_CONFIG_DIR` - Directory containing cluster configs (default: "examples")
+- `GENERATED_ASSET_PATH` - Output directory for ISOs and manifests (default: "~/generated_assets")
+- `DEBUG` - Set to "-v" for verbose Ansible output
+
+**Dependencies**:
+- ansible-playbook
+- openshift-install (downloaded automatically if missing)
+- yq or grep for YAML parsing
+
+**Workflow Phase**: Phase 3 (ISO Generation)
+
+**Process**:
+1. Validates cluster configuration exists
+2. Downloads OpenShift CLI tools if needed
+3. Runs Ansible playbook to template manifests
+4. Generates ISO with openshift-install
+5. Displays post-installation instructions
+
+**Output**:
+- ISO: `${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/agent.x86_64.iso`
+- Manifests: `${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/`
+- Instructions: `${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/post-install-instructions.txt`
+
+**Example**:
+```bash
+# Use default examples directory
+./hack/create-iso.sh sno-4.20-standard
+
+# Use custom config directory
+export SITE_CONFIG_DIR="./site-configs"
+./hack/create-iso.sh my-cluster
+
+# Custom output path
+export GENERATED_ASSET_PATH="/data/openshift"
+./hack/create-iso.sh sno-4.20-standard
+```
+
+---
+
+### delete_e2e.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/e2e-tests/delete_e2e.sh`
+
+**Description**: Deletes E2E test environment and resources.
+
+**Usage**:
+```bash
+./e2e-tests/delete_e2e.sh
+```
+
+**Arguments**: None
+
+**Environment Variables**: None
+
+**Dependencies**: None
+
+**Workflow Phase**: Phase 7 (Cleanup)
+
+**Example**:
+```bash
+./e2e-tests/delete_e2e.sh
+```
+
+---
+
+### deploy-freeipa.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/deploy-freeipa.sh`
+
+**Description**: **LEGACY** - Deploys FreeIPA VM for DNS and identity management. Replaced by lightweight dnsmasq solution.
+
+**Usage**:
+```bash
+./hack/deploy-freeipa.sh
+```
+
+**Arguments**: None
+
+**Environment Variables**:
+- From `freeipa_vars.sh` (FREEIPA_ADMIN_PASSWORD, DOMAIN, etc.)
+
+**Dependencies**:
+- kcli
+- FreeIPA container image
+
+**Workflow Phase**: Phase 1 (Infrastructure Preparation - DEPRECATED)
+
+**Example**:
+```bash
+source hack/freeipa_vars.sh
+./hack/deploy-freeipa.sh
+```
+
+**Migration Note**: Use setup-dnsmasq.sh instead for new deployments.
+
+---
+
+### deploy-on-kvm.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/deploy-on-kvm.sh`
+
+**Description**: Deploys OpenShift cluster to KVM/libvirt infrastructure. Creates VMs, configures DNS, and starts installation.
+
+**Usage**:
+```bash
+./hack/deploy-on-kvm.sh <nodes_yaml_file> [--redfish]
+```
+
+**Arguments**:
+- `<nodes_yaml_file>` - Path to nodes.yml configuration file
+- `--redfish` - (Optional) Enable Redfish API emulation via sushy-tools
+
+**Environment Variables**:
+- `CLUSTER_NAME` - Cluster name (auto-detected from cluster.yml, default: "ocp4")
+- `GENERATED_ASSET_PATH` - Path to generated assets (default: "~/generated_assets")
+- `LIBVIRT_NETWORK` - Libvirt network for VMs (default: "network=1924,model=e1000e")
+- `LIBVIRT_NETWORK_TWO` - Second network for multi-NIC (default: same as LIBVIRT_NETWORK)
+- `LIBVIRT_VM_PATH` - Path to VM disks (default: "/var/lib/libvirt/images")
+- `MULTI_NETWORK` - Enable dual NICs (default: true)
+- `SUSHY_TOOLS_IMAGE` - Sushy-tools container image (default: quay.io/metal3-io/sushy-tools)
+
+**Dependencies**:
+- libvirt/KVM
+- virt-install
+- yq
+- podman (if using --redfish)
+- Agent ISO must exist at ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/agent.x86_64.iso
+
+**Workflow Phase**: Phase 4 (Deployment Execution)
+
+**Resource Allocation** (automatic based on node count):
+- **SNO (1 node)**: 8 vCPU, 32GB RAM, 130GB disk + 400GB ODF disk
+- **3-node**: 6 vCPU per node, 32GB RAM, 130GB disk + 400GB ODF disk
+- **5-node**: Control (6 vCPU, 24GB RAM), Workers (6 vCPU, 24GB RAM)
+- **6+ node**: Control (6 vCPU, 24GB RAM), Workers (12 vCPU, 32-48GB RAM)
+
+**Features**:
+- Automatic VM creation from nodes.yml
+- MAC address assignment per node
+- DNS configuration in libvirt network
+- Host DNS configuration to use libvirt
+- Redfish API emulation (optional)
+- Multi-network support
+- ODF storage provisioning
+
+**Example**:
+```bash
+# Deploy with Redfish enabled
+./hack/deploy-on-kvm.sh examples/sno-4.20-standard/nodes.yml --redfish
+
+# Deploy without Redfish
+./hack/deploy-on-kvm.sh examples/sno-4.20-standard/nodes.yml
+
+# Custom cluster name
+export CLUSTER_NAME="my-cluster"
+./hack/deploy-on-kvm.sh examples/sno-4.20-standard/nodes.yml --redfish
+
+# Test Redfish API after deployment
+curl http://localhost:8000/redfish/v1/Systems
+```
+
+---
+
+### destroy-on-kvm.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/destroy-on-kvm.sh`
+
+**Description**: Destroys OpenShift cluster on KVM. Removes VMs, disks, DNS entries, and agent ISO.
+
+**Usage**:
+```bash
+./hack/destroy-on-kvm.sh <nodes_yaml_file>
+```
+
+**Arguments**:
+- `<nodes_yaml_file>` - Path to nodes.yml configuration file
+
+**Environment Variables**:
+- `CLUSTER_NAME` - Cluster name (auto-detected from cluster.yml, default: "ocp4")
+- `LIBVIRT_VM_PATH` - Path to VM disks (default: "/var/lib/libvirt/images")
+
+**Dependencies**:
+- virsh (libvirt CLI)
+- yq
+- Root/sudo access
+
+**Workflow Phase**: Phase 7 (Cleanup)
+
+**Actions**:
+1. Removes DNS entries from libvirt network
+2. Destroys all VMs defined in nodes.yml
+3. Deletes VM disk images (${CLUSTER_NAME}-${node_name}.qcow2)
+4. Deletes ODF storage disks (${CLUSTER_NAME}-${node_name}-odf.qcow2)
+5. Removes agent ISO (/var/lib/libvirt/images/agent.x86_64.iso)
+
+**Example**:
+```bash
+# Destroy cluster
+./hack/destroy-on-kvm.sh examples/sno-4.20-standard/nodes.yml
+
+# With explicit cluster name
+export CLUSTER_NAME="my-cluster"
+./hack/destroy-on-kvm.sh examples/sno-4.20-standard/nodes.yml
+
+# Verify cleanup
+sudo virsh list --all
+sudo ls -lh /var/lib/libvirt/images/
+```
+
+---
+
+### download-openshift-cli.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/download-openshift-cli.sh`
+
+**Description**: Downloads OpenShift CLI tools (oc, kubectl, openshift-install) for the appropriate RHEL version.
+
+**Usage**:
+```bash
+./download-openshift-cli.sh
+```
+
+**Arguments**: None
+
+**Environment Variables**: None (detects RHEL version automatically)
+
+**Dependencies**:
+- wget
+- tar
+- Internet connectivity
+
+**Workflow Phase**: Phase 0 (Environment Bootstrap)
+
+**Version Selection**:
+- RHEL 8: Downloads stable-4.20
+- RHEL 9+: Downloads stable-4.21
+
+**Output Location**: `./bin/` directory
+
+**Downloads**:
+- `oc` - OpenShift CLI
+- `kubectl` - Kubernetes CLI
+- `openshift-install` - Cluster installer
+
+**Example**:
+```bash
+# Download CLI tools
+./download-openshift-cli.sh
+
+# Install system-wide
+sudo cp ./bin/* /usr/local/bin/
+
+# Verify installation
+oc version
+openshift-install version
+```
+
+**Note**: create-iso.sh automatically runs this if CLI tools are missing.
+
+---
+
+### freeipa_vars.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/freeipa_vars.sh`
+
+**Description**: **LEGACY** - Environment variables for FreeIPA deployment. Used with legacy DNS solution.
+
+**Usage**:
+```bash
+source hack/freeipa_vars.sh
+```
+
+**Arguments**: None
+
+**Environment Variables Defined**:
+- `FREEIPA_ADMIN_PASSWORD` - FreeIPA admin password
+- `DOMAIN` - Base domain for DNS
+- Other FreeIPA configuration variables
+
+**Dependencies**: None
+
+**Workflow Phase**: Phase 1 (Infrastructure Preparation - DEPRECATED)
+
+**Example**:
+```bash
+source hack/freeipa_vars.sh
+echo $FREEIPA_ADMIN_PASSWORD
+```
+
+---
+
+### get-rhcos-iso.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/get-rhcos-iso.sh`
+
+**Description**: Downloads Red Hat CoreOS (RHCOS) ISO for manual installations or customization.
+
+**Usage**:
+```bash
+./get-rhcos-iso.sh [version]
+```
+
+**Arguments**:
+- `[version]` - (Optional) Specific OpenShift version (e.g., 4.20, 4.21)
+
+**Environment Variables**: None
+
+**Dependencies**:
+- wget or curl
+- Internet connectivity
+
+**Workflow Phase**: Phase 0 (Environment Bootstrap - optional)
+
+**Example**:
+```bash
+# Download latest RHCOS ISO
+./get-rhcos-iso.sh
+
+# Download specific version
+./get-rhcos-iso.sh 4.20
+```
+
+**Note**: Agent-Based Installer embeds RHCOS, so this is typically not needed for standard deployments.
+
+---
+
+### install-jekyll.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/scripts/install-jekyll.sh`
+
+**Description**: Installs Jekyll static site generator for building documentation site.
+
+**Usage**:
+```bash
+./scripts/install-jekyll.sh
+```
+
+**Arguments**: None
+
+**Environment Variables**: None
+
+**Dependencies**:
+- Ruby
+- RubyGems
+- bundler
+
+**Workflow Phase**: Development/Documentation (not required for cluster deployment)
+
+**Example**:
+```bash
+./scripts/install-jekyll.sh
+```
+
+---
+
+### run_e2e.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/e2e-tests/run_e2e.sh`
+
+**Description**: Runs complete end-to-end test workflow. Creates ISO, deploys VMs, monitors installation, and optionally cleans up.
+
+**Usage**:
+```bash
+./e2e-tests/run_e2e.sh <site_config_dir>
+```
+
+**Arguments**:
+- `<site_config_dir>` - Directory name in examples/ containing cluster.yml and nodes.yml
+
+**Environment Variables**:
+- `GENERATED_ASSET_PATH` - Output path (default: "/home/lab-user/generated_assets")
+- `CLUSTER_NAME` - Auto-detected from cluster.yml
+- Variables from freeipa_vars.sh (if using legacy DNS)
+
+**Dependencies**:
+- All bootstrap dependencies
+- validate_env.sh passing
+- yq
+
+**Workflow Phase**: Phases 0-6 (Complete E2E)
+
+**Test Flow**:
+1. Validates environment (validate_env.sh)
+2. Updates cluster.yml with DNS server IP (if using FreeIPA)
+3. Creates ISO (create-iso.sh)
+4. Configures DNS entries
+5. Deploys VMs (deploy-on-kvm.sh)
+6. Monitors installation (watch-and-reboot-kvm-vms.sh)
+7. Executes tests (placeholder for custom tests)
+8. Optionally cleans up (cleanup_test_env - commented out)
+
+**Example**:
+```bash
+# Run E2E test for SNO cluster
+./e2e-tests/run_e2e.sh sno-4.20-standard
+
+# With full path
+./e2e-tests/run_e2e.sh examples/sno-4.20-standard
+
+# Monitor output
+./e2e-tests/run_e2e.sh sno-4.20-standard 2>&1 | tee e2e-test.log
+```
+
+---
+
+### serve-site.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/scripts/serve-site.sh`
+
+**Description**: Serves documentation site locally with Jekyll for preview/development.
+
+**Usage**:
+```bash
+./scripts/serve-site.sh
+```
+
+**Arguments**: None
+
+**Environment Variables**: None
+
+**Dependencies**:
+- Jekyll (installed via install-jekyll.sh)
+- bundler
+
+**Workflow Phase**: Development/Documentation (not required for cluster deployment)
+
+**Example**:
+```bash
+# Start local documentation server
+./scripts/serve-site.sh
+
+# Access at http://localhost:4000
+```
+
+---
+
+### setup-dnsmasq.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/setup-dnsmasq.sh`
+
+**Description**: Installs and configures dnsmasq as lightweight DNS server for OpenShift clusters. Replaces FreeIPA dependency.
+
+**Usage**:
+```bash
+sudo ./hack/setup-dnsmasq.sh
+```
+
+**Arguments**: None
+
+**Environment Variables**:
+- `SUDO_USER` - Detected automatically
+- `ACTUAL_USER_HOME` - Detected automatically
+
+**Dependencies**:
+- dnf package manager
+- firewalld (optional, for firewall configuration)
+- Root/sudo access
+
+**Workflow Phase**: Phase 1 (Infrastructure Preparation)
+
+**Configuration Files Created**:
+- `/etc/dnsmasq.d/openshift.conf` - Main dnsmasq configuration for OpenShift
+- `/var/log/dnsmasq.log` - DNS query logs
+
+**Firewall Configuration**:
+- Opens DNS port (53/udp, 53/tcp)
+
+**Example**:
+```bash
+# Install and configure dnsmasq
+sudo ./hack/setup-dnsmasq.sh
+
+# Verify dnsmasq is running
+sudo systemctl status dnsmasq
+
+# View logs
+sudo tail -f /var/log/dnsmasq.log
+
+# Test DNS server
+dig @localhost example.com
+```
+
+**Next Steps After Setup**:
+```bash
+# Add cluster DNS entries
+sudo ./hack/configure-dnsmasq-entries.sh add examples/sno-4.20-standard/cluster.yml
+
+# Test cluster DNS
+dig @localhost api.sno-4-20.example.com
+```
+
+---
+
+### test-libvirt-ssh.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/test-libvirt-ssh.sh`
+
+**Description**: Tests SSH connectivity to libvirt VMs and validates network configuration.
+
+**Usage**:
+```bash
+./hack/test-libvirt-ssh.sh
+```
+
+**Arguments**: None
+
+**Environment Variables**: None
+
+**Dependencies**:
+- libvirt
+- SSH client
+- Running VMs
+
+**Workflow Phase**: Phase 5 (Installation Monitoring - optional)
+
+**Example**:
+```bash
+./hack/test-libvirt-ssh.sh
+```
+
+---
+
+### update-adr-frontmatter.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/scripts/update-adr-frontmatter.sh`
+
+**Description**: Updates frontmatter metadata in Architecture Decision Record (ADR) markdown files.
+
+**Usage**:
+```bash
+./scripts/update-adr-frontmatter.sh
+```
+
+**Arguments**: None
+
+**Environment Variables**: None
+
+**Dependencies**: None
+
+**Workflow Phase**: Development/Documentation (not required for cluster deployment)
+
+**Example**:
+```bash
+./scripts/update-adr-frontmatter.sh
+```
+
+---
+
+### update-adr-links.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/scripts/update-adr-links.sh`
+
+**Description**: Updates cross-reference links in Architecture Decision Record (ADR) documents.
+
+**Usage**:
+```bash
+./scripts/update-adr-links.sh
+```
+
+**Arguments**: None
+
+**Environment Variables**: None
+
+**Dependencies**: None
+
+**Workflow Phase**: Development/Documentation (not required for cluster deployment)
+
+**Example**:
+```bash
+./scripts/update-adr-links.sh
+```
+
+---
+
+### validate_env.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/e2e-tests/validate_env.sh`
+
+**Description**: Validates that the environment is correctly configured for OpenShift deployment. Checks packages, services, and configuration.
+
+**Usage**:
+```bash
+./e2e-tests/validate_env.sh
+```
+
+**Arguments**: None
+
+**Environment Variables**: None
+
+**Dependencies**: None (validation script)
+
+**Workflow Phase**: Phase 0 (Environment Bootstrap - validation)
+
+**Validation Checks**:
+
+**System Packages**:
+- ansible-core
+- bind-utils
+- cloud-init
+- nmstate
+- podman
+- python3-pip
+- qemu-img
+- selinux-policy-targeted
+- virt-install
+- virt-manager
+- yq
+- kcli
+
+**Ansible Collections**:
+- community.crypto
+- community.general
+
+**OpenShift CLI Tools**:
+- oc (version 4.15+ or 4.18+ depending on RHEL)
+- openshift-install
+
+**Services**:
+- libvirtd (running)
+- cockpit.socket (running)
+- dnsmasq (running - if configured)
+
+**SELinux**:
+- Permissive mode
+- policycoreutils-python-utils installed
+
+**Infrastructure** (if using legacy FreeIPA):
+- FreeIPA VM exists
+- FreeIPA VM has IP address
+
+**Registry Auth**:
+- Pull secret exists
+- Docker config exists
+
+**Ansible Vault** (if configured):
+- Vault password file with correct permissions
+- vault.yml encrypted
+
+**Example**:
+```bash
+# Validate environment
+./e2e-tests/validate_env.sh
+
+# Validate after bootstrap
+sudo ./e2e-tests/bootstrap_env.sh
+./e2e-tests/validate_env.sh
+```
+
+**Return Codes**:
+- `0` - All validations passed
+- `1` - One or more validations failed (exits on first failure)
+
+---
+
+### vyos-router.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/vyos-router.sh`
+
+**Description**: Deploys VyOS router VM for network infrastructure. Provides routing, DHCP, and network isolation for cluster deployments.
+
+**Usage**:
+```bash
+export ACTION="create"  # or "delete"
+source ./hack/vyos-router.sh
+```
+
+**Arguments**: None (controlled via ACTION environment variable)
+
+**Environment Variables**:
+- `ACTION` - "create" or "delete"
+- `ACTUAL_USER` - Detected automatically
+- `ACTUAL_USER_HOME` - Detected automatically
+
+**Dependencies**:
+- kcli
+- VyOS ISO image
+- libvirt/KVM
+
+**Workflow Phase**: Phase 1 (Infrastructure Preparation)
+
+**Example**:
+```bash
+# Create VyOS router
+export ACTION="create"
+source ./hack/vyos-router.sh
+
+# Delete VyOS router
+export ACTION="delete"
+source ./hack/vyos-router.sh
+
+# Check router status
+sudo kcli list vm | grep vyos
+```
+
+**Note**: This script is automatically called by bootstrap_env.sh.
+
+---
+
+### watch-and-reboot-kvm-vms.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/watch-and-reboot-kvm-vms.sh`
+
+**Description**: Monitors KVM VMs during cluster installation and automatically reboots them on errors or hung states.
+
+**Usage**:
+```bash
+./hack/watch-and-reboot-kvm-vms.sh <nodes_yaml_file>
+```
+
+**Arguments**:
+- `<nodes_yaml_file>` - Path to nodes.yml configuration file
+
+**Environment Variables**: None
+
+**Dependencies**:
+- virsh (libvirt CLI)
+- yq
+- Running VMs
+
+**Workflow Phase**: Phase 5 (Installation Monitoring)
+
+**Monitoring Actions**:
+- Watches VM console logs
+- Detects installation errors
+- Automatically reboots VMs on failure
+- Continues until installation completes
+
+**Example**:
+```bash
+# Monitor and auto-reboot VMs during installation
+./hack/watch-and-reboot-kvm-vms.sh examples/sno-4.20-standard/nodes.yml
+
+# Run in background
+./hack/watch-and-reboot-kvm-vms.sh examples/sno-4.20-standard/nodes.yml &
+
+# Monitor with logging
+./hack/watch-and-reboot-kvm-vms.sh examples/sno-4.20-standard/nodes.yml 2>&1 | tee vm-monitor.log
+```
+
+---
+
+## Configuration Reference
+
+### cluster.yml Parameters (Alphabetically Sorted)
+
+**Location**: `examples/<cluster-name>/cluster.yml`
+
+**Parameters**:
+
+- `additional_trust_bundle` (string, optional) - Additional CA certificates to trust
+- `additional_trust_bundle_policy` (string, optional) - When to apply trust bundle ("Always", "Proxyonly")
+- `api_vips` (list, required) - API endpoint VIP addresses (list for dual-stack)
+- `app_node_replicas` (integer, required) - Number of worker nodes (0 for SNO/compact, N for HA)
+- `app_vips` (list, required) - Application ingress VIP addresses (list for dual-stack)
+- `base_domain` (string, required) - DNS base domain for cluster
+- `cluster_name` (string, required) - Cluster identifier (used in FQDN)
+- `cluster_network_cidr` (string, required) - CIDR for pod network (default: 10.128.0.0/14)
+- `cluster_network_host_prefix` (integer, required) - Subnet prefix per node (default: 23)
+- `control_plane_replicas` (integer, required) - Number of control plane nodes (1 for SNO, 3 for HA)
+- `disconnected_registries` (list, optional) - Mirror registry configuration for air-gap
+  - `source` (string) - Original registry
+  - `target` (string) - Mirror registry
+- `dns_search_domains` (list, optional) - DNS search domains
+- `dns_servers` (list, optional) - DNS server IP addresses
+- `machine_network_cidrs` (list, required) - CIDR for node network
+- `network_type` (string, required) - SDN type ("OVNKubernetes" or "OpenShiftSDN" - deprecated)
+- `ntp_servers` (list, optional) - NTP server addresses
+- `platform_type` (string, required) - Platform type ("baremetal", "vsphere", "none" - SNO must be "none")
+- `proxy` (object, optional) - Outbound proxy configuration
+  - `http_proxy` (string) - HTTP proxy URL
+  - `https_proxy` (string) - HTTPS proxy URL
+  - `no_proxy` (list) - Proxy exclusions
+- `pull_secret_path` (string, required) - Path to OpenShift pull secret file
+- `rendezvous_ip` (string, required) - IP of bootstrap node (matches SNO node IP or first control plane)
+- `service_network_cidrs` (list, required) - CIDR for service network (default: 172.30.0.0/16)
+- `ssh_public_key_path` (string, optional) - Path to SSH public key (generated if omitted)
+- `use_site_configs` (boolean, optional) - Use site-specific configurations (default: false)
+
+**Example cluster.yml** (SNO):
+```yaml
+use_site_configs: false
+pull_secret_path: ~/ocp-install-pull-secret.json
+ssh_public_key_path: ~/.ssh/id_rsa.pub
+
+cluster_name: sno-4-20
+base_domain: example.com
+platform_type: none
+
+api_vips:
+  - 192.168.100.50
+app_vips:
+  - 192.168.100.50
+
+ntp_servers:
+  - 0.rhel.pool.ntp.org
+  - 1.rhel.pool.ntp.org
+
+dns_servers:
+  - 192.168.100.1
+
+cluster_network_cidr: 10.128.0.0/14
+cluster_network_host_prefix: 23
+service_network_cidrs:
+  - 172.30.0.0/16
+machine_network_cidrs:
+  - 192.168.100.0/24
+
+network_type: OVNKubernetes
+rendezvous_ip: 192.168.100.50
+
+control_plane_replicas: 1
+app_node_replicas: 0
+```
+
+---
+
+### nodes.yml Parameters (Alphabetically Sorted)
+
+**Location**: `examples/<cluster-name>/nodes.yml`
+
+**Parameters**:
+
+- `app_node_replicas` (integer, required) - Number of worker nodes
+- `control_plane_replicas` (integer, required) - Number of control plane nodes
+- `nodes` (list, required) - List of node definitions
+  - `hostname` (string, required) - Node hostname
+  - `interfaces` (list, required) - Network interface definitions
+    - `mac_address` (string, required) - MAC address
+    - `name` (string, required) - Interface name (e.g., enp1s0, ens192)
+  - `networkConfig` (object, required) - NMState network configuration
+    - `interfaces` (list) - Interface configurations
+      - `ipv4` (object) - IPv4 configuration
+        - `address` (list) - Static IP addresses
+          - `ip` (string) - IP address
+          - `prefix-length` (integer) - Subnet prefix
+        - `dhcp` (boolean) - Enable DHCP
+        - `enabled` (boolean) - Enable IPv4
+      - `link-aggregation` (object, optional) - Bond configuration
+        - `mode` (string) - Bond mode (802.3ad, active-backup, etc.)
+        - `port` (list) - Member interfaces
+      - `mac-address` (string) - MAC address
+      - `name` (string) - Interface name
+      - `state` (string) - Interface state ("up", "down")
+      - `type` (string) - Interface type ("ethernet", "vlan", "bond")
+      - `vlan` (object, optional) - VLAN configuration
+        - `base-iface` (string) - Parent interface
+        - `id` (integer) - VLAN ID
+    - `routes` (object) - Routing configuration
+      - `config` (list) - Route definitions
+        - `destination` (string) - Destination CIDR
+        - `next-hop-address` (string) - Gateway IP
+        - `next-hop-interface` (string) - Egress interface
+        - `table-id` (integer) - Routing table ID (254 = main)
+  - `role` (string, optional) - Node role ("master", "worker" - omit for SNO)
+  - `rootDeviceHints` (object, required) - Root disk selection
+    - `deviceName` (string) - Device path (e.g., /dev/sda, /dev/nvme0n1)
+
+**Example nodes.yml** (SNO with VLAN):
+```yaml
+control_plane_replicas: 1
+app_node_replicas: 0
+
+nodes:
+  - hostname: sno-420
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: ens192
+        mac_address: "00:50:56:9a:12:34"
+    networkConfig:
+      interfaces:
+        - name: ens192.100
+          type: vlan
+          state: up
+          vlan:
+            id: 100
+            base-iface: ens192
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.100.50
+                prefix-length: 24
+            dhcp: false
+        - name: ens192
+          type: ethernet
+          state: up
+          mac-address: "00:50:56:9a:12:34"
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.100.1
+            next-hop-interface: ens192.100
+            table-id: 254
+```
+
+**Example nodes.yml** (3-node cluster):
+```yaml
+control_plane_replicas: 3
+app_node_replicas: 0
+
+nodes:
+  - hostname: node1
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: ens192
+        mac_address: "00:50:56:9a:12:34"
+    networkConfig:
+      interfaces:
+        - name: ens192
+          type: ethernet
+          state: up
+          mac-address: "00:50:56:9a:12:34"
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.100.50
+                prefix-length: 24
+            dhcp: false
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.100.1
+            next-hop-interface: ens192
+            table-id: 254
+
+  - hostname: node2
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: ens192
+        mac_address: "00:50:56:9a:12:35"
+    networkConfig:
+      interfaces:
+        - name: ens192
+          type: ethernet
+          state: up
+          mac-address: "00:50:56:9a:12:35"
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.100.51
+                prefix-length: 24
+            dhcp: false
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.100.1
+            next-hop-interface: ens192
+            table-id: 254
+
+  - hostname: node3
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: ens192
+        mac_address: "00:50:56:9a:12:36"
+    networkConfig:
+      interfaces:
+        - name: ens192
+          type: ethernet
+          state: up
+          mac-address: "00:50:56:9a:12:36"
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.100.52
+                prefix-length: 24
+            dhcp: false
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.100.1
+            next-hop-interface: ens192
+            table-id: 254
+```
+
+---
+
+### Environment Variables (Alphabetically Sorted)
+
+**Global Environment Variables**:
+
+- `ACTION` (string) - Action for VyOS router ("create", "delete")
+- `ACTUAL_USER` (string) - Real username when using sudo (auto-detected)
+- `ACTUAL_USER_GROUP` (string) - Real user's group when using sudo (auto-detected)
+- `ACTUAL_USER_HOME` (string) - Real user's home directory when using sudo (auto-detected)
+- `CLUSTER_NAME` (string) - Cluster name override (default: auto-detected from cluster.yml or "ocp4")
+- `DEBUG` (string) - Ansible verbosity ("-v", "-vv", "-vvv")
+- `DOMAIN` (string) - Base domain for FreeIPA (legacy)
+- `FREEIPA_ADMIN_PASSWORD` (string) - FreeIPA admin password (legacy)
+- `GENERATED_ASSET_PATH` (string) - Output directory for ISOs/manifests (default: "~/generated_assets")
+- `KUBECONFIG` (string) - Path to kubeconfig file for cluster access
+- `LIBVIRT_NETWORK` (string) - Libvirt network specification (default: "network=1924,model=e1000e")
+- `LIBVIRT_NETWORK_TWO` (string) - Second network for multi-NIC (default: same as LIBVIRT_NETWORK)
+- `LIBVIRT_VM_PATH` (string) - Path to VM disk images (default: "/var/lib/libvirt/images")
+- `MULTI_NETWORK` (boolean) - Enable dual NICs (default: true)
+- `SITE_CONFIG_DIR` (string) - Directory containing cluster configs (default: "examples")
+- `SUDO_USER` (string) - Username when using sudo (auto-detected by system)
+- `SUSHY_TOOLS_IMAGE` (string) - Sushy-tools container image (default: "quay.io/metal3-io/sushy-tools")
+
+---
+
+### Network Configuration Patterns
+
+#### VLAN Configuration
+```yaml
+networkConfig:
+  interfaces:
+    - name: ens192.100
+      type: vlan
+      state: up
+      vlan:
+        id: 100
+        base-iface: ens192
+      ipv4:
+        enabled: true
+        address:
+          - ip: 192.168.100.50
+            prefix-length: 24
+        dhcp: false
+    - name: ens192
+      type: ethernet
+      state: up
+      mac-address: "00:50:56:9a:12:34"
+  routes:
+    config:
+      - destination: 0.0.0.0/0
+        next-hop-address: 192.168.100.1
+        next-hop-interface: ens192.100
+        table-id: 254
+```
+
+#### Bond Configuration
+```yaml
+networkConfig:
+  interfaces:
+    - name: bond0
+      type: bond
+      state: up
+      ipv4:
+        address:
+          - ip: 192.168.100.50
+            prefix-length: 24
+        dhcp: false
+        enabled: true
+      link-aggregation:
+        mode: 802.3ad  # or active-backup, balance-xor, etc.
+        port:
+          - ens192
+          - ens224
+    - name: ens192
+      type: ethernet
+      state: up
+      mac-address: "00:50:56:9a:12:34"
+    - name: ens224
+      type: ethernet
+      state: up
+      mac-address: "00:50:56:9a:12:35"
+  routes:
+    config:
+      - destination: 0.0.0.0/0
+        next-hop-address: 192.168.100.1
+        next-hop-interface: bond0
+        table-id: 254
+```
+
+#### Bond + VLAN Configuration
+```yaml
+networkConfig:
+  interfaces:
+    - name: bond0.100
+      type: vlan
+      state: up
+      vlan:
+        id: 100
+        base-iface: bond0
+      ipv4:
+        enabled: true
+        address:
+          - ip: 192.168.100.50
+            prefix-length: 24
+        dhcp: false
+    - name: bond0
+      type: bond
+      state: up
+      link-aggregation:
+        mode: 802.3ad
+        port:
+          - ens192
+          - ens224
+    - name: ens192
+      type: ethernet
+      state: up
+      mac-address: "00:50:56:9a:12:34"
+    - name: ens224
+      type: ethernet
+      state: up
+      mac-address: "00:50:56:9a:12:35"
+  routes:
+    config:
+      - destination: 0.0.0.0/0
+        next-hop-address: 192.168.100.1
+        next-hop-interface: bond0.100
+        table-id: 254
+```
+
+---
+
+## CI/CD Automation
+
+### GitHub Actions Workflows
+
+#### jekyll-build.yml
+
+**Location**: `.github/workflows/jekyll-build.yml`
+
+**Purpose**: Builds and deploys documentation site using Jekyll to GitHub Pages
+
+**Trigger**: Push to main branch, manual workflow dispatch
+
+**Jobs**:
+1. Checkout repository
+2. Setup Ruby and Jekyll
+3. Build documentation site
+4. Deploy to GitHub Pages
+
+**Usage**: Automatic on push to main
+
+---
+
+#### build-ee.yml
+
+**Location**: `.github/workflows/build-ee.yml`
+
+**Purpose**: Builds Ansible Execution Environment container image
+
+**Trigger**: Push to main branch, manual workflow dispatch
+
+**Image Registry**: GitHub Container Registry (ghcr.io)
+
+**Jobs**:
+1. Checkout repository
+2. Build Execution Environment with ansible-builder
+3. Push image to GHCR
+
+**Usage**: Automatic on push to main
+
+**Container Image**: `ghcr.io/tosin2013/openshift-agent-install-ee:latest`
+
+---
+
+### Ansible Execution Environment
+
+**Definition File**: `execution-environment/execution-environment.yml`
+
+**Purpose**: Containerized Ansible runtime with all dependencies for offline/portable execution
+
+**Base Image**: `quay.io/ansible/creator-ee:latest`
+
+**System Dependencies** (bindep.txt):
+- curl-minimal
+- git
+- jq
+- python3-devel
+- tar
+- wget
+
+**Python Dependencies** (requirements.txt):
+- jmespath
+- nmstate
+
+**Ansible Collections**:
+- community.crypto
+- community.general
+
+**Building Locally**:
+```bash
+# Install ansible-builder
+pip3 install ansible-builder
+
+# Build execution environment
+cd execution-environment/
+ansible-builder build --tag openshift-agent-install-ee:latest
+
+# Run playbook in container
+podman run --rm -it \
+  -v $(pwd):/work:z \
+  -v ~/ocp-install-pull-secret.json:/tmp/pull-secret.json:z \
+  openshift-agent-install-ee:latest \
+  ansible-playbook -e @examples/sno-4.20-standard/cluster.yml \
+                   -e @examples/sno-4.20-standard/nodes.yml \
+                   playbooks/create-manifests.yml
+```
+
+---
+
+## Troubleshooting
+
+### DNS Resolution Issues
+
+#### Problem: Cannot resolve cluster API or apps domains
+
+**Symptoms**:
+```bash
+dig api.sno-4-20.example.com
+# Returns NXDOMAIN or no answer
+```
+
+**Solution 1: Check dnsmasq status**
+```bash
+# Verify dnsmasq is running
+sudo systemctl status dnsmasq
+
+# Restart if needed
+sudo systemctl restart dnsmasq
+
+# Check logs
+sudo tail -f /var/log/dnsmasq.log
+```
+
+**Solution 2: Verify DNS entries**
+```bash
+# List current DNS entries
+sudo ./hack/configure-dnsmasq-entries.sh list
+
+# Re-add entries if missing
+sudo ./hack/configure-dnsmasq-entries.sh add examples/sno-4.20-standard/cluster.yml
+
+# Test resolution
+dig @localhost api.sno-4-20.example.com
+```
+
+**Solution 3: Check host DNS configuration**
+```bash
+# Verify /etc/resolv.conf includes localhost
+cat /etc/resolv.conf | grep nameserver
+
+# If 127.0.0.1 not present, check NetworkManager
+nmcli connection show
+
+# Add dnsmasq to primary connection
+PRIMARY_CONN=$(nmcli -t -f NAME,DEVICE connection show --active | grep -v "lo\|virbr" | head -1 | cut -d: -f1)
+sudo nmcli connection modify "$PRIMARY_CONN" ipv4.dns "127.0.0.1"
+sudo nmcli connection up "$PRIMARY_CONN"
+```
+
+---
+
+### KVM/Libvirt Issues
+
+#### Problem: Cannot create VMs or VMs fail to start
+
+**Symptoms**:
+```bash
+Error creating domain: internal error: process exited while connecting to monitor
+```
+
+**Solution 1: Check libvirtd**
+```bash
+# Verify libvirtd is running
+sudo systemctl status libvirtd
+
+# Restart libvirtd
+sudo systemctl restart libvirtd
+
+# Check for errors
+sudo journalctl -u libvirtd -n 50
+```
+
+**Solution 2: Verify disk space**
+```bash
+# Check available space in /var/lib/libvirt/images
+df -h /var/lib/libvirt/images
+
+# Clean up old VM disks
+sudo ls -lh /var/lib/libvirt/images/
+sudo rm /var/lib/libvirt/images/old-cluster-*.qcow2
+```
+
+**Solution 3: Check permissions**
+```bash
+# Verify user is in libvirt group
+groups $USER
+
+# Add user to libvirt group if missing
+sudo usermod -aG libvirt $USER
+
+# Logout and login for group changes to take effect
+```
+
+---
+
+### ISO Generation Failures
+
+#### Problem: create-iso.sh fails during manifest generation
+
+**Symptoms**:
+```
+TASK [Create agent-config.yaml] ****************************************
+fatal: [localhost]: FAILED! => {"msg": "template error while templating string"}
+```
+
+**Solution 1: Validate YAML syntax**
+```bash
+# Check cluster.yml syntax
+yq eval '.' examples/sno-4.20-standard/cluster.yml
+
+# Check nodes.yml syntax
+yq eval '.' examples/sno-4.20-standard/nodes.yml
+```
+
+**Solution 2: Verify required fields**
+```bash
+# Ensure cluster_name is set
+grep "cluster_name" examples/sno-4.20-standard/cluster.yml
+
+# Ensure base_domain is set
+grep "base_domain" examples/sno-4.20-standard/cluster.yml
+
+# Ensure pull secret exists
+ls -lh ~/ocp-install-pull-secret.json
+```
+
+**Solution 3: Check Ansible collections**
+```bash
+# Verify Ansible collections are installed
+ansible-galaxy collection list | grep community
+
+# Reinstall if missing
+ansible-galaxy collection install -r playbooks/collections/requirements.yml
+```
+
+---
+
+### Network Configuration Errors
+
+#### Problem: Nodes fail to get network connectivity after boot
+
+**Symptoms**:
+- Nodes boot but cannot reach API
+- Bootstrap fails with "waiting for bootstrap complete"
+
+**Solution 1: Verify MAC addresses**
+```bash
+# Check MAC addresses in nodes.yml match VM configuration
+yq eval '.nodes[].interfaces[].mac_address' examples/sno-4.20-standard/nodes.yml
+
+# Verify VM MAC addresses
+sudo virsh dumpxml sno-420 | grep "mac address"
+```
+
+**Solution 2: Validate NMState configuration**
+```bash
+# Test NMState config with nmstatectl
+yq eval '.nodes[0].networkConfig' examples/sno-4.20-standard/nodes.yml > /tmp/nmstate-test.yaml
+nmstatectl gc /tmp/nmstate-test.yaml
+
+# Check for validation errors
+```
+
+**Solution 3: Check VLAN/Bond configuration**
+```bash
+# For VLAN: Ensure base interface is up before VLAN
+# For Bond: Ensure all member interfaces exist
+
+# Verify interface names match actual hardware
+# Common interface names: ens192, ens224, enp1s0, enp2s0
+```
+
+---
+
+### Installation Hangs or Fails
+
+#### Problem: Cluster installation stops progressing
+
+**Symptoms**:
+```bash
+./bin/openshift-install agent wait-for bootstrap-complete
+# Hangs indefinitely
+```
+
+**Solution 1: Check VM console**
+```bash
+# Connect to VM console
+sudo virsh console sno-420
+
+# Look for errors in boot messages
+# Press Ctrl+] to exit console
+```
+
+**Solution 2: Verify resource allocation**
+```bash
+# Check VM has sufficient resources
+sudo virsh dominfo sno-420
+
+# Ensure:
+# - CPU: 8+ vCPUs for SNO
+# - Memory: 32GB+ for SNO
+# - Disk: 130GB+
+```
+
+**Solution 3: Check logs on installation host**
+```bash
+# View installation logs
+tail -f ~/generated_assets/sno-4-20/.openshift_install.log
+
+# Check for common errors:
+# - "failed to fetch Cluster version"  → DNS issue
+# - "failed to initialize the cluster" → Resource issue
+# - "x509: certificate signed by unknown authority" → CA bundle issue
+```
+
+**Solution 4: Reboot stuck VMs**
+```bash
+# Manually reboot VM
+sudo virsh reboot sno-420
+
+# Or use auto-reboot script
+./hack/watch-and-reboot-kvm-vms.sh examples/sno-4.20-standard/nodes.yml
+```
+
+---
+
+### Redfish API Issues
+
+#### Problem: Redfish emulator not accessible
+
+**Symptoms**:
+```bash
+curl http://localhost:8000/redfish/v1/Systems
+# Connection refused or timeout
+```
+
+**Solution 1: Check sushy-emulator service**
+```bash
+# Verify service is running
+sudo systemctl status sushy-emulator
+
+# Restart if needed
+sudo systemctl restart sushy-emulator
+
+# Check logs
+sudo journalctl -u sushy-emulator -n 50
+```
+
+**Solution 2: Verify firewall**
+```bash
+# Check if port 8000 is open
+sudo firewall-cmd --list-ports | grep 8000
+
+# Add port if missing
+sudo firewall-cmd --permanent --add-port=8000/tcp
+sudo firewall-cmd --reload
+```
+
+**Solution 3: Test Redfish API**
+```bash
+# Test manager collection
+curl http://localhost:8000/redfish/v1/Managers
+
+# Test systems collection
+curl http://localhost:8000/redfish/v1/Systems
+
+# Test specific system
+curl http://localhost:8000/redfish/v1/Systems/sno-420
+```
+
+---
+
+### Disconnected/Air-Gap Issues
+
+#### Problem: Cannot pull images from disconnected registry
+
+**Symptoms**:
+```
+Error: ImagePullBackOff
+Failed to pull image: x509: certificate signed by unknown authority
+```
+
+**Solution 1: Verify additional trust bundle**
+```bash
+# Ensure additional_trust_bundle is set in cluster.yml
+grep -A 10 "additional_trust_bundle:" examples/sno-4.20-standard/cluster.yml
+
+# Bundle should include disconnected registry CA cert
+```
+
+**Solution 2: Check registry mirror configuration**
+```bash
+# Verify disconnected_registries in cluster.yml
+yq eval '.disconnected_registries' examples/sno-4.20-standard/cluster.yml
+
+# Ensure source→target mappings are correct
+# Must include:
+# - quay.io/openshift-release-dev/ocp-release
+# - quay.io/openshift-release-dev/ocp-v4.0-art-dev
+```
+
+**Solution 3: Validate pull secret**
+```bash
+# Check pull secret includes disconnected registry auth
+cat ~/ocp-install-pull-secret.json | jq '.auths | keys'
+
+# Should show both cloud.openshift.com AND disconnected registry
+```
+
+---
+
+### Permission Errors
+
+#### Problem: Permission denied when running scripts
+
+**Symptoms**:
+```bash
+./hack/deploy-on-kvm.sh examples/sno-4.20-standard/nodes.yml
+# Permission denied: /var/lib/libvirt/images/agent.x86_64.iso
+```
+
+**Solution 1: Use sudo for privileged operations**
+```bash
+# Most deployment scripts need sudo for libvirt access
+sudo ./hack/deploy-on-kvm.sh examples/sno-4.20-standard/nodes.yml --redfish
+```
+
+**Solution 2: Check file permissions**
+```bash
+# Verify ISO permissions
+ls -lh ~/generated_assets/sno-4-20/agent.x86_64.iso
+
+# Should be readable by current user
+chmod 644 ~/generated_assets/sno-4-20/agent.x86_64.iso
+```
+
+**Solution 3: Verify libvirt permissions**
+```bash
+# Check libvirt group membership
+groups $USER
+
+# Add user to libvirt group
+sudo usermod -aG libvirt $USER
+
+# Logout/login for changes to take effect
+```
+
+---
+
+## Additional Resources
+
+### Documentation
+
+#### Main Documentation
+- **Repository Root**: `/home/vpcuser/openshift-agent-install/`
+- **README.md**: Overview, quick start, configuration examples
+- **DNS_AUTOMATION.md**: DNS automation implementation details
+
+#### Detailed Guides (docs/ directory)
+- `docs/installation-guide.md` - Step-by-step installation guide
+- `docs/deployment-patterns.md` - SNO, 3-node, HA deployment patterns
+- `docs/network-configuration.md` - NMState configuration examples
+- `docs/dns-setup.md` - DNS configuration and troubleshooting
+- `docs/troubleshooting.md` - Common issues and solutions
+
+#### Architecture Decision Records (docs/adr/)
+- ADRs document design decisions and rationale
+- Numbered sequentially (001-xxx)
+- Maintained for historical context
+
+---
+
+### Example Configurations
+
+#### Available Examples (examples/ directory)
+
+**sno-4.20-standard/**
+- **Type**: Single Node OpenShift (SNO)
+- **OpenShift Version**: 4.20
+- **Network**: VLAN 100, static IP
+- **Platform**: platform=none
+- **Use Case**: Standard connected SNO deployment
+
+**serenity-sno.v60.lab.kemo.network/**
+- **Type**: Single Node OpenShift (SNO)
+- **OpenShift Version**: 4.x
+- **Network**: VLAN-tagged with bond
+- **Platform**: platform=none
+- **Use Case**: Disconnected deployment with registry mirrors
+- **Special**: Includes disconnected registry configuration
+
+**ha-4.21-disconnected/**
+- **Type**: HA Cluster (3 control + N workers)
+- **OpenShift Version**: 4.21
+- **Network**: Standard Ethernet
+- **Platform**: platform=baremetal or none
+- **Use Case**: Air-gapped HA deployment
+- **Special**: Disconnected registry, additional trust bundle
+
+**cnv-bond0-tagged/**
+- **Type**: Multi-node cluster
+- **Network**: Bond + VLAN configuration
+- **Use Case**: CNV (OpenShift Virtualization) deployment
+- **Special**: ODF storage, bond networking
+
+---
+
+### External Links
+
+#### OpenShift Documentation
+- **Agent-Based Installer Guide**: https://docs.openshift.com/container-platform/latest/installing/installing_with_agent_based_installer/preparing-to-install-with-agent-based-installer.html
+- **NMState Documentation**: https://nmstate.io/
+- **OpenShift Downloads**: https://console.redhat.com/openshift/downloads
+
+#### Community Resources
+- **GitHub Repository**: https://github.com/tosin2013/openshift-agent-install
+- **Issues**: https://github.com/tosin2013/openshift-agent-install/issues
+- **Pull Requests**: https://github.com/tosin2013/openshift-agent-install/pulls
+
+#### Related Projects
+- **Disconnected OpenShift**: https://github.com/kenmoini/disconnected-openshift
+- **kcli**: https://kcli.readthedocs.io/
+- **VyOS**: https://vyos.io/
+
+---
+
+### File Structure
+
+```
+openshift-agent-install/
+├── bin/                           # OpenShift CLI tools (generated)
+│   ├── oc
+│   ├── kubectl
+│   └── openshift-install
+├── docs/                          # Documentation
+│   ├── adr/                       # Architecture Decision Records
+│   ├── deployment-patterns.md
+│   ├── dns-setup.md
+│   ├── installation-guide.md
+│   ├── network-configuration.md
+│   └── troubleshooting.md
+├── e2e-tests/                     # End-to-end testing
+│   ├── bootstrap_env.sh           # Environment bootstrap
+│   ├── delete_e2e.sh              # Test cleanup
+│   ├── run_e2e.sh                 # Run E2E tests
+│   └── validate_env.sh            # Environment validation
+├── examples/                      # Example cluster configurations
+│   ├── sno-4.20-standard/
+│   │   ├── cluster.yml
+│   │   └── nodes.yml
+│   ├── serenity-sno.v60.lab.kemo.network/
+│   │   ├── cluster.yml
+│   │   └── nodes.yml
+│   └── ha-4.21-disconnected/
+│       ├── cluster.yml
+│       └── nodes.yml
+├── execution-environment/         # Ansible EE definition
+│   ├── bindep.txt                 # System dependencies
+│   ├── execution-environment.yml  # EE definition
+│   └── requirements.txt           # Python dependencies
+├── .github/workflows/             # CI/CD workflows
+│   ├── build-ee.yml               # Build execution environment
+│   └── jekyll-build.yml           # Build documentation site
+├── hack/                          # Deployment scripts
+│   ├── configure-dnsmasq-entries.sh
+│   ├── configure-gui.sh
+│   ├── configure-lvm.sh
+│   ├── configure-sushy-unix.sh
+│   ├── configure_dns_entries.sh   # LEGACY
+│   ├── create-iso.sh
+│   ├── deploy-freeipa.sh          # LEGACY
+│   ├── deploy-on-kvm.sh
+│   ├── destroy-on-kvm.sh
+│   ├── example.freeipa_vars.sh
+│   ├── freeipa_vars.sh            # LEGACY
+│   ├── setup-dnsmasq.sh
+│   ├── test-libvirt-ssh.sh
+│   ├── vyos-router.sh
+│   └── watch-and-reboot-kvm-vms.sh
+├── playbooks/                     # Ansible playbooks
+│   ├── collections/
+│   │   └── requirements.yml       # Ansible collections
+│   ├── build-appliance.yml        # Build appliance images
+│   └── create-manifests.yml       # Template ABI manifests
+├── scripts/                       # Utility scripts
+│   ├── install-jekyll.sh
+│   ├── serve-site.sh
+│   ├── update-adr-frontmatter.sh
+│   └── update-adr-links.sh
+├── download-openshift-cli.sh      # Download OCP CLI tools
+├── get-rhcos-iso.sh               # Download RHCOS ISO
+├── DNS_AUTOMATION.md              # DNS automation guide
+├── llm.txt                        # This file
+└── README.md                      # Main documentation
+```
+
+---
+
+## Quick Reference
+
+### Common Commands
+
+```bash
+# Environment Setup
+sudo ./e2e-tests/bootstrap_env.sh
+./e2e-tests/validate_env.sh
+
+# DNS Configuration
+sudo ./hack/setup-dnsmasq.sh
+sudo ./hack/configure-dnsmasq-entries.sh add examples/sno-4.20-standard/cluster.yml
+
+# ISO Creation
+./hack/create-iso.sh sno-4.20-standard
+
+# KVM Deployment
+./hack/deploy-on-kvm.sh examples/sno-4.20-standard/nodes.yml --redfish
+
+# Monitor Installation
+./bin/openshift-install agent wait-for bootstrap-complete --dir ~/generated_assets/sno-4-20/
+./bin/openshift-install agent wait-for install-complete --dir ~/generated_assets/sno-4-20/
+
+# Access Cluster
+export KUBECONFIG=~/generated_assets/sno-4-20/auth/kubeconfig
+oc get nodes
+oc get co
+
+# Cleanup
+./hack/destroy-on-kvm.sh examples/sno-4.20-standard/nodes.yml
+```
+
+---
+
+### File Locations
+
+```bash
+# Generated Assets (ISOs, manifests, kubeconfig)
+~/generated_assets/${CLUSTER_NAME}/
+
+# OpenShift CLI Tools
+./bin/oc
+./bin/openshift-install
+
+# Pull Secret
+~/ocp-install-pull-secret.json
+
+# DNS Configuration
+/etc/dnsmasq.d/openshift.conf
+/var/log/dnsmasq.log
+
+# Libvirt VMs and Disks
+/var/lib/libvirt/images/
+
+# Example Configurations
+examples/sno-4.20-standard/cluster.yml
+examples/sno-4.20-standard/nodes.yml
+```
+
+---
+
+### Version Information
+
+**Supported OpenShift Versions**:
+- 4.15+ (minimum)
+- 4.20.x (tested)
+- 4.21.x (tested)
+
+**Supported RHEL Versions**:
+- RHEL 9.x (recommended)
+- RHEL 8.x (supported)
+
+**Tool Versions**:
+- yq: v4.45.1+
+- Ansible: 2.9+
+- Python: 3.6+
+
+---
+
+## End of llm.txt
+
+**Last Updated**: 2026-03-17
+**Repository**: https://github.com/tosin2013/openshift-agent-install
+**Documentation Format**: llm.txt (LLM-friendly deterministic deployment guide)
