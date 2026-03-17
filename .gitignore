@@ -8,6 +8,14 @@ playbooks/generated_manifests/**
 .vscode/**
 cline_docs/
 hack/freeipa_vars.sh
+vault.yml
+.vault_password
+**/pullsecret.json
+**/config.json
+**/.vault_password
+
+# dnsmasq configuration (generated)
+**/dnsmasq-*.conf
 
 # Jekyll specific files
 docs/_site/
