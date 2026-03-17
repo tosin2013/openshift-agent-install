@@ -126,11 +126,14 @@ sudo ./hack/configure-dnsmasq-entries.sh add examples/sno-4.20-standard/cluster.
 # 8. Deploy to KVM (for testing)
 ./hack/deploy-on-kvm.sh examples/sno-4.20-standard/nodes.yml --redfish
 
-# 9. Monitor installation
+# 9. Watch and auto-reboot VMs (REQUIRED for KVM - run in background)
+./hack/watch-and-reboot-kvm-vms.sh examples/sno-4.20-standard/nodes.yml &
+
+# 10. Monitor installation
 ./bin/openshift-install agent wait-for bootstrap-complete --dir ~/generated_assets/sno-4-20/
 ./bin/openshift-install agent wait-for install-complete --dir ~/generated_assets/sno-4-20/
 
-# 10. Access cluster
+# 11. Access cluster
 export KUBECONFIG=~/generated_assets/sno-4-20/auth/kubeconfig
 oc get nodes
 ```
@@ -269,6 +272,12 @@ dig @localhost console-openshift-console.apps.sno-4-20.example.com
 5. Attaches ISO and boots VMs
 6. Starts sushy-tools Redfish emulator (if --redfish flag)
 
+**IMPORTANT**: After deploying, immediately start the VM reboot watcher:
+```bash
+./hack/watch-and-reboot-kvm-vms.sh examples/sno-4.20-standard/nodes.yml &
+```
+This is **required** for Agent-Based Installer - VMs will shut down after writing OS to disk but won't automatically reboot without this script.
+
 #### Option B: Physical/vSphere Deployment
 
 **Purpose**: Deploy to bare metal or vSphere infrastructure
@@ -298,10 +307,15 @@ dig @localhost console-openshift-console.apps.sno-4-20.example.com
     --dir ~/generated_assets/${CLUSTER_NAME}/
 ```
 
-**Optional Monitoring**:
+**Required for KVM Deployments**:
 ```bash
-# Watch and auto-reboot VMs on errors (KVM only)
+# Watch and auto-reboot VMs after disk write (REQUIRED for KVM)
+# Agent-Based Installer VMs shut down after writing OS to disk but don't self-reboot
+# This script watches for shutdowns and automatically restarts them
 ./hack/watch-and-reboot-kvm-vms.sh examples/sno-4.20-standard/nodes.yml
+
+# Recommended: Run in background
+./hack/watch-and-reboot-kvm-vms.sh examples/sno-4.20-standard/nodes.yml &
 ```
 
 ---
@@ -1287,7 +1301,7 @@ sudo kcli list vm | grep vyos
 
 **Location**: `/home/vpcuser/openshift-agent-install/hack/watch-and-reboot-kvm-vms.sh`
 
-**Description**: Monitors KVM VMs during cluster installation and automatically reboots them on errors or hung states.
+**Description**: **REQUIRED for KVM deployments** - Watches for VMs to shut down after Agent-Based Installer writes RHCOS to disk, then automatically reboots them. VMs do not self-reboot after disk write; without this script, installation will hang.
 
 **Usage**:
 ```bash
@@ -1304,13 +1318,14 @@ sudo kcli list vm | grep vyos
 - yq
 - Running VMs
 
-**Workflow Phase**: Phase 5 (Installation Monitoring)
+**Workflow Phase**: Phase 5 (Installation Monitoring) - Start immediately after deploy-on-kvm.sh
 
-**Monitoring Actions**:
-- Watches VM console logs
-- Detects installation errors
-- Automatically reboots VMs on failure
-- Continues until installation completes
+**How It Works**:
+- Continuously polls `virsh list --state-shutoff` for powered-off VMs
+- When a cluster VM shuts down (after writing OS to disk), automatically runs `virsh start <vm>`
+- Removes VM from watch list after successful restart
+- Exits when all VMs have been restarted once
+- Checks every 30 seconds
 
 **Example**:
 ```bash
