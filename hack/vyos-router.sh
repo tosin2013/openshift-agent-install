@@ -76,18 +76,9 @@ EOF"
     done
 }
 
-function check_freeipa() {
-    export vm_name="freeipa"
-    export ip_address=$(sudo kcli info vm "$vm_name" "$vm_name" | grep ip: | awk '{print $2}' | head -1)
-    if [ -z "$ip_address" ]; then
-        echo "Error: FreeIPA VM IP address not found"
-        exit 1
-    fi
-    echo "FreeIPA IP address: $ip_address"
-}
 
 function create(){
-    check_freeipa
+    export ip_address="${DNS_FORWARDER}"
     create_livirt_networks
     # Vyos nightly builds 
     # https://github.com/vyos/vyos-rolling-nightly-builds/releases
