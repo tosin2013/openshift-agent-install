@@ -80,11 +80,11 @@ EOF"
 function create(){
     export ip_address="${DNS_FORWARDER}"
     create_livirt_networks
-    # Vyos nightly builds 
+    # Vyos nightly builds
     # https://github.com/vyos/vyos-rolling-nightly-builds/releases
-    VYOS_VERSION=1.5-rolling-202502170007
+    VYOS_VERSION=2026.03.16-0030-rolling
     ISO_LOC=https://github.com/vyos/vyos-nightly-build/releases/download/${VYOS_VERSION}/vyos-${VYOS_VERSION}-generic-amd64.iso
-    if [ ! -f $HOME/vyos-${VYOS_VERSION}-amd64.iso ];
+    if [ ! -f $HOME/vyos-${VYOS_VERSION}-generic-amd64.iso ];
     then
         cd $HOME
         curl -OL $ISO_LOC
