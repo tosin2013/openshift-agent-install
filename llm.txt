@@ -340,6 +340,308 @@ Password: cat ~/generated_assets/${CLUSTER_NAME}/auth/kubeadmin-password
 
 ---
 
+### Phase 6.5: External Access Configuration (Optional - AWS + HAProxy)
+
+**Purpose**: Configure external access via Route53 DNS, HAProxy forwarding, and Let's Encrypt certificates
+
+**Architecture**: Internet → Route53 DNS → Host EXTERNAL_IP → HAProxy → Cluster VIPs → OpenShift
+
+**When to Use**:
+- Production deployments requiring external access from internet
+- Single public IP scenario (HAProxy forwards to internal cluster VIPs)
+- Need for trusted TLS certificates (Let's Encrypt)
+- AWS Route53 for public DNS management
+
+**Prerequisites**:
+- **CRITICAL**: `base_domain` in cluster.yml MUST be a real domain you own with a Route53 hosted zone
+  - Example: If base_domain is "mycompany.com", you must own mycompany.com and have it in Route53
+  - Test domains like "example.com" or "lab.local" will NOT work with Route53
+  - Both local dnsmasq and external Route53 use the SAME domain names
+  - Internal DNS (dnsmasq) resolves to VIPs, external DNS (Route53) resolves to EXTERNAL_IP
+- AWS account with Route53 hosted zone for base_domain
+- AWS credentials (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY)
+- Host has external/public IP address (provided by user)
+- Ansible installed on host (for HAProxy deployment)
+- Email address for Let's Encrypt notifications
+- OpenShift cluster already deployed and accessible
+
+**Scripts**:
+- `hack/configure-haproxy-forwarder.sh` - Deploy HAProxy using openshift-forwarder Ansible role
+- `hack/configure-route53-dns.sh` - Manage Route53 DNS records (add/remove/list)
+- `hack/configure-letsencrypt-certs.sh` - Obtain and install Let's Encrypt certificates
+- `hack/configure-external-access.sh` - Orchestrated setup (HAProxy + DNS + certificates)
+
+#### Domain Configuration and DNS Resolution
+
+**How DNS Works with External Access:**
+
+The cluster uses **split-horizon DNS** with the SAME domain names:
+
+**Example cluster.yml:**
+```yaml
+cluster_name: "prod-ocp"
+base_domain: "mycompany.com"  # Must be real domain with Route53 zone
+api_vips: ["192.168.122.10"]
+app_vips: ["192.168.122.11"]
+```
+
+**DNS Resolution:**
+```
+Hostname: api.prod-ocp.mycompany.com
+
+Internal query (from host/local network):
+  → dnsmasq resolves to: 192.168.122.10 (API VIP)
+  → Direct connection to cluster
+
+External query (from internet):
+  → Route53 resolves to: 203.0.113.10 (EXTERNAL_IP)
+  → HAProxy on host forwards to: 192.168.122.10 (API VIP)
+  → Connection reaches cluster
+```
+
+**Key Points:**
+- Same domain names for internal and external access
+- Different IP addresses depending on who queries
+- Certificates are valid for both (same hostname)
+- HAProxy bridges external IP to internal VIPs
+
+**Supported Scenarios:**
+
+1. **Full Domain** (Recommended):
+   ```yaml
+   base_domain: "mycompany.com"  # You own mycompany.com in Route53
+   ```
+   Creates: `api.prod-ocp.mycompany.com`
+
+2. **Subdomain** (Common for multi-cluster):
+   ```yaml
+   base_domain: "ocp.mycompany.com"  # Subdomain delegated in Route53
+   ```
+   Creates: `api.prod-ocp.ocp.mycompany.com`
+
+3. **NOT Supported** (Will fail):
+   ```yaml
+   base_domain: "example.com"  # You don't own this
+   base_domain: "lab.local"    # Not a public domain
+   base_domain: "test"         # Invalid TLD
+   ```
+
+#### Managing Credentials with .env File (Recommended)
+
+**Best Practice**: Use a `.env` file to manage credentials instead of manually exporting environment variables.
+
+**Setup:**
+```bash
+# 1. Copy the example file
+cp .env.example .env
+
+# 2. Edit .env with your actual credentials
+vim .env  # or nano, code, etc.
+
+# 3. Secure the file (restrict permissions)
+chmod 600 .env
+
+# 4. The .env file is automatically loaded by configure-external-access.sh
+# No need to manually source it!
+```
+
+**Example .env file:**
+```bash
+# Required
+EXTERNAL_IP="203.0.113.10"
+AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
+AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+EMAIL="admin@example.com"
+
+# Optional
+KUBECONFIG="${HOME}/generated_assets/sno-4-20/auth/kubeconfig"
+CERT_STAGING="false"
+```
+
+**Security Notes:**
+- `.env` is in `.gitignore` (won't be committed)
+- Never share or commit `.env` files
+- Use `chmod 600 .env` to restrict file access
+- Rotate credentials regularly
+- Use IAM roles instead of access keys when possible (EC2 instances)
+
+**Auto-Loading Behavior:**
+```bash
+# The orchestration script automatically sources .env if found:
+./hack/configure-external-access.sh examples/sno-4.20-standard/cluster.yml
+# ℹ Loading environment variables from .env file...
+
+# Individual scripts require manual sourcing:
+source .env
+./hack/configure-haproxy-forwarder.sh examples/sno-4.20-standard/cluster.yml
+```
+
+**Alternative Locations:**
+The script checks for `.env` in these locations (in order):
+1. `${PROJECT_ROOT}/.env` (repository root)
+2. `${HOME}/.env` (user home directory)
+
+#### Individual Setup (Step-by-Step)
+
+**Step 1: Configure HAProxy Forwarder**
+```bash
+# Set external IP (host's public IP)
+export EXTERNAL_IP="203.0.113.10"
+
+# Deploy HAProxy to forward traffic to cluster VIPs
+./hack/configure-haproxy-forwarder.sh examples/sno-4.20-standard/cluster.yml
+```
+
+This configures HAProxy on the host to forward:
+- `EXTERNAL_IP:6443` → `API_VIP:6443` (API Server)
+- `EXTERNAL_IP:22623` → `API_VIP:22623` (Machine Config Server)
+- `EXTERNAL_IP:80` → `APP_VIP:80` (HTTP Ingress)
+- `EXTERNAL_IP:443` → `APP_VIP:443` (HTTPS Ingress)
+
+**Step 2: Configure Route53 DNS**
+```bash
+# Set AWS credentials
+export AWS_ACCESS_KEY_ID="your-key-id"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+
+# Add DNS records to Route53 (pointing to EXTERNAL_IP)
+./hack/configure-route53-dns.sh add examples/sno-4.20-standard/cluster.yml
+
+# Verify DNS propagation
+dig api.sno-4-20.example.com +short
+# Should return: 203.0.113.10
+
+dig test.apps.sno-4-20.example.com +short
+# Should return: 203.0.113.10
+```
+
+This creates A records in Route53:
+- `api.<cluster>.<domain>` → EXTERNAL_IP
+- `api-int.<cluster>.<domain>` → EXTERNAL_IP
+- `*.apps.<cluster>.<domain>` → EXTERNAL_IP
+
+**Step 3: Obtain Let's Encrypt Certificates**
+```bash
+# Set email for Let's Encrypt notifications
+export EMAIL="admin@example.com"
+
+# Ensure logged into cluster
+export KUBECONFIG=~/generated_assets/sno-4-20/auth/kubeconfig
+oc whoami
+
+# Obtain and install certificates via Route53 DNS-01 validation
+./hack/configure-letsencrypt-certs.sh
+```
+
+This uses certbot in a container to:
+- Request certificates via Route53 DNS-01 challenge
+- Create `router-certs` secret in `openshift-ingress` namespace
+- Patch IngressController to use Let's Encrypt certificates
+
+#### Orchestrated Setup (Recommended)
+
+**One-command setup for complete external access configuration:**
+
+```bash
+# Set all required environment variables
+export EXTERNAL_IP="203.0.113.10"
+export AWS_ACCESS_KEY_ID="your-key-id"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+export EMAIL="admin@example.com"
+export KUBECONFIG=~/generated_assets/sno-4-20/auth/kubeconfig
+
+# Run orchestrated setup
+./hack/configure-external-access.sh examples/sno-4.20-standard/cluster.yml
+```
+
+This automatically:
+1. Deploys HAProxy forwarder
+2. Creates Route53 DNS records
+3. Waits for DNS propagation (with smart polling)
+4. Obtains and installs Let's Encrypt certificates
+
+**Verification**:
+```bash
+# Test API access through external IP
+curl -k https://api.sno-4-20.example.com:6443/version
+
+# Access web console with Let's Encrypt certificate
+https://console-openshift-console.apps.sno-4-20.example.com/
+
+# Check certificate issuer
+curl -vI https://console-openshift-console.apps.sno-4-20.example.com/ 2>&1 | grep -i "issuer"
+# Should show: Let's Encrypt
+
+# Verify HAProxy status
+sudo systemctl status haproxy
+```
+
+#### Testing with Let's Encrypt Staging
+
+For testing without hitting production rate limits:
+```bash
+export CERT_STAGING=true
+./hack/configure-letsencrypt-certs.sh
+```
+
+#### Cleanup
+
+**Remove Route53 DNS records:**
+```bash
+./hack/configure-route53-dns.sh remove examples/sno-4.20-standard/cluster.yml
+```
+
+**Stop HAProxy:**
+```bash
+sudo systemctl stop haproxy
+sudo systemctl disable haproxy
+```
+
+**Remove certificates:**
+```bash
+oc delete secret router-certs -n openshift-ingress
+oc patch ingresscontroller default -n openshift-ingress-operator \
+  --type=json -p='[{"op":"remove","path":"/spec/defaultCertificate"}]'
+```
+
+#### Certificate Renewal
+
+Let's Encrypt certificates expire in 90 days. To renew:
+
+```bash
+# Renew certificates (uses certbot in container)
+sudo podman run --rm \
+  -v "/etc/letsencrypt:/etc/letsencrypt:Z" \
+  -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
+  -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
+  certbot/dns-route53 renew
+
+# Re-install to cluster
+export KUBECONFIG=~/generated_assets/sno-4-20/auth/kubeconfig
+./hack/configure-letsencrypt-certs.sh
+```
+
+#### Troubleshooting
+
+**DNS not propagating:**
+- Wait 2-5 minutes for Route53 propagation
+- Check Route53 console for records
+- Test with: `dig @8.8.8.8 api.<cluster>.<domain> +short`
+
+**Let's Encrypt validation fails:**
+- Ensure DNS records are propagated first
+- Verify AWS credentials have Route53 permissions
+- Check Route53 hosted zone exists for base_domain
+- Use staging environment for testing: `export CERT_STAGING=true`
+
+**HAProxy not forwarding traffic:**
+- Check firewall: `sudo firewall-cmd --list-all`
+- Verify HAProxy listening: `sudo netstat -tlnp | grep haproxy`
+- Check HAProxy logs: `sudo journalctl -u haproxy -f`
+- Ensure cluster VIPs are reachable from host
+
+---
+
 ### Phase 7: Cleanup (Destruction)
 
 **Purpose**: Remove cluster and clean up resources
@@ -465,6 +767,67 @@ dig @localhost api.sno-4-20.example.com
 
 ---
 
+### configure-external-access.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/configure-external-access.sh`
+
+**Description**: Orchestration script for complete external access setup. Configures HAProxy forwarding, Route53 DNS records, and Let's Encrypt certificates in one command.
+
+**Usage**:
+```bash
+./hack/configure-external-access.sh <cluster_config.yml>
+```
+
+**Arguments**:
+- `<cluster_config.yml>` - Path to cluster configuration file
+
+**Environment Variables**:
+- `EXTERNAL_IP` (required) - Host's external/public IP address
+- `AWS_ACCESS_KEY_ID` (required) - AWS access key for Route53
+- `AWS_SECRET_ACCESS_KEY` (required) - AWS secret key for Route53
+- `EMAIL` (required) - Email for Let's Encrypt notifications
+- `KUBECONFIG` (optional) - Path to cluster kubeconfig (auto-detected if not set)
+- `CERT_STAGING` (optional) - Use Let's Encrypt staging environment (default: false)
+- `ROUTE53_HOSTED_ZONE_ID` (optional) - Route53 zone ID (auto-detected if not set)
+
+**Dependencies**:
+- ansible-playbook
+- yq
+- aws CLI
+- oc CLI
+- podman or docker
+- AWS Route53 hosted zone for base_domain
+- OpenShift cluster running and accessible
+
+**Workflow Phase**: Phase 6.5 (External Access Configuration)
+
+**What It Does**:
+1. Verifies all prerequisites and environment variables
+2. Deploys HAProxy to forward traffic from EXTERNAL_IP to cluster VIPs
+3. Creates Route53 DNS records (api.*, api-int.*, *.apps.* → EXTERNAL_IP)
+4. Waits for DNS propagation with smart polling
+5. Obtains Let's Encrypt certificates via Route53 DNS-01 validation
+6. Installs certificates to OpenShift IngressController
+
+**Example**:
+```bash
+# Set required environment variables
+export EXTERNAL_IP="203.0.113.10"
+export AWS_ACCESS_KEY_ID="AKIAIOSFODNN7EXAMPLE"
+export AWS_SECRET_ACCESS_KEY="wJalrXUtnFEMI/K7MDENG/bPxRfiCYEXAMPLEKEY"
+export EMAIL="admin@example.com"
+export KUBECONFIG=~/generated_assets/sno-4-20/auth/kubeconfig
+
+# Run orchestrated setup
+./hack/configure-external-access.sh examples/sno-4.20-standard/cluster.yml
+
+# For testing with Let's Encrypt staging
+export CERT_STAGING=true
+./hack/configure-external-access.sh examples/sno-4.20-standard/cluster.yml
+```
+
+---
+
 ### configure-gui.sh
 
 **Location**: `/home/vpcuser/openshift-agent-install/hack/configure_gui.sh`
@@ -487,6 +850,142 @@ dig @localhost api.sno-4-20.example.com
 **Example**:
 ```bash
 ./hack/configure_gui.sh
+```
+
+---
+
+### configure-haproxy-forwarder.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/configure-haproxy-forwarder.sh`
+
+**Description**: Deploys and configures HAProxy on the host to forward external traffic to OpenShift cluster VIPs. Uses openshift-forwarder Ansible role for HAProxy setup.
+
+**Usage**:
+```bash
+./hack/configure-haproxy-forwarder.sh <cluster_config.yml>
+```
+
+**Arguments**:
+- `<cluster_config.yml>` - Path to cluster configuration file
+
+**Environment Variables**:
+- `EXTERNAL_IP` (required) - Host's external/public IP address
+
+**Dependencies**:
+- ansible-playbook
+- ansible-galaxy
+- yq
+- Root/sudo access
+- openshift-forwarder Ansible role (auto-installed)
+
+**Workflow Phase**: Phase 6.5 (External Access Configuration)
+
+**What It Does**:
+1. Validates prerequisites (Ansible, yq, EXTERNAL_IP)
+2. Parses cluster configuration for VIPs
+3. Clones/updates openshift-forwarder repository
+4. Generates Ansible inventory with cluster details
+5. Generates HAProxy configuration playbook
+6. Runs Ansible to install and configure HAProxy
+7. Configures firewall rules (ports 6443, 22623, 80, 443)
+8. Verifies HAProxy is running and listening on expected ports
+
+**Traffic Forwarding**:
+- `EXTERNAL_IP:6443` → `API_VIP:6443` (Kubernetes API)
+- `EXTERNAL_IP:22623` → `API_VIP:22623` (Machine Config Server)
+- `EXTERNAL_IP:80` → `APP_VIP:80` (HTTP Ingress)
+- `EXTERNAL_IP:443` → `APP_VIP:443` (HTTPS Ingress)
+
+**Example**:
+```bash
+# Set external IP
+export EXTERNAL_IP="203.0.113.10"
+
+# Deploy HAProxy forwarder
+./hack/configure-haproxy-forwarder.sh examples/sno-4.20-standard/cluster.yml
+
+# Verify HAProxy status
+sudo systemctl status haproxy
+sudo netstat -tlnp | grep haproxy
+```
+
+---
+
+### configure-letsencrypt-certs.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/configure-letsencrypt-certs.sh`
+
+**Description**: Obtains Let's Encrypt TLS certificates using Route53 DNS-01 validation and installs them to OpenShift IngressController. Uses certbot in a container for certificate management.
+
+**Usage**:
+```bash
+./hack/configure-letsencrypt-certs.sh
+```
+
+**Arguments**: None (uses environment variables)
+
+**Environment Variables**:
+- `AWS_ACCESS_KEY_ID` (required) - AWS access key for Route53
+- `AWS_SECRET_ACCESS_KEY` (required) - AWS secret key for Route53
+- `EMAIL` (required) - Email for Let's Encrypt notifications
+- `KUBECONFIG` (required) - Path to cluster kubeconfig file
+- `CERT_STAGING` (optional) - Use Let's Encrypt staging environment (default: false)
+
+**Dependencies**:
+- oc CLI
+- podman or docker
+- AWS credentials with Route53 permissions
+- Route53 DNS records already configured
+- OpenShift cluster accessible
+
+**Workflow Phase**: Phase 6.5 (External Access Configuration)
+
+**What It Does**:
+1. Validates prerequisites (oc, container runtime, AWS creds, email)
+2. Checks cluster connectivity and access
+3. Extracts cluster information (cluster name, base domain, apps domain)
+4. Backs up existing router-certs secret (if exists)
+5. Runs certbot in container with Route53 DNS-01 challenge
+6. Obtains certificates for api.* and *.apps.* domains
+7. Creates router-certs secret in openshift-ingress namespace
+8. Patches IngressController to use Let's Encrypt certificates
+9. Verifies certificate installation
+
+**Certificates Obtained**:
+- `api.<cluster>.<domain>` - API endpoint certificate
+- `*.apps.<cluster>.<domain>` - Wildcard certificate for applications
+
+**Example**:
+```bash
+# Set required environment variables
+export AWS_ACCESS_KEY_ID="your-key-id"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+export EMAIL="admin@example.com"
+export KUBECONFIG=~/generated_assets/sno-4-20/auth/kubeconfig
+
+# Obtain and install Let's Encrypt certificates
+./hack/configure-letsencrypt-certs.sh
+
+# For testing (staging environment to avoid rate limits)
+export CERT_STAGING=true
+./hack/configure-letsencrypt-certs.sh
+
+# Verify certificate
+oc get secret router-certs -n openshift-ingress
+curl -vI https://console-openshift-console.apps.sno-4-20.example.com/ 2>&1 | grep -i "issuer"
+```
+
+**Certificate Renewal**:
+```bash
+# Renew certificates (every 90 days)
+sudo podman run --rm \
+  -v "/etc/letsencrypt:/etc/letsencrypt:Z" \
+  -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
+  -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
+  certbot/dns-route53 renew
+
+# Re-install renewed certificates
+./hack/configure-letsencrypt-certs.sh
 ```
 
 ---
@@ -517,6 +1016,76 @@ sudo ./hack/configure-lvm.sh
 ```bash
 sudo ./hack/configure-lvm.sh
 ```
+
+---
+
+### configure-route53-dns.sh
+
+**Location**: `/home/vpcuser/openshift-agent-install/hack/configure-route53-dns.sh`
+
+**Description**: Manages Route53 DNS records for OpenShift external access. Creates, removes, or lists A records in AWS Route53 for API and application ingress endpoints.
+
+**Usage**:
+```bash
+./hack/configure-route53-dns.sh {add|remove|list} <cluster_config.yml>
+```
+
+**Arguments**:
+- `add <cluster_config.yml>` - Add Route53 DNS records for cluster
+- `remove <cluster_config.yml>` - Remove Route53 DNS records for cluster
+- `list <cluster_config.yml>` - List current Route53 DNS records
+
+**Environment Variables**:
+- `EXTERNAL_IP` (required) - Host's external/public IP address
+- `AWS_ACCESS_KEY_ID` (required) - AWS access key for Route53
+- `AWS_SECRET_ACCESS_KEY` (required) - AWS secret key for Route53
+- `ROUTE53_HOSTED_ZONE_ID` (optional) - Route53 zone ID (auto-detected if not set)
+
+**Dependencies**:
+- aws CLI
+- yq
+- AWS Route53 hosted zone for base_domain
+- AWS credentials with Route53 permissions
+
+**Workflow Phase**: Phase 6.5 (External Access Configuration), Phase 7 (Cleanup)
+
+**What It Does**:
+- **add**: Creates A records in Route53 pointing to EXTERNAL_IP
+- **remove**: Deletes A records from Route53
+- **list**: Displays current DNS records for cluster
+
+**DNS Records Managed**:
+- `api.<cluster>.<domain>` → EXTERNAL_IP
+- `api-int.<cluster>.<domain>` → EXTERNAL_IP
+- `*.apps.<cluster>.<domain>` → EXTERNAL_IP
+
+All records point to the host's EXTERNAL_IP. HAProxy on the host forwards traffic to the appropriate cluster VIPs.
+
+**Example**:
+```bash
+# Set required environment variables
+export EXTERNAL_IP="203.0.113.10"
+export AWS_ACCESS_KEY_ID="your-key-id"
+export AWS_SECRET_ACCESS_KEY="your-secret-key"
+
+# Add DNS records
+./hack/configure-route53-dns.sh add examples/sno-4.20-standard/cluster.yml
+
+# Verify DNS propagation
+dig api.sno-4-20.example.com +short
+dig test.apps.sno-4-20.example.com +short
+
+# List current records
+./hack/configure-route53-dns.sh list examples/sno-4.20-standard/cluster.yml
+
+# Remove DNS records
+./hack/configure-route53-dns.sh remove examples/sno-4.20-standard/cluster.yml
+```
+
+**Notes**:
+- DNS propagation typically takes 1-3 minutes
+- Records use UPSERT (create or update) for idempotency
+- Supports wildcard DNS for application routes (*.apps.*)
 
 ---
 
@@ -1590,9 +2159,14 @@ nodes:
 - `ACTUAL_USER` (string) - Real username when using sudo (auto-detected)
 - `ACTUAL_USER_GROUP` (string) - Real user's group when using sudo (auto-detected)
 - `ACTUAL_USER_HOME` (string) - Real user's home directory when using sudo (auto-detected)
+- `AWS_ACCESS_KEY_ID` (string) - AWS access key for Route53 operations (required for external access)
+- `AWS_SECRET_ACCESS_KEY` (string) - AWS secret key for Route53 operations (required for external access)
+- `CERT_STAGING` (boolean) - Use Let's Encrypt staging environment for testing (default: false)
 - `CLUSTER_NAME` (string) - Cluster name override (default: auto-detected from cluster.yml or "ocp4")
 - `DEBUG` (string) - Ansible verbosity ("-v", "-vv", "-vvv")
 - `DOMAIN` (string) - Base domain for FreeIPA (legacy)
+- `EMAIL` (string) - Email address for Let's Encrypt certificate notifications (required for external access)
+- `EXTERNAL_IP` (string) - Host's external/public IP address for external access (required for HAProxy and Route53)
 - `FREEIPA_ADMIN_PASSWORD` (string) - FreeIPA admin password (legacy)
 - `GENERATED_ASSET_PATH` (string) - Output directory for ISOs/manifests (default: "~/generated_assets")
 - `KUBECONFIG` (string) - Path to kubeconfig file for cluster access
@@ -1600,6 +2174,7 @@ nodes:
 - `LIBVIRT_NETWORK_TWO` (string) - Second network for multi-NIC (default: same as LIBVIRT_NETWORK)
 - `LIBVIRT_VM_PATH` (string) - Path to VM disk images (default: "/var/lib/libvirt/images")
 - `MULTI_NETWORK` (boolean) - Enable dual NICs (default: true)
+- `ROUTE53_HOSTED_ZONE_ID` (string) - AWS Route53 hosted zone ID (optional, auto-detected from base_domain)
 - `SITE_CONFIG_DIR` (string) - Directory containing cluster configs (default: "examples")
 - `SUDO_USER` (string) - Username when using sudo (auto-detected by system)
 - `SUSHY_TOOLS_IMAGE` (string) - Sushy-tools container image (default: "quay.io/metal3-io/sushy-tools")

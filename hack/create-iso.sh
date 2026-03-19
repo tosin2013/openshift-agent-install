@@ -78,6 +78,50 @@ Next steps:
      https://console-openshift-console.apps.${CLUSTER_NAME}.${BASE_DOMAIN}/
   5. Access the cluster with via the CLI with:
      oc --kubeconfig ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/auth/kubeconfig get co
+
+=============================================================
+Optional: External Access Configuration (AWS Route53 + HAProxy + Let's Encrypt)
+
+  If you have an AWS Route53 hosted zone and need external access:
+
+  1. One-command setup with .env file (Recommended):
+     # Create .env file from template
+     cp .env.example .env
+     # Edit .env with your credentials (EXTERNAL_IP, AWS keys, EMAIL)
+     vim .env
+     chmod 600 .env
+     # Run setup (auto-loads .env)
+     ./hack/configure-external-access.sh ${SITE_CONFIG_DIR}/${1}/cluster.yml
+
+  2. Or with manual environment variables:
+     export EXTERNAL_IP="<your-host-public-ip>"
+     export AWS_ACCESS_KEY_ID="<your-aws-key-id>"
+     export AWS_SECRET_ACCESS_KEY="<your-aws-secret>"
+     export EMAIL="<your-email>"
+     export KUBECONFIG=${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/auth/kubeconfig
+     ./hack/configure-external-access.sh ${SITE_CONFIG_DIR}/${1}/cluster.yml
+
+  2. Or configure components individually:
+     # Step 1: Deploy HAProxy forwarder
+     export EXTERNAL_IP="<your-host-public-ip>"
+     ./hack/configure-haproxy-forwarder.sh ${SITE_CONFIG_DIR}/${1}/cluster.yml
+
+     # Step 2: Configure Route53 DNS
+     export AWS_ACCESS_KEY_ID="<your-aws-key-id>"
+     export AWS_SECRET_ACCESS_KEY="<your-aws-secret>"
+     ./hack/configure-route53-dns.sh add ${SITE_CONFIG_DIR}/${1}/cluster.yml
+
+     # Step 3: Obtain Let's Encrypt certificates
+     export EMAIL="<your-email>"
+     export KUBECONFIG=${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/auth/kubeconfig
+     ./hack/configure-letsencrypt-certs.sh
+
+  This will:
+  - Deploy HAProxy to forward traffic from EXTERNAL_IP to cluster VIPs
+  - Create Route53 DNS records (api.*, *.apps.* → EXTERNAL_IP)
+  - Obtain and install Let's Encrypt trusted certificates
+
+  See llm.txt "Phase 6.5: External Access Configuration" for details.
 =============================================================
 EOF
 }

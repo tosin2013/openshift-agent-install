@@ -1,3 +1,7 @@
+# CLAUDE.md
+
+This file provides guidance to Claude Code (claude.ai/code) when working with code in this repository.
+
 # Claude Instructions for OpenShift Agent-Based Installer
 
 ## Project Overview
@@ -52,12 +56,86 @@ openshift-agent-install/
 │   └── configure-dnsmasq-entries.sh  # Manage DNS entries
 ├── playbooks/                 # Ansible automation
 │   └── create-manifests.yml   # Template ABI manifests
-├── examples/                  # Cluster configuration examples
+├── examples/                  # Reference cluster configurations (tracked in git)
 │   ├── sno-4.20-standard/     # SNO deployment
 │   ├── ha-4.21-disconnected/  # HA air-gap deployment
-│   └── serenity-sno.*/        # SNO with registry mirrors
+│   └── cnv-bond0-tagged/      # HA with bond+VLAN networking
+├── site-config/               # User-specific configs (gitignored)
 └── execution-environment/     # Ansible EE container definition
 ```
+
+### Configuration Directory Pattern
+
+- **examples/** - Tracked in git, reference configurations for documentation
+- **site-config/** - Gitignored, for user's actual cluster deployments
+- Use `SITE_CONFIG_DIR` environment variable to switch between them
+
+## Bash Script Patterns
+
+All scripts in `hack/` and `e2e-tests/` follow these conventions:
+
+### Standard Script Structure
+
+```bash
+#!/bin/bash
+set -e  # Exit on any error
+
+# Environment variable with default
+SITE_CONFIG_DIR="${SITE_CONFIG_DIR:-examples}"
+GENERATED_ASSET_PATH="${GENERATED_ASSET_PATH:-${HOME}/generated_assets}"
+
+# Argument validation
+if [ -z "$1" ]; then
+    echo "Usage: $0 <cluster-config-name>"
+    exit 1
+fi
+
+# Script directory detection (for relative paths)
+SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
+cd $SCRIPT_DIR/..  # Work from repo root
+
+# Extract values from YAML with grep/awk
+CLUSTER_NAME=$(grep "cluster_name" ${SITE_CONFIG_DIR}/${1}/cluster.yml | awk '{print $2}' | tr -d '"')
+```
+
+### When Modifying Scripts
+
+1. **Preserve `set -e`** - Scripts fail fast on errors
+2. **Use existing env vars** - Don't hardcode paths that have env var equivalents
+3. **Maintain YAML parsing pattern** - Use `grep | awk | tr -d '"'` for consistency
+4. **Keep script directory agnostic** - Use `$SCRIPT_DIR` pattern for relative paths
+5. **Add error messages** - Use `|| { echo "Error message"; exit 1; }` pattern
+
+## Ansible-Bash Integration
+
+The deployment workflow uses both Bash and Ansible:
+
+### Pattern: Bash Orchestration → Ansible Templating
+
+```
+hack/create-iso.sh (Bash)
+  ↓ Validates arguments and environment
+  ↓ Extracts cluster_name, base_domain from YAML
+  ↓ Calls Ansible playbook:
+playbooks/create-manifests.yml (Ansible)
+  ↓ Templates Jinja2 manifests
+  ↓ Outputs to ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}/
+  ↓ Returns to Bash script:
+hack/create-iso.sh (Bash)
+  ↓ Runs openshift-install agent create image
+  ↓ Generates post-install instructions
+```
+
+### Why This Pattern
+
+- **Bash**: File system operations, CLI tool invocation, user interaction
+- **Ansible**: YAML templating, complex data transformations, idempotency
+
+### When Adding Features
+
+- **Validation/Orchestration** → Add to bash script
+- **Manifest templating** → Add to Ansible playbook
+- **Both needed** → Follow the bash-calls-ansible pattern
 
 ## Common User Tasks
 
@@ -178,6 +256,11 @@ Key variables (see llm.txt for complete list):
 - `GENERATED_ASSET_PATH` - Where ISOs/manifests go (default: "~/generated_assets")
 - `CLUSTER_NAME` - Cluster identifier (auto-detected or override)
 
+**Precedence**:
+1. Explicitly exported environment variable
+2. Default value in script: `${VAR:-default}`
+3. Auto-detected from YAML files
+
 ## Code Analysis Guidelines
 
 ### When Reading Scripts
@@ -229,6 +312,38 @@ Three common patterns (see llm.txt for full examples):
 2. **Bond**: Link aggregation (LACP, active-backup, etc.)
 3. **Bond + VLAN**: Tagged VLAN on bonded interface
 
+## DNS Troubleshooting (dnsmasq)
+
+### Common DNS Issues
+
+**Problem**: DNS entries not resolving
+```bash
+# Verify dnsmasq is configured
+sudo ./hack/configure-dnsmasq-entries.sh list
+
+# Check libvirt DNS entries
+sudo virsh net-dumpxml default | grep -A 2 "<cluster-name>.<domain>"
+
+# Test resolution
+dig @192.168.122.1 api.<cluster-name>.<domain>
+```
+
+**Problem**: Host not using libvirt DNS
+```bash
+# Check system DNS
+cat /etc/resolv.conf
+
+# Reconfigure NetworkManager
+PRIMARY_CONN="<connection-name>"
+sudo nmcli connection modify "$PRIMARY_CONN" ipv4.dns "192.168.122.1"
+sudo nmcli connection up "$PRIMARY_CONN"
+```
+
+**Problem**: Wildcard routes not working
+- Libvirt dnsmasq doesn't support `*.apps.<domain>` wildcards
+- Common routes are pre-configured automatically
+- For custom routes, manually add with `configure-dnsmasq-entries.sh`
+
 ## Important Notes
 
 ### Do NOT
@@ -238,6 +353,7 @@ Three common patterns (see llm.txt for full examples):
 - ❌ Ignore error handling in suggested code
 - ❌ Provide untested complex script modifications
 - ❌ Override security-critical settings without explanation
+- ❌ Remove `set -e` from scripts without documenting why
 
 ### DO
 
@@ -248,6 +364,8 @@ Three common patterns (see llm.txt for full examples):
 - ✅ Validate YAML syntax when helping with configs
 - ✅ Recommend environment validation (validate_env.sh)
 - ✅ Explain the dnsmasq DNS approach for new setups
+- ✅ Preserve bash error handling patterns
+- ✅ Use existing environment variables instead of hardcoding paths
 
 ## Version Information
 
