@@ -15,6 +15,9 @@ pull_secret_path: ~/pull-secret.json
 base_domain: example.com
 cluster_name: sno-disconnected
 
+# OpenShift version (required for disconnected deployments)
+ocp_version: "4.20"
+
 # Platform type (must be none for SNO)
 platform_type: none
 

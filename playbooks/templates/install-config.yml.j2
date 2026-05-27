@@ -91,11 +91,17 @@ proxy:
 {% endif %}
 {% endif %}
 {% if disconnected_registries is defined %}
-#imageDigestSources:
-imageContentSources:
+{# ImageContentSourcePolicy deprecated in 4.14, removed in favor of ImageDigestMirrorSet #}
+{# For 4.14-4.19: use imageDigestSources (transitional) #}
+{# For 4.20+: use standalone ImageDigestMirrorSet manifest (see imagedigestmirrorset.yml.j2) #}
+{% if ocp_version is defined and ocp_version is version('4.20', '<') %}
+imageDigestSources:
 {% for registry in disconnected_registries %}
   - mirrors:
       - {{ registry.target }}
     source: {{ registry.source }}
 {% endfor %}
+{% endif %}
+{# Note: For OpenShift 4.20+, ImageDigestMirrorSet is rendered as a standalone manifest #}
+{# by create-manifests.yml when disconnected_registries is defined #}
 {% endif %}

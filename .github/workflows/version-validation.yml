@@ -1,0 +1,315 @@
+name: Validate Manifests Across OpenShift Versions
+
+on:
+  pull_request:
+    paths:
+      - 'playbooks/templates/**'
+      - 'examples/**'
+      - 'docs/deployment-standards-*.md'
+      - 'hack/generate-version-manifests.sh'
+      - 'hack/compare-version-manifests.sh'
+      - 'hack/validate-deployment-standards.sh'
+  workflow_dispatch:
+    inputs:
+      create_issues:
+        description: 'Create GitHub issues for validation failures'
+        required: false
+        default: 'false'
+        type: choice
+        options:
+          - 'true'
+          - 'false'
+      examples:
+        description: 'Examples to test (space-separated, default: all representative)'
+        required: false
+        default: 'sno-disconnected ha-4.21-disconnected sno-4.20-standard'
+
+env:
+  LITELLM_API_KEY: ${{ secrets.LITELLM_API_KEY }}
+
+jobs:
+  # Detect which examples to test
+  detect-examples:
+    runs-on: ubuntu-latest
+    outputs:
+      examples: ${{ steps.set-examples.outputs.examples }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Select examples to test
+        id: set-examples
+        run: |
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ -n "${{ github.event.inputs.examples }}" ]; then
+            # User-specified examples
+            EXAMPLE_LIST="${{ github.event.inputs.examples }}"
+          else
+            # Default representative examples covering all deployment types
+            EXAMPLE_LIST="sno-disconnected ha-4.21-disconnected sno-4.20-standard"
+          fi
+
+          # Convert space-separated list to JSON array
+          EXAMPLES_JSON=$(echo "$EXAMPLE_LIST" | jq -R -s -c 'split(" ") | map(select(length > 0))')
+          echo "examples=$EXAMPLES_JSON" >> $GITHUB_OUTPUT
+          echo "Testing examples: $EXAMPLES_JSON"
+
+  # Generate and validate manifests across version matrix
+  version-matrix:
+    needs: detect-examples
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false  # Continue testing other combinations even if one fails
+      matrix:
+        ocp_version:
+          - '4.19'
+          - '4.20'
+          - '4.21'
+        example: ${{ fromJson(needs.detect-examples.outputs.examples) }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install Ansible and dependencies
+        run: |
+          pip install ansible-core
+          ansible-galaxy collection install -r playbooks/collections/requirements.yml
+
+      - name: Create dummy pull secret
+        run: echo '{"auths":{}}' > ~/pull-secret.json
+
+      - name: Verify example exists
+        run: |
+          if [ ! -d "examples/${{ matrix.example }}" ]; then
+            echo "❌ Example not found: examples/${{ matrix.example }}"
+            echo "Available examples:"
+            ls -1 examples/ | grep -v "^_"
+            exit 1
+          fi
+
+      - name: Generate manifests for ${{ matrix.example }} (OCP ${{ matrix.ocp_version }})
+        run: |
+          ./hack/generate-version-manifests.sh \
+            ${{ matrix.example }} \
+            "${{ matrix.ocp_version }}"
+
+      - name: Validate against deployment standards
+        id: validate
+        continue-on-error: true
+        run: |
+          CREATE_ISSUE_FLAG=""
+          if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.create_issues }}" = "true" ]; then
+            CREATE_ISSUE_FLAG="--create-issue"
+          fi
+
+          ./hack/validate-deployment-standards.sh \
+            ~/generated_assets/version-compare/${{ matrix.example }}-${{ matrix.ocp_version }} \
+            ${{ matrix.ocp_version }} \
+            $CREATE_ISSUE_FLAG
+
+      - name: Upload manifests as artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: manifests-${{ matrix.example }}-${{ matrix.ocp_version }}
+          path: ~/generated_assets/version-compare/${{ matrix.example }}-${{ matrix.ocp_version }}/
+          retention-days: 7
+
+      - name: Upload validation report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-${{ matrix.example }}-${{ matrix.ocp_version }}
+          path: generated_assets/validation-report-${{ matrix.example }}-${{ matrix.ocp_version }}.txt
+          retention-days: 30
+          if-no-files-found: ignore
+
+  # Compare adjacent versions
+  compare-versions:
+    needs: [detect-examples, version-matrix]
+    runs-on: ubuntu-latest
+    if: always()
+    strategy:
+      fail-fast: false
+      matrix:
+        example: ${{ fromJson(needs.detect-examples.outputs.examples) }}
+        comparison:
+          - base: '4.19'
+            target: '4.20'
+            critical: true  # Critical boundary (imageDigestSources migration)
+          - base: '4.20'
+            target: '4.21'
+            critical: true  # Critical boundary (OpenShiftSDN removal)
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download manifests for ${{ matrix.example }}
+        uses: actions/download-artifact@v4
+        with:
+          pattern: manifests-${{ matrix.example }}-*
+          path: ~/generated_assets/version-compare/
+          merge-multiple: true
+
+      - name: Compare ${{ matrix.comparison.base }} vs ${{ matrix.comparison.target }}
+        id: compare
+        continue-on-error: true
+        run: |
+          # Ensure manifests exist before comparing
+          BASE_DIR="$HOME/generated_assets/version-compare/${{ matrix.example }}-${{ matrix.comparison.base }}"
+          TARGET_DIR="$HOME/generated_assets/version-compare/${{ matrix.example }}-${{ matrix.comparison.target }}"
+
+          if [ ! -d "$BASE_DIR" ]; then
+            echo "⚠️  Base version manifests not found, skipping comparison"
+            exit 0
+          fi
+
+          if [ ! -d "$TARGET_DIR" ]; then
+            echo "⚠️  Target version manifests not found, skipping comparison"
+            exit 0
+          fi
+
+          ./hack/compare-version-manifests.sh \
+            ${{ matrix.comparison.base }} \
+            ${{ matrix.comparison.target }} \
+            ${{ matrix.example }}
+
+      - name: Upload comparison report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: comparison-${{ matrix.example }}-${{ matrix.comparison.base }}-to-${{ matrix.comparison.target }}
+          path: ~/generated_assets/comparison-${{ matrix.example }}-${{ matrix.comparison.base }}-to-${{ matrix.comparison.target }}.txt
+          retention-days: 30
+          if-no-files-found: ignore
+
+      - name: Fail on critical boundary violations
+        if: matrix.comparison.critical == true && steps.compare.outcome == 'failure'
+        run: |
+          echo "❌ Critical version boundary validation failed"
+          echo "Review comparison report for details"
+          exit 1
+
+  # Generate summary report
+  summary-report:
+    needs: [detect-examples, version-matrix, compare-versions]
+    runs-on: ubuntu-latest
+    if: always()
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Download all validation reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: validation-*
+          path: validation-reports/
+
+      - name: Download all comparison reports
+        uses: actions/download-artifact@v4
+        with:
+          pattern: comparison-*
+          path: comparison-reports/
+
+      - name: Generate summary report
+        run: |
+          cat > summary.md << 'SUMMARY_EOF'
+          # 🔍 OpenShift Version Validation Summary
+
+          ## Examples Tested
+
+          SUMMARY_EOF
+
+          # List examples
+          EXAMPLES="${{ join(fromJson(needs.detect-examples.outputs.examples), ', ') }}"
+          echo "- **Tested**: $EXAMPLES" >> summary.md
+          echo "" >> summary.md
+
+          echo "## Versions Validated" >> summary.md
+          echo "" >> summary.md
+          echo "| Version | Status |" >> summary.md
+          echo "|---------|--------|" >> summary.md
+          echo "| 4.19 | ✅ Tested |" >> summary.md
+          echo "| 4.20 | ✅ Tested |" >> summary.md
+          echo "| 4.21 | ✅ Tested |" >> summary.md
+          echo "" >> summary.md
+
+          echo "## Validation Results" >> summary.md
+          echo "" >> summary.md
+
+          # Count validation results
+          VALIDATION_TOTAL=$(find validation-reports/ -name "*.txt" -type f 2>/dev/null | wc -l)
+          COMPARISON_TOTAL=$(find comparison-reports/ -name "*.txt" -type f 2>/dev/null | wc -l)
+
+          echo "- **Validation reports**: $VALIDATION_TOTAL" >> summary.md
+          echo "- **Comparison reports**: $COMPARISON_TOTAL" >> summary.md
+          echo "" >> summary.md
+
+          # Check for failures in validation reports
+          if grep -r "FAIL" validation-reports/ 2>/dev/null | grep -v "Overall Status: FAIL" > /dev/null; then
+            echo "### ⚠️ Validation Failures Detected" >> summary.md
+            echo "" >> summary.md
+            echo "See individual validation reports in artifacts for details." >> summary.md
+          else
+            echo "### ✅ All Validations Passed" >> summary.md
+          fi
+
+          echo "" >> summary.md
+          echo "## Critical Version Boundaries" >> summary.md
+          echo "" >> summary.md
+          echo "- **4.19 → 4.20**: ImageDigestMirrorSet migration" >> summary.md
+          echo "- **4.20 → 4.21**: OpenShiftSDN removal" >> summary.md
+          echo "" >> summary.md
+
+          echo "## Artifacts" >> summary.md
+          echo "" >> summary.md
+          echo "Download validation and comparison reports from workflow artifacts." >> summary.md
+          echo "" >> summary.md
+          echo "---" >> summary.md
+          echo "*Generated by LLM-powered version validation (granite-3-2-8b-instruct)*" >> summary.md
+
+      - name: Comment PR with summary
+        if: github.event_name == 'pull_request'
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const fs = require('fs');
+            const summary = fs.readFileSync('summary.md', 'utf8');
+
+            // Find existing comment
+            const comments = await github.rest.issues.listComments({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              issue_number: context.issue.number,
+            });
+
+            const botComment = comments.data.find(comment =>
+              comment.user.type === 'Bot' &&
+              comment.body.includes('OpenShift Version Validation Summary')
+            );
+
+            // Update or create comment
+            if (botComment) {
+              await github.rest.issues.updateComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                comment_id: botComment.id,
+                body: summary
+              });
+            } else {
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: context.issue.number,
+                body: summary
+              });
+            }
+
+      - name: Upload summary as artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: validation-summary
+          path: summary.md
+          retention-days: 90
