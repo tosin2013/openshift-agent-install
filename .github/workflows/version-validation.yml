@@ -48,7 +48,7 @@ jobs:
           fi
 
           # Convert space-separated list to JSON array
-          EXAMPLES_JSON=$(echo "$EXAMPLE_LIST" | jq -R -s -c 'split(" ") | map(select(length > 0))')
+          EXAMPLES_JSON=$(echo -n "$EXAMPLE_LIST" | jq -R -s -c 'split(" ") | map(select(length > 0))')
           echo "examples=$EXAMPLES_JSON" >> $GITHUB_OUTPUT
           echo "Testing examples: $EXAMPLES_JSON"
 
