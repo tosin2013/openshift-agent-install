@@ -104,6 +104,8 @@ jobs:
         id: validate
         if: always()  # Run even if manifest generation had warnings/errors
         continue-on-error: true
+        env:
+          GH_TOKEN: ${{ github.token }}
         run: |
           CREATE_ISSUE_FLAG=""
           if [ "${{ github.event_name }}" = "workflow_dispatch" ] && [ "${{ github.event.inputs.create_issues }}" = "true" ]; then
