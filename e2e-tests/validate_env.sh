@@ -239,10 +239,19 @@ validate_ansible_vault() {
 # --- Operating System Validation ---
 validate_os() {
     print_section "Validating Operating System"
-    if [[ "$(cat /etc/redhat-release)" == *"Red Hat Enterprise Linux release 9.5 (Plow)"* ]]; then
-        print_status "Operating System is Red Hat Enterprise Linux release 9.5 (Plow)" 0
+
+    # Extract RHEL major and minor version
+    RHEL_VERSION=$(rpm -E %{rhel})
+    RHEL_MINOR=$(grep -oP 'release \K[0-9]+\.[0-9]+' /etc/redhat-release | cut -d. -f2)
+
+    # Require RHEL >= 9.5, warn on RHEL 10+
+    if [[ "$RHEL_VERSION" -lt 9 ]] || [[ "$RHEL_VERSION" -eq 9 && "$RHEL_MINOR" -lt 5 ]]; then
+        print_status "Operating System requires RHEL >= 9.5 (found: $(cat /etc/redhat-release))" 1
+    elif [[ "$RHEL_VERSION" -ge 10 ]]; then
+        echo -e "${YELLOW}⚠ RHEL 10 support is experimental${NC}"
+        print_status "Operating System is RHEL ${RHEL_VERSION}.${RHEL_MINOR} (experimental)" 0
     else
-        print_status "Operating System is not Red Hat Enterprise Linux release 9.5 (Plow)" 1
+        print_status "Operating System is RHEL ${RHEL_VERSION}.${RHEL_MINOR}" 0
     fi
 }
 
