@@ -1,0 +1,182 @@
+# Nutanix HA Cluster Node Configuration
+#
+# 3 Control Plane + 2 Worker nodes
+# For Nutanix deployments, you must create VMs manually and boot from the Agent ISO
+
+nodes:
+  # Control Plane Nodes
+  - hostname: nutanix-ha-master-0
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: enp1s0
+        type: ethernet
+        state: up
+        mac-address: "52:54:00:00:01:01"
+        ipv4:
+          enabled: true
+          address:
+            - ip: 192.168.1.110
+              prefix-length: 24
+          dhcp: false
+        ipv6:
+          enabled: false
+    dns-resolver:
+      config:
+        search:
+          - example.com
+        server:
+          - 192.168.1.1
+    routes:
+      config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.1.1
+          next-hop-interface: enp1s0
+          table-id: 254
+
+  - hostname: nutanix-ha-master-1
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: enp1s0
+        type: ethernet
+        state: up
+        mac-address: "52:54:00:00:01:02"
+        ipv4:
+          enabled: true
+          address:
+            - ip: 192.168.1.111
+              prefix-length: 24
+          dhcp: false
+        ipv6:
+          enabled: false
+    dns-resolver:
+      config:
+        search:
+          - example.com
+        server:
+          - 192.168.1.1
+    routes:
+      config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.1.1
+          next-hop-interface: enp1s0
+          table-id: 254
+
+  - hostname: nutanix-ha-master-2
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: enp1s0
+        type: ethernet
+        state: up
+        mac-address: "52:54:00:00:01:03"
+        ipv4:
+          enabled: true
+          address:
+            - ip: 192.168.1.112
+              prefix-length: 24
+          dhcp: false
+        ipv6:
+          enabled: false
+    dns-resolver:
+      config:
+        search:
+          - example.com
+        server:
+          - 192.168.1.1
+    routes:
+      config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.1.1
+          next-hop-interface: enp1s0
+          table-id: 254
+
+  # Worker Nodes
+  - hostname: nutanix-ha-worker-0
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: enp1s0
+        type: ethernet
+        state: up
+        mac-address: "52:54:00:00:02:01"
+        ipv4:
+          enabled: true
+          address:
+            - ip: 192.168.1.120
+              prefix-length: 24
+          dhcp: false
+        ipv6:
+          enabled: false
+    dns-resolver:
+      config:
+        search:
+          - example.com
+        server:
+          - 192.168.1.1
+    routes:
+      config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.1.1
+          next-hop-interface: enp1s0
+          table-id: 254
+
+  - hostname: nutanix-ha-worker-1
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: enp1s0
+        type: ethernet
+        state: up
+        mac-address: "52:54:00:00:02:02"
+        ipv4:
+          enabled: true
+          address:
+            - ip: 192.168.1.121
+              prefix-length: 24
+          dhcp: false
+        ipv6:
+          enabled: false
+    dns-resolver:
+      config:
+        search:
+          - example.com
+        server:
+          - 192.168.1.1
+    routes:
+      config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.1.1
+          next-hop-interface: enp1s0
+          table-id: 254
+
+# Nutanix HA Cluster Notes:
+#
+# 1. VM Creation: You must manually create 5 VMs in Nutanix (3 masters + 2 workers)
+#    - Control Plane: 8 vCPUs, 32 GB RAM (64 GB recommended), 120 GB disk
+#    - Workers: 8 vCPUs, 32 GB RAM, 120 GB disk
+#
+# 2. MAC Addresses: Nutanix will assign MAC addresses automatically.
+#    Update nodes.yml with actual MACs after VM creation.
+#
+# 3. IP Addresses:
+#    - Control plane: 192.168.1.110-112
+#    - Workers: 192.168.1.120-121
+#    - API VIP: 192.168.1.100
+#    - Ingress VIP: 192.168.1.101
+#
+# 4. DNS Records Required:
+#    api.nutanix-ha.example.com       A    192.168.1.100
+#    api-int.nutanix-ha.example.com   A    192.168.1.100
+#    *.apps.nutanix-ha.example.com    A    192.168.1.101
+#
+# 5. Network Bonding: For production, consider using bonded interfaces
+#    (see examples/cnv-bond0-tagged/ for bonding examples)
+#
+# 6. Storage: All nodes use /dev/sda as root device (standard for Nutanix virtual disks)

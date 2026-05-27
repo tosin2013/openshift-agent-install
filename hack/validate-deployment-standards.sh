@@ -117,6 +117,16 @@ CONTROL_PLANE_REPLICAS=$(grep -A 10 "^controlPlane:" "$INSTALL_CONFIG" | grep "r
 WORKER_REPLICAS=$(grep -A 10 "^compute:" "$INSTALL_CONFIG" | grep "replicas:" | head -1 | awk '{print $2}' || echo "0")
 PLATFORM_TYPE=$(grep -A 1 "^platform:" "$INSTALL_CONFIG" | tail -1 | awk '{print $1}' | tr -d ':' || echo "unknown")
 
+# Validate platform type (add nutanix to recognized platforms)
+case "$PLATFORM_TYPE" in
+    none|baremetal|vsphere|nutanix|external)
+        # Valid platform types
+        ;;
+    *)
+        echo -e "${YELLOW}⚠️  Unrecognized platform_type: $PLATFORM_TYPE${NC}"
+        ;;
+esac
+
 # Detect deployment topology
 if [ "$CONTROL_PLANE_REPLICAS" = "1" ] && [ "$WORKER_REPLICAS" = "0" ]; then
     DEPLOYMENT_TOPOLOGY="SNO"

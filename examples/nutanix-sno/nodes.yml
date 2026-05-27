@@ -1,0 +1,64 @@
+# Nutanix SNO Node Configuration
+#
+# For Nutanix deployments, the Agent-Based Installer creates VMs automatically
+# using the Nutanix API. This file defines the network configuration for the
+# single control plane node.
+
+nodes:
+  - hostname: nutanix-sno-master-0
+    role: master
+
+    # Root device hints (Nutanix typically uses /dev/sda)
+    rootDeviceHints:
+      deviceName: /dev/sda
+
+    # Network configuration using NMState
+    # This example uses a simple static IP configuration
+    interfaces:
+      - name: enp1s0
+        type: ethernet
+        state: up
+        mac-address: "52:54:00:00:00:01"
+        ipv4:
+          enabled: true
+          address:
+            - ip: 192.168.1.100
+              prefix-length: 24
+          dhcp: false
+        ipv6:
+          enabled: false
+
+    # DNS configuration
+    dns-resolver:
+      config:
+        search:
+          - example.com
+        server:
+          - 192.168.1.1
+
+    # Default route
+    routes:
+      config:
+        - destination: 0.0.0.0/0
+          next-hop-address: 192.168.1.1
+          next-hop-interface: enp1s0
+          table-id: 254
+
+# Nutanix-specific notes:
+#
+# 1. MAC Address: Nutanix will assign MAC addresses automatically when VMs are created.
+#    The MAC address here is for reference and will be replaced during VM provisioning.
+#
+# 2. Interface Name: The interface name (enp1s0) may vary based on the Nutanix AHV
+#    configuration. Common names: enp1s0, ens3, eth0
+#
+# 3. IP Address: Must match the rendezvous_ip and VIPs in cluster.yml for SNO
+#
+# 4. Storage: Nutanix AHV provides virtual disks. The rootDeviceHints should match
+#    the virtual disk presented to the VM (typically /dev/sda)
+#
+# 5. For production deployments:
+#    - Use proper MAC address management
+#    - Configure bonding for network redundancy (see bond examples in other configs)
+#    - Use appropriate subnet sizing
+#    - Configure DNS properly for api.<cluster>.<domain> and *.apps.<cluster>.<domain>

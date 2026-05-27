@@ -41,7 +41,7 @@ platform:
 {% endif %}
 {% if platform_type == 'vsphere' %}
   vsphere:
-    diskType: "{{ vcenter_disk_type }}" 
+    diskType: "{{ vcenter_disk_type }}"
     apiVIPs:
 {% for api_vip in api_vips %}
     - {{ api_vip }}
@@ -50,14 +50,14 @@ platform:
 {% for app_vip in app_vips %}
     - {{ app_vip }}
 {% endfor %}
-    failureDomains: 
+    failureDomains:
     - name: {{ cluster_name }}-domain
       region: east
       server: {{ vcenter_host }}
       topology:
         computeCluster: "/{{ vcenter_datacenter }}/host/{{ vcenter_cluster }}"
         datacenter: {{ vcenter_datacenter }}
-        datastore: "/{{ vcenter_datacenter }}/datastore/{{ vcenter_default_datastore }}" 
+        datastore: "/{{ vcenter_datacenter }}/datastore/{{ vcenter_default_datastore }}"
         networks:
         - "{{ vcenter_network }}"
         folder: "/{{ vcenter_datacenter }}/vm/Workloads/{{ vcenter_folder_name }}"
@@ -69,6 +69,35 @@ platform:
       port: 443
       server: {{ vcenter_host }}
       user: {{ vcenter_username }}
+{% endif %}
+{% if platform_type == 'nutanix' %}
+  nutanix:
+    apiVIPs:
+{% for api_vip in api_vips %}
+    - {{ api_vip }}
+{% endfor %}
+    ingressVIPs:
+{% for app_vip in app_vips %}
+    - {{ app_vip }}
+{% endfor %}
+    prismCentral:
+      endpoint:
+        address: {{ nutanix_prism_central_host }}
+        port: {{ nutanix_prism_central_port | default(9440) }}
+      username: {{ nutanix_prism_central_username }}
+      password: {{ nutanix_prism_central_password }}
+    prismElements:
+    - endpoint:
+        address: {{ nutanix_prism_element_host }}
+        port: {{ nutanix_prism_element_port | default(9440) }}
+      uuid: {{ nutanix_prism_element_uuid }}
+    subnetUUIDs:
+{% for subnet_uuid in nutanix_subnet_uuids %}
+    - {{ subnet_uuid }}
+{% endfor %}
+{% if nutanix_cluster_os_image is defined %}
+    clusterOSImage: {{ nutanix_cluster_os_image }}
+{% endif %}
 {% endif %}
 fips: false
 pullSecret: '{{ lookup('file', pull_secret_path) }}'
