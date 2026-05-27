@@ -160,8 +160,13 @@ install_openshift_cli() {
     rhel_version=$(rpm -E %{rhel})
     if [ "$rhel_version" -eq 8 ]; then
         oc_version="stable-4.20"
-    else
+    elif [ "$rhel_version" -eq 9 ]; then
         oc_version="stable-4.21"
+    elif [ "$rhel_version" -ge 10 ]; then
+        print_info "RHEL 10 detected - using latest stable OCP version"
+        oc_version="stable-4.21"  # Update when RHEL 10 support is GA
+    else
+        print_status "Unsupported RHEL version: $rhel_version (requires RHEL >= 8)" 1
     fi
 
     print_info "Downloading and installing OpenShift CLI version: $oc_version"
