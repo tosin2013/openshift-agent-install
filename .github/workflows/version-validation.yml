@@ -78,8 +78,12 @@ jobs:
           pip install ansible-core
           ansible-galaxy collection install -r playbooks/collections/requirements.yml
 
-      - name: Create dummy pull secret
-        run: echo '{"auths":{}}' > ~/pull-secret.json
+      - name: Create dummy pull secrets
+        run: |
+          # Create all pull secret variants used by different examples
+          echo '{"auths":{}}' > ~/pull-secret.json
+          echo '{"auths":{}}' > ~/ocp-install-pull-secret.json
+          echo '{"auths":{}}' > ~/ocp-install-pull-secret-combined.json
 
       - name: Verify example exists
         run: |
