@@ -113,8 +113,8 @@ HAS_IMAGE_MIRROR_CONFIG=$([ -f "$MANIFEST_DIR/image-mirror-config.yaml" ] && ech
 HAS_PROXY=$(grep -q "httpProxy:" "$INSTALL_CONFIG" 2>/dev/null && echo "true" || echo "false")
 HAS_DISCONNECTED=$(grep -q "additionalTrustBundle:" "$INSTALL_CONFIG" 2>/dev/null && echo "true" || echo "false")
 NETWORK_TYPE=$(grep "networkType:" "$INSTALL_CONFIG" 2>/dev/null | awk '{print $2}' | tr -d '"' || echo "unknown")
-CONTROL_PLANE_REPLICAS=$(grep -A 10 "^controlPlane:" "$INSTALL_CONFIG" | grep "replicas:" | awk '{print $2}' || echo "unknown")
-WORKER_REPLICAS=$(grep -A 10 "^compute:" "$INSTALL_CONFIG" | grep "replicas:" | awk '{print $2}' || echo "0")
+CONTROL_PLANE_REPLICAS=$(grep -A 10 "^controlPlane:" "$INSTALL_CONFIG" | grep "replicas:" | head -1 | awk '{print $2}' || echo "unknown")
+WORKER_REPLICAS=$(grep -A 10 "^compute:" "$INSTALL_CONFIG" | grep "replicas:" | head -1 | awk '{print $2}' || echo "0")
 PLATFORM_TYPE=$(grep -A 1 "^platform:" "$INSTALL_CONFIG" | tail -1 | awk '{print $1}' | tr -d ':' || echo "unknown")
 
 # Detect deployment topology
@@ -129,7 +129,15 @@ else
 fi
 
 # Detect connectivity type
-if [ "$HAS_DISCONNECTED" = "true" ]; then
+# Disconnected if ANY of these conditions are true:
+# - additionalTrustBundle present (mirror registry CA)
+# - imageDigestSources present (4.19 transitional API)
+# - imageContentSources present (deprecated but still indicates mirror)
+# - image-mirror-config.yaml exists (4.20+ standalone manifest)
+if [ "$HAS_DISCONNECTED" = "true" ] || \
+   [ "$HAS_IMAGE_DIGEST_SOURCES" = "true" ] || \
+   [ "$HAS_IMAGE_CONTENT_SOURCES" = "true" ] || \
+   [ "$HAS_IMAGE_MIRROR_CONFIG" = "true" ]; then
     CONNECTIVITY="DISCONNECTED"
 elif [ "$HAS_PROXY" = "true" ]; then
     CONNECTIVITY="PROXY"

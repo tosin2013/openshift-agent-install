@@ -109,6 +109,25 @@ Each ADR follows a consistent format:
     - WWN-based device identification
     - Enterprise storage scenarios
 
+16. [ADR-016: RHACM Hub Deployment Target](0016-rhacm-hub-deployment-target)
+    - Red Hat Advanced Cluster Management integration
+    - Hub cluster deployment automation
+    - Multi-cluster management capabilities
+    - ZTP (Zero Touch Provisioning) support
+
+17. [ADR-017: HyperShift Hosted Control Planes](0017-hypershift-hosted-control-planes)
+    - HyperShift deployment pattern support
+    - Hosted control plane architecture
+    - Resource optimization strategies
+    - Multi-tenancy considerations
+
+18. [ADR-018: OpenShift Version Compatibility Validation](0018-version-compatibility-validation)
+    - LLM-powered version validation and testing
+    - Automated manifest comparison across versions
+    - Deployment standards validation (SNO, 3-Node, HA)
+    - GitHub Actions CI/CD integration
+    - Critical version boundaries (4.19→4.20→4.21)
+
 ## Categories
 
 ### Installation Strategy
@@ -126,6 +145,7 @@ Each ADR follows a consistent format:
 - [ADR-004: Disconnected Installation Support](0004-disconnected-installation-support)
 - [ADR-005: ISO Creation and Asset Management](0005-iso-creation-and-asset-management)
 - [ADR-006: Testing and Execution Environment](0006-testing-and-execution-environment)
+- [ADR-018: OpenShift Version Compatibility Validation](0018-version-compatibility-validation)
 
 ### Infrastructure & Testing
 - [ADR-007: Virtual Infrastructure Testing](0007-virtual-infrastructure-testing)
@@ -147,6 +167,7 @@ Each ADR follows a consistent format:
 ### Testing Framework
 - [ADR-006: Testing and Execution Environment](0006-testing-and-execution-environment)
 - [ADR-013: End-to-End Testing Framework](0013-end-to-end-testing-framework)
+- [ADR-018: OpenShift Version Compatibility Validation](0018-version-compatibility-validation)
 
 ## ADR States
 

@@ -1,0 +1,3 @@
+# DOCUMCP_KNOWLEDGE_GRAPH_ENTITIES v1.1.0
+{"id":"project:openshift-agent-install-docs","type":"project","label":"tosin2013/openshift-agent-install","properties":{"name":"tosin2013/openshift-agent-install","path":"/home/vpcuser/openshift-agent-install","technologies":[],"size":"small","primaryLanguage":"unknown","hasTests":false,"hasCI":true,"hasDocs":true,"totalFiles":0,"lastAnalyzed":"2026-05-27T17:31:06.008Z","analysisCount":1},"weight":1,"lastUpdated":"2026-05-27T17:31:06.020Z"}
+{"id":"configuration:jekyll","type":"configuration","label":"jekyll configuration","properties":{"ssg":"jekyll","settings":{},"deploymentSuccessRate":1,"usageCount":1,"lastUsed":"2026-05-27T17:31:06.024Z"},"weight":1,"lastUpdated":"2026-05-27T17:31:06.024Z"}

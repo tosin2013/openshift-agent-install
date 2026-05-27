@@ -1,0 +1,36 @@
+{
+  "version": "1.0",
+  "updatedAt": "2026-05-27T16:49:28.589Z",
+  "milestones": [
+    {
+      "id": "v4-21-0-platform-stability-enterprise-integration",
+      "name": "v4.21.0 - Platform Stability & Enterprise Integration",
+      "completed": 0,
+      "total": 0,
+      "completionRate": 0,
+      "criticalTodos": 0,
+      "blockers": [],
+      "linkedAdrIds": [],
+      "linkedTodoIds": [],
+      "source": "local",
+      "pushed": false,
+      "description": "OpenShift 4.21 compatibility release with deprecation remediation, platform expansion, and RHACM integration. Critical path: ImageDigestMirrorSet migration, OVNKubernetes enforcement, Nutanix/External platform support, two-node topologies, and Hub cluster deployment targets.",
+      "dueDate": "2026-08-15"
+    },
+    {
+      "id": "v4-22-0-ai-ml-readiness-forward-compatibility",
+      "name": "v4.22.0 - AI/ML Readiness & Forward Compatibility",
+      "completed": 0,
+      "total": 0,
+      "completionRate": 0,
+      "criticalTodos": 0,
+      "blockers": [],
+      "linkedAdrIds": [],
+      "linkedTodoIds": [],
+      "source": "local",
+      "pushed": false,
+      "description": "OpenShift 4.22 compatibility release with ContainerRuntimeConfig for AI/ML storage optimization, HyperShift GA support, expanded E2E test matrix, and developer experience improvements. Tech preview features gated behind tech_preview_enabled flag.",
+      "dueDate": "2026-11-30"
+    }
+  ]
+}

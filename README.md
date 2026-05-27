@@ -25,6 +25,67 @@ Examples are provided for different deployment patterns:
 - `examples/sno-4.20-standard/` - Standard SNO 4.20 deployment
 - `examples/ha-4.21-disconnected/` - HA 4.21 disconnected deployment
 
+## Version Validation and Compatibility Testing
+
+This repository includes automated tools to validate manifest generation across multiple OpenShift versions and detect version-specific API changes.
+
+### Quick Start
+
+```bash
+# Generate manifests for multiple OpenShift versions
+./hack/generate-version-manifests.sh sno-disconnected "4.19 4.20 4.21"
+
+# Validate manifests against deployment standards
+./hack/validate-deployment-standards.sh \
+  ~/generated_assets/version-compare/sno-disconnected-4.20 4.20
+
+# Compare critical version boundaries
+./hack/compare-version-manifests.sh 4.19 4.20 sno-disconnected
+./hack/compare-version-manifests.sh 4.20 4.21 sno-disconnected
+```
+
+### Critical Version Boundaries
+
+**4.19 → 4.20**: ImageDigestMirrorSet migration
+- Disconnected deployments must migrate from `imageDigestSources` in install-config.yaml to standalone `ImageDigestMirrorSet` manifest
+
+**4.20 → 4.21**: OpenShiftSDN removal
+- All deployments must use `networkType: OVNKubernetes` (OpenShiftSDN removed completely)
+
+### GitHub Actions Integration
+
+The version validation workflow automatically runs on PRs that modify templates or examples:
+
+```bash
+# Manually trigger validation with GitHub issue creation
+gh workflow run version-validation.yml \
+  -f create_issues=true \
+  -f examples="sno-disconnected ha-4.21-disconnected sno-4.20-standard"
+```
+
+### LLM-Powered Validation
+
+Version validation uses **Granite-3-2-8b-instruct** LLM to provide intelligent analysis of:
+- API compliance per OpenShift version
+- Deployment pattern standards (SNO, 3-Node, HA)
+- Connectivity requirements (connected, disconnected, proxy)
+- Platform-specific configuration validation
+
+Example validation output:
+```
+[PASS] Image Registry Configuration
+[FAIL] Network Configuration - networkType: OpenShiftSDN deprecated for 4.21
+[PASS] Platform Configuration
+[PASS] Deployment Topology
+```
+
+### Documentation
+
+- **[Version Compatibility Matrix](docs/version-compatibility-matrix.md)** - API changes, migration paths, feature support
+- **[Version Validation Feature](docs/version-validation-feature.md)** - Complete feature documentation
+- **[Quick Start Guide](docs/version-validation-quick-start.md)** - Step-by-step usage instructions
+- **[Cheat Sheet](VERSION_VALIDATION_CHEATSHEET.md)** - Quick reference commands
+
 ## DNS Setup
 
 This project uses **dnsmasq** as a lightweight DNS server for OpenShift cluster deployments. For each cluster, only 3 DNS records are needed:
