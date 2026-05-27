@@ -167,6 +167,6 @@ When creating a new ADR:
 
 ## Related Documentation
 
-- [Installation Guide](../installation-guide)
-- [Configuration Guide](../configuration-guide)
+- [Installation Guide](../installation-guide.md)
+- [Configuration Guide](../configuration-guide.md)
 - [Example Configurations](../../examples/)

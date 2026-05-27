@@ -142,7 +142,7 @@ Implement comprehensive disconnected installation support with:
 4. Update service validation
 
 ## Related
-- [Installation Guide](../installation-guide)
+- [Installation Guide](../installation-guide.md)
 - [ADR-001: Agent-based Installation](0001-agent-based-installation-approach)
 - [ADR-003: Ansible Automation](0003-ansible-automation-approach)
 - External: [OCP4 Disconnected Helper](https://github.com/kenmoini/ocp4-disconnected-helper)

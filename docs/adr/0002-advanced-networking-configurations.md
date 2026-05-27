@@ -142,7 +142,7 @@ e2e-tests/
 ```
 
 ## Related
-- [Installation Guide](../installation-guide)
+- [Installation Guide](../installation-guide.md)
 - [Network Configuration Examples](../examples/)
 - [ADR-001: Agent-based Installation Approach](0001-agent-based-installation-approach)
 

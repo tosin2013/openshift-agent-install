@@ -150,7 +150,7 @@ playbooks/templates/
 - Jinja2 Template Documentation
 
 ## Related
-- [Installation Guide](../installation-guide)
-- [Configuration Guide](../configuration-guide)
-- [Network Configuration](../network-configuration)
+- [Installation Guide](../installation-guide.md)
+- [Configuration Guide](../configuration-guide.md)
+- [Network Configuration](../network-configuration.md)
 - [Example Configurations](../../examples/)

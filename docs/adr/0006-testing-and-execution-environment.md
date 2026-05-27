@@ -178,7 +178,7 @@ Required packages and tools:
 - [ADR-009: Testing Infrastructure and ISO Management](0009-testing-infrastructure-and-iso-management)
 
 ## Related
-- [Installation Guide](../installation-guide)
-- [Configuration Guide](../configuration-guide)
-- [Network Configuration](../network-configuration)
+- [Installation Guide](../installation-guide.md)
+- [Configuration Guide](../configuration-guide.md)
+- [Network Configuration](../network-configuration.md)
 - [Example Configurations](../../examples/)

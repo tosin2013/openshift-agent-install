@@ -149,7 +149,7 @@ examples/
 ```
 
 ## Related
-- [Installation Guide](../installation-guide)
+- [Installation Guide](../installation-guide.md)
 - [ADR-001: Agent-based Installation](0001-agent-based-installation-approach)
 - [ADR-003: Ansible Automation](0003-ansible-automation-approach)
 

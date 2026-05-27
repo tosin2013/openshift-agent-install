@@ -124,7 +124,7 @@ We have implemented a comprehensive set of automation tools through standardized
 - FreeIPA Implementation Guide
 
 ## Related
-- [Installation Guide](../installation-guide)
-- [Configuration Guide](../configuration-guide)
-- [Network Configuration](../network-configuration)
+- [Installation Guide](../installation-guide.md)
+- [Configuration Guide](../configuration-guide.md)
+- [Network Configuration](../network-configuration.md)
 - [Example Configurations](../../examples/)

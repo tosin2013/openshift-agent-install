@@ -183,7 +183,7 @@ Implement a comprehensive testing infrastructure with:
 - [ADR-007: Virtual Infrastructure Testing](0007-virtual-infrastructure-testing)
 
 ## Related
-- [Installation Guide](../installation-guide)
-- [Configuration Guide](../configuration-guide)
-- [Network Configuration](../network-configuration)
+- [Installation Guide](../installation-guide.md)
+- [Configuration Guide](../configuration-guide.md)
+- [Network Configuration](../network-configuration.md)
 - [Example Configurations](../../examples/)

@@ -145,7 +145,7 @@ examples/
    - Test ISO creation
 
 ## Related
-- [Installation Guide](../installation-guide)
+- [Installation Guide](../installation-guide.md)
 - [ADR-001: Agent-based Installation](0001-agent-based-installation-approach)
 - [ADR-002: Network Configurations](0002-advanced-networking-configurations)
 
