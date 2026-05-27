@@ -104,7 +104,7 @@ We will support **all rootDeviceHints parameters** in the template to enable com
 The template now conditionally includes each rootDeviceHints parameter:
 
 ```jinja2
-{% if node.rootDeviceHints is defined %}
+{% raw %}{% if node.rootDeviceHints is defined %}
     rootDeviceHints:
 {% if node.rootDeviceHints.deviceName is defined %}
       deviceName: {{ node.rootDeviceHints.deviceName }}
@@ -113,7 +113,7 @@ The template now conditionally includes each rootDeviceHints parameter:
       wwn: "{{ node.rootDeviceHints.wwn }}"
 {% endif %}
 {# ... additional parameters ... #}
-{% endif %}
+{% endif %}{% endraw %}
 ```
 
 ### Example Configurations
