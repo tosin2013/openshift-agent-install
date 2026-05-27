@@ -2336,6 +2336,29 @@ sudo kcli list vm | grep vyos
 - `ssh_public_key_path` (string, optional) - Path to SSH public key (generated if omitted)
 - `use_site_configs` (boolean, optional) - Use site-specific configurations (default: false)
 
+**Disconnected/Air-Gap Parameters** (for disconnected deployments):
+
+- `disconnected_registries` (list, required for disconnected) - Mirror registry mappings
+  - `source` (string) - Upstream registry (e.g., quay.io, registry.redhat.io)
+  - `target` (string) - Mirror registry with port (e.g., mirror-registry.example.com:8443)
+- `additional_trust_bundle_path` (string, required for disconnected) - Path to mirror registry CA certificate
+- `additional_trust_bundle_policy` (string, optional) - CA bundle policy ("Always" or "Proxyonly", default: "Always")
+- `image_content_sources` (list, required for disconnected) - Image content source mappings
+  - `source` (string) - Upstream image repository
+  - `mirrors` (list) - Mirror registry paths
+
+**UpdateService Parameters** (optional, for disconnected cluster updates):
+
+- `deploy_update_service` (boolean, optional) - Enable UpdateService deployment (default: false)
+- `update_service_graph_image` (string, required if deploy_update_service=true) - Graph data image with digest
+  - Format: `<registry>/<repository>/graph-image@sha256:<digest>`
+  - Obtain from: oc-mirror output after mirroring OpenShift releases
+- `update_service_releases` (string, required if deploy_update_service=true) - Releases path in mirror registry
+  - Format: `<registry>/<repository>/openshift-release-dev/ocp-release`
+- `update_service_replicas` (integer, optional) - Number of UpdateService replicas (default: 2, use 1 for SNO)
+- `update_service_namespace` (string, optional) - UpdateService namespace (default: "openshift-update-service")
+- `update_service_name` (string, optional) - UpdateService resource name (default: "update-service-oc-mirror")
+
 **Example cluster.yml** (SNO):
 ```yaml
 use_site_configs: false
@@ -3038,6 +3061,75 @@ curl http://localhost:8000/redfish/v1/Systems/sno-420
 ---
 
 ### Disconnected/Air-Gap Issues
+
+#### Problem: Disconnected cluster cannot receive updates
+
+**Symptoms**:
+- Cluster stuck on current version
+- No update paths visible in web console
+- "oc adm upgrade" shows no available updates
+
+**Solutions**:
+
+**Solution 1: Deploy UpdateService**
+
+UpdateService enables cluster updates in disconnected environments by providing update graph data and release metadata from your mirror registry.
+
+```bash
+# 1. Enable UpdateService in cluster.yml
+deploy_update_service: true
+
+# 2. Configure graph-data image (from oc-mirror output)
+update_service_graph_image: "mirror-registry.example.com:8443/openshift/graph-image@sha256:abc123..."
+
+# 3. Configure releases path
+update_service_releases: "mirror-registry.example.com:8443/openshift/release-images"
+
+# 4. Set replicas (1 for SNO, 2+ for HA)
+update_service_replicas: 2
+
+# 5. Regenerate manifests
+./hack/create-iso.sh sno-disconnected
+
+# 6. UpdateService manifest will be created at:
+# ~/generated_assets/<cluster-name>/updateservice.yaml
+```
+
+**Solution 2: Verify oc-mirror completed graph-data mirroring**
+
+```bash
+# Check oc-mirror output for graph-image reference
+cat oc-mirror-workspace/results-*/mapping.txt | grep graph-image
+
+# Verify graph-data image exists in mirror registry
+skopeo inspect docker://mirror-registry.example.com:8443/openshift/graph-image@sha256:...
+```
+
+**Solution 3: Apply UpdateService manifest post-installation**
+
+```bash
+# If cluster is already deployed, apply UpdateService manually
+export KUBECONFIG=~/generated_assets/<cluster-name>/auth/kubeconfig
+
+# Create UpdateService namespace (if needed)
+oc create namespace openshift-update-service
+
+# Apply UpdateService manifest
+oc apply -f ~/generated_assets/<cluster-name>/updateservice.yaml
+
+# Verify UpdateService is running
+oc get updateservice -n openshift-update-service
+oc get pods -n openshift-update-service
+
+# Check for available updates (may take 5-10 minutes)
+oc adm upgrade
+```
+
+**References**:
+- [Updating disconnected clusters with UpdateService](https://docs.openshift.com/container-platform/4.21/updating/updating_a_cluster/updating-restricted-network-cluster-osus.html)
+- [Mirroring images for disconnected installation](https://docs.openshift.com/container-platform/4.21/installing/disconnected_install/installing-mirroring-installation-images.html)
+
+---
 
 #### Problem: Cannot pull images from disconnected registry
 

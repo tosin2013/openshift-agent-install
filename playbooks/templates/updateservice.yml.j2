@@ -1,12 +1,39 @@
-# https://docs.openshift.com/container-platform/4.13/updating/updating-restricted-network-cluster/restricted-network-update-osus.html
+# UpdateService for Disconnected OpenShift Cluster Updates
+# https://docs.openshift.com/container-platform/4.21/updating/updating_a_cluster/updating-restricted-network-cluster-osus.html
+#
+# The UpdateService operator enables OpenShift clusters in disconnected environments
+# to receive updates from a local mirror registry. It provides:
+# - Graph data for available update paths
+# - Release image metadata for cluster updates
+# - Update recommendations based on cluster version
+#
+# Prerequisites:
+# 1. oc-mirror has mirrored OpenShift releases to your registry
+# 2. Graph data image has been mirrored (includes update graph metadata)
+# 3. Registry credentials are configured in the cluster
+#
+# Required Variables:
+# - update_service_graph_image: Full image reference with digest for graph-data
+# - update_service_releases: Registry path to mirrored release images
+# - update_service_replicas: Number of UpdateService replicas (default: 2)
+# - update_service_namespace: Namespace for UpdateService (default: openshift-update-service)
 ---
 apiVersion: updateservice.operator.openshift.io/v1
 kind: UpdateService
 metadata:
-  name: update-service-oc-mirror
-  namespace: openshift-update-service
+  name: {{ update_service_name | default('update-service-oc-mirror') }}
+  namespace: {{ update_service_namespace | default('openshift-update-service') }}
 spec:
-  graphDataImage: disconn-harbor.d70.kemo.labs/quay-ptc/openshift/graph-image@sha256:d0c8b1c9774ca8c865236add85c1ac14ae127fc3748d66fc89a1f52d16667098
-  #releases: disconn-harbor.d70.kemo.labs/oc-mirror/openshift/release-images
-  releases: disconn-harbor.d70.kemo.labs/quay-ptc/openshift-release-dev/ocp-release
-  replicas: 1
+  # Graph data image contains the update graph metadata
+  # Obtain from: oc-mirror outputs after mirroring OpenShift releases
+  # Format: <registry>/<repository>/graph-image@sha256:<digest>
+  graphDataImage: {{ update_service_graph_image }}
+
+  # Releases path in your mirror registry
+  # Format: <registry>/<repository>/openshift-release-dev/ocp-release
+  # This should match the target registry used in oc-mirror configuration
+  releases: {{ update_service_releases }}
+
+  # Number of UpdateService replicas for high availability
+  # Recommended: 2 for production, 1 for development/testing
+  replicas: {{ update_service_replicas | default(2) }}

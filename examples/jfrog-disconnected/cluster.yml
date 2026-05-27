@@ -86,3 +86,13 @@ additional_trust_bundle_policy: Always
 
 create_ztp_manifests: false
 cluster_architecture: x86_64
+
+# ============================================================================
+# UPDATE SERVICE CONFIGURATION (Optional)
+# ============================================================================
+# UpdateService for JFrog Artifactory-based disconnected deployments
+
+deploy_update_service: false
+update_service_graph_image: "jfrog.example.com/openshift-local/openshift/graph-image@sha256:REPLACE_WITH_ACTUAL_DIGEST"
+update_service_releases: "jfrog.example.com/openshift-local/openshift/release-images"
+update_service_replicas: 1

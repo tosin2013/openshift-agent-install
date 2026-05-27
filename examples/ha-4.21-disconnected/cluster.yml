@@ -95,3 +95,21 @@ additional_trust_bundle: |
   STUVWXYZabcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRST
   UVWXYZabcdefghijklmnopqrstuvwxyz0123456789ABCDEFGHIJKLMNOPQRSTUVw
   -----END CERTIFICATE-----
+
+# ============================================================================
+# UPDATE SERVICE CONFIGURATION (Optional)
+# ============================================================================
+# UpdateService enables OpenShift cluster updates in disconnected environments
+# For HA deployments, use replicas: 2 or higher for high availability
+
+# Enable UpdateService deployment
+deploy_update_service: false
+
+# Graph data image with digest (from oc-mirror output)
+update_service_graph_image: "disconn-registry.example.com:5000/openshift/graph-image@sha256:REPLACE_WITH_ACTUAL_DIGEST"
+
+# Releases path in mirror registry
+update_service_releases: "disconn-registry.example.com:5000/openshift/release-images"
+
+# UpdateService replicas (recommended: 2 for HA)
+update_service_replicas: 2

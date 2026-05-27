@@ -76,3 +76,14 @@
         src: imagedigestmirrorset.yml.j2
         dest: "{{ generated_asset_path }}/{{ cluster_name }}/image-mirror-config.yaml"
         mode: '0644'
+
+    - name: Template the UpdateService manifest for disconnected cluster updates
+      when:
+        - deploy_update_service is defined
+        - deploy_update_service | bool
+        - update_service_graph_image is defined
+        - update_service_releases is defined
+      ansible.builtin.template:
+        src: updateservice.yml.j2
+        dest: "{{ generated_asset_path }}/{{ cluster_name }}/updateservice.yaml"
+        mode: '0644'

@@ -88,5 +88,41 @@ image_content_sources:
       - mirror-registry.example.com:8443/openshift/release
     source: quay.io/openshift-release-dev/ocp-v4.0-art-dev
 
+# ============================================================================
+# UPDATE SERVICE CONFIGURATION (Optional)
+# ============================================================================
+# UpdateService enables OpenShift cluster updates in disconnected environments
+# Requires: oc-mirror to have mirrored OpenShift releases and graph-data
+#
+# To enable UpdateService:
+# 1. Mirror OpenShift releases with oc-mirror
+# 2. Obtain graph-data image reference from oc-mirror output
+# 3. Set deploy_update_service: true
+# 4. Configure update_service_graph_image and update_service_releases
+
+# Enable UpdateService deployment
+deploy_update_service: false
+
+# Graph data image (includes update graph metadata)
+# Obtain from: oc-mirror output after mirroring OpenShift releases
+# Format: <registry>/<repository>/graph-image@sha256:<digest>
+# Example: mirror-registry.example.com:8443/openshift/graph-image@sha256:abc123...
+update_service_graph_image: "mirror-registry.example.com:8443/openshift/graph-image@sha256:REPLACE_WITH_ACTUAL_DIGEST"
+
+# Releases path in mirror registry
+# Format: <registry>/<repository>/openshift-release-dev/ocp-release
+# This should match your oc-mirror target registry configuration
+update_service_releases: "mirror-registry.example.com:8443/openshift/release-images"
+
+# UpdateService replicas (optional, default: 2)
+# Recommended: 2 for production, 1 for development/testing
+update_service_replicas: 1
+
+# UpdateService namespace (optional, default: openshift-update-service)
+# update_service_namespace: "openshift-update-service"
+
+# UpdateService name (optional, default: update-service-oc-mirror)
+# update_service_name: "update-service-oc-mirror"
+
 
 

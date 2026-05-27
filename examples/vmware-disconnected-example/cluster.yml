@@ -203,3 +203,12 @@ additional_trust_bundle: |
   LSMk1f3L54UjG+iMyolALyCvpibGD6g6PRMp8UTStZatPJDzT2/JbFu9mIhU5V4g
   zYML3t12ZU8JGpxxfUk2ObjKbixfSwSmTcWb+s8kgg==
   -----END CERTIFICATE-----
+# ============================================================================
+# UPDATE SERVICE CONFIGURATION (Optional)
+# ============================================================================
+# UpdateService for cluster updates in disconnected vSphere environment
+
+deploy_update_service: false
+update_service_graph_image: "harbor.example.com/openshift/graph-image@sha256:REPLACE_WITH_ACTUAL_DIGEST"
+update_service_releases: "harbor.example.com/openshift/release-images"
+update_service_replicas: 2
