@@ -275,14 +275,24 @@ setup_registry_auth() {
             chmod 700 "$USER_HOME/.docker"
         fi
 
-        if [ -f "${ACTUAL_USER_HOME}/pullsecret.json" ]; then
-            cp "${ACTUAL_USER_HOME}/pullsecret.json" "$USER_HOME/.docker/config.json"
+        # Check for pull secret in both naming conventions
+        PULL_SECRET=""
+        if [ -f "${ACTUAL_USER_HOME}/pull-secret.json" ]; then
+            PULL_SECRET="${ACTUAL_USER_HOME}/pull-secret.json"
+        elif [ -f "${ACTUAL_USER_HOME}/pullsecret.json" ]; then
+            PULL_SECRET="${ACTUAL_USER_HOME}/pullsecret.json"
+        fi
+
+        if [ -n "$PULL_SECRET" ]; then
+            cp "$PULL_SECRET" "$USER_HOME/.docker/config.json"
             chmod 600 "$USER_HOME/.docker/config.json"
             chown -R "$SUDO_USER:$(id -gn $SUDO_USER)" "$USER_HOME/.docker"
-            print_status "Registry authentication configured for user $SUDO_USER" 0
+            print_status "Registry authentication configured for user $SUDO_USER (from $(basename $PULL_SECRET))" 0
         else
-            print_status "Pull secret not found at ${ACTUAL_USER_HOME}/pullsecret.json" 1
-            echo "Please ensure pull secret is available at ${ACTUAL_USER_HOME}/pullsecret.json"
+            print_status "Pull secret not found (checked pull-secret.json and pullsecret.json)" 1
+            echo "Please ensure pull secret is available at:"
+            echo "  ${ACTUAL_USER_HOME}/pull-secret.json (recommended)"
+            echo "  OR ${ACTUAL_USER_HOME}/pullsecret.json"
             exit 1
         fi
     else

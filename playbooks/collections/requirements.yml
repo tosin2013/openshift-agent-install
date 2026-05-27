@@ -2,3 +2,4 @@
 collections:
   - name: community.general
   - name: community.crypto
+    version: '<3.0.0'  # Pin to 2.x for Ansible 2.14 compatibility (RHEL 9.x)
