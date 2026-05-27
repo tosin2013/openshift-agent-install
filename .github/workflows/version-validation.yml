@@ -102,6 +102,7 @@ jobs:
 
       - name: Validate against deployment standards
         id: validate
+        if: always()  # Run even if manifest generation had warnings/errors
         continue-on-error: true
         run: |
           CREATE_ISSUE_FLAG=""

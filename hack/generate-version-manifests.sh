@@ -133,14 +133,14 @@ for version in $VERSION_LIST; do
             MANIFEST_COUNT=$(find "${OUTPUT_DIR}" -name "*.yaml" -o -name "*.yml" | wc -l)
             echo -e "${GREEN}✓ Generated ${MANIFEST_COUNT} manifests for OCP ${version}${NC}"
             echo -e "${GREEN}  Location: ${OUTPUT_DIR}${NC}"
-            ((GENERATED_COUNT++))
+            ((GENERATED_COUNT++)) || true
         else
             echo -e "${RED}❌ Failed to generate manifests for OCP ${version}${NC}"
-            ((FAILED_COUNT++))
+            ((FAILED_COUNT++)) || true
         fi
     else
         echo -e "${RED}❌ Ansible playbook failed for OCP ${version}${NC}"
-        ((FAILED_COUNT++))
+        ((FAILED_COUNT++)) || true
     fi
 
     echo ""
