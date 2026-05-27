@@ -36,3 +36,6 @@ docs/.sass-cache/**
 .jekyll-metadata
 *~
 .DS_Store
+
+# Auto-generated MCP server context (added automatically)
+.mcp-server-context.md
