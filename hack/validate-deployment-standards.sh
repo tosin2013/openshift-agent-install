@@ -338,9 +338,20 @@ else
     fi
 
     # Basic check: OpenShiftSDN removed in 4.21+
-    if [ "$NETWORK_TYPE" = "OpenShiftSDN" ] && [[ "$OCP_VERSION" > "4.20" ]]; then
-        echo -e "${RED}❌ OpenShiftSDN not supported in 4.21+ (use OVNKubernetes)${NC}"
-        ((FAIL_COUNT++))
+    if [ "$NETWORK_TYPE" = "OpenShiftSDN" ]; then
+        # Extract major.minor version for proper comparison
+        VERSION_MAJOR_MINOR=$(echo "$OCP_VERSION" | cut -d'.' -f1-2)
+
+        # Use awk for floating point comparison (4.21 and above)
+        if awk "BEGIN {exit !($VERSION_MAJOR_MINOR >= 4.21)}" 2>/dev/null; then
+            echo -e "${RED}❌ CRITICAL: OpenShiftSDN not supported in OpenShift $OCP_VERSION${NC}"
+            echo -e "${RED}   OpenShiftSDN was removed in 4.21. Use network_type: OVNKubernetes${NC}"
+            echo -e "${YELLOW}   Reference: https://docs.openshift.com/container-platform/4.21/networking/ovn_kubernetes_network_provider/about-ovn-kubernetes.html${NC}"
+            ((FAIL_COUNT++))
+        elif awk "BEGIN {exit !($VERSION_MAJOR_MINOR >= 4.15 && $VERSION_MAJOR_MINOR < 4.21)}" 2>/dev/null; then
+            echo -e "${YELLOW}⚠️  WARNING: OpenShiftSDN is deprecated in OpenShift $OCP_VERSION${NC}"
+            echo -e "${YELLOW}   Consider migrating to OVNKubernetes before upgrading to 4.21+${NC}"
+        fi
     fi
 
     # Basic check: Disconnected should have image mirror config in 4.20+

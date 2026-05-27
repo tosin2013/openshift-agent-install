@@ -1286,8 +1286,8 @@ dig test.apps.sno-4-20.example.com +short
 # ✅ PASS: Image Registry Configuration
 #    - OCP 4.19 uses imageDigestSources (transitional)
 #    - OCP 4.20 uses standalone ImageDigestMirrorSet (required)
-# ⚠️  WARNING: Network Configuration
-#    - networkType: OpenShiftSDN deprecated for 4.21
+# ❌ FAIL: Network Configuration
+#    - OpenShiftSDN not supported in 4.21+ (use OVNKubernetes)
 ```
 
 **Exit Codes**:
@@ -2037,9 +2037,10 @@ Automatically detects from install-config.yaml:
    - Verifies disconnected registry configuration
 
 2. **Network Configuration**
-   - Validates networkType (OpenShiftSDN vs OVNKubernetes)
+   - Validates network_type for version compatibility
+   - **OpenShift 4.21+**: Enforces OVNKubernetes (OpenShiftSDN removed)
+   - **OpenShift 4.15-4.20**: Warns if OpenShiftSDN used (deprecated)
    - Checks version-specific network requirements
-   - Warns about deprecated network plugins
 
 3. **Platform Configuration**
    - Validates platform_type for deployment topology
@@ -2320,7 +2321,9 @@ sudo kcli list vm | grep vyos
 - `dns_search_domains` (list, optional) - DNS search domains
 - `dns_servers` (list, optional) - DNS server IP addresses
 - `machine_network_cidrs` (list, required) - CIDR for node network
-- `network_type` (string, required) - SDN type ("OVNKubernetes" or "OpenShiftSDN" - deprecated)
+- `network_type` (string, required) - Network provider type
+  - **OpenShift 4.21+**: "OVNKubernetes" (REQUIRED - OpenShiftSDN removed)
+  - **OpenShift 4.15-4.20**: "OVNKubernetes" (recommended) or "OpenShiftSDN" (deprecated)
 - `ntp_servers` (list, optional) - NTP server addresses
 - `platform_type` (string, required) - Platform type ("baremetal", "vsphere", "none" - SNO must be "none")
 - `proxy` (object, optional) - Outbound proxy configuration

@@ -51,10 +51,52 @@ CLUSTER_NAME=$(grep "cluster_name" ${SITE_CONFIG_DIR}/${1}/cluster.yml | awk '{p
 # Get the base_domain
 BASE_DOMAIN=$(grep "base_domain" ${SITE_CONFIG_DIR}/${1}/cluster.yml | awk '{print $2}' | tr -d '"')
 
+# Validate OpenShift version and network type compatibility
+OCP_VERSION=$(grep "ocp_version" ${SITE_CONFIG_DIR}/${1}/cluster.yml | awk '{print $2}' | tr -d '"' || echo "")
+NETWORK_TYPE=$(grep "network_type" ${SITE_CONFIG_DIR}/${1}/cluster.yml | awk '{print $2}' | tr -d '"' || echo "OVNKubernetes")
+
+# Check for OpenShiftSDN usage with OpenShift 4.21+
+if [ -n "$OCP_VERSION" ]; then
+    # Extract major.minor version for comparison
+    VERSION_MAJOR_MINOR=$(echo "$OCP_VERSION" | cut -d'.' -f1-2)
+
+    # Compare version (4.21 and above)
+    if awk "BEGIN {exit !($VERSION_MAJOR_MINOR >= 4.21)}"; then
+        if [ "$NETWORK_TYPE" = "OpenShiftSDN" ]; then
+            echo "============================================================="
+            echo "❌ ERROR: Invalid Network Configuration"
+            echo "============================================================="
+            echo ""
+            echo "OpenShift $OCP_VERSION does not support OpenShiftSDN."
+            echo "OpenShiftSDN was removed in OpenShift 4.21."
+            echo ""
+            echo "Current configuration:"
+            echo "  ocp_version:  $OCP_VERSION"
+            echo "  network_type: $NETWORK_TYPE"
+            echo ""
+            echo "Required action:"
+            echo "  Update network_type to OVNKubernetes in:"
+            echo "  ${SITE_CONFIG_DIR}/${1}/cluster.yml"
+            echo ""
+            echo "Example:"
+            echo "  network_type: OVNKubernetes"
+            echo ""
+            echo "Reference:"
+            echo "  https://docs.openshift.com/container-platform/4.21/networking/ovn_kubernetes_network_provider/about-ovn-kubernetes.html"
+            echo "============================================================="
+            exit 1
+        fi
+    fi
+fi
+
 # Display header
 echo "============================================================="
 echo "Creating Agent Based Installer ISO for cluster:"
 echo " ${CLUSTER_NAME}"
+echo "============================================================="
+echo "Configuration:"
+echo "  OpenShift Version: ${OCP_VERSION:-auto-detect}"
+echo "  Network Type:      ${NETWORK_TYPE}"
 echo "============================================================="
 echo -e "\n - Templating the manifests for the cluster..."
 

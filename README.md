@@ -226,7 +226,9 @@ service_network_cidrs:
 machine_network_cidrs:
   - 192.168.70.0/23
 
-# networkType is the type of network to use for the cluster (OpenShiftSDN, OVNKubernetes)
+# network_type is the network provider for the cluster
+# OpenShift 4.21+: OVNKubernetes (REQUIRED - OpenShiftSDN removed)
+# OpenShift 4.15-4.20: OVNKubernetes (recommended) or OpenShiftSDN (deprecated)
 network_type: OVNKubernetes
 
 # rendezvous_ip is the IP address of the node that will be used for the bootstrap node
