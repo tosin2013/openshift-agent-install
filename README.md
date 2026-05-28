@@ -15,6 +15,55 @@ This repository is designed for:
 
 📖 **New to this repo?** Start with the [Developer Guide](docs/developer-guide.md)
 
+## ⚠️ CRITICAL: Hard Requirements for OpenShift Deployment
+
+**Before ANY OpenShift cluster deployment, you MUST validate your environment:**
+
+```bash
+# Run comprehensive environment validation
+./e2e-tests/validate_env.sh
+```
+
+This validates:
+1. ✅ **VyOS Router** - All 5 VLAN networks (1924-1928) are active
+2. ✅ **DNS Infrastructure** - dnsmasq running and configured
+3. ✅ **System Packages** - nmstate, ansible, OpenShift CLI tools
+4. ✅ **Container Tools** - podman installed
+5. ✅ **SELinux** - proper configuration
+
+**If validation fails, DO NOT proceed with deployment.** Fix the reported issues first.
+
+### Setting Up Prerequisites
+
+**1. VyOS Router (MANDATORY for KVM development)**
+
+```bash
+# Deploy VyOS router with VLAN networks
+ACTION=create ./hack/vyos-router.sh
+
+# Verify networks are active
+sudo virsh net-list
+```
+
+**2. DNS Configuration (MANDATORY)**
+
+```bash
+# Install dnsmasq
+sudo ./hack/setup-dnsmasq.sh
+
+# Configure DNS entries for your cluster
+sudo ./hack/configure-dnsmasq-entries.sh add examples/<your-cluster>/cluster.yml
+
+# Verify DNS resolution works
+./hack/verify-dns-resolution.sh examples/<your-cluster>/cluster.yml
+```
+
+---
+
+### ⚠️ Without these prerequisites validated, VM deployment will fail or hang indefinitely.
+
+---
+
 ## Prerequisites
 
 ### Core Requirements
@@ -26,7 +75,7 @@ This repository is designed for:
 - **Ansible Collections** - `ansible-galaxy install -r execution-environment/collections/requirements.yml`
 - **Red Hat Pull Secret** - https://console.redhat.com/openshift/downloads#tool-pull-secret saved to `~/pull-secret.json`
 
-### KVM Development Environment (Hard Requirements)
+### KVM Development Environment Setup
 
 For KVM-based development and testing, you **must** have:
 

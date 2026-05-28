@@ -466,8 +466,71 @@ phase3_dns_configuration() {
         log_success "API: api.${cluster_name}.${base_domain} → ${api_vip}"
         log_success "Apps: *.apps.${cluster_name}.${base_domain} → ${app_vip}"
     else
-        log_warning "DNS configuration failed (non-critical)"
-        echo "⚠️ **Status:** WARNING" >> "$VALIDATION_REPORT"
+        log_error "DNS configuration failed - this is a CRITICAL prerequisite"
+        echo "❌ **Status:** FAILED" >> "$VALIDATION_REPORT"
+        echo "" >> "$VALIDATION_REPORT"
+        echo "**Troubleshooting:**" >> "$VALIDATION_REPORT"
+        echo "1. Verify dnsmasq is running: \`sudo systemctl status dnsmasq\`" >> "$VALIDATION_REPORT"
+        echo "2. Check configuration: \`sudo cat /etc/dnsmasq.d/openshift.conf\`" >> "$VALIDATION_REPORT"
+        echo "3. Manually configure: \`sudo ./hack/configure-dnsmasq-entries.sh add $EXAMPLE_FOLDER/cluster.yml\`" >> "$VALIDATION_REPORT"
+        echo "" >> "$VALIDATION_REPORT"
+        return 1
+    fi
+
+    echo "" >> "$VALIDATION_REPORT"
+}
+
+# =============================================================================
+# Phase 3.5: DNS Resolution Verification (HARD REQUIREMENT)
+# =============================================================================
+phase3_5_dns_verification() {
+    if [ "$DEPLOY_DNS" != "true" ] && [ "$DEPLOY_ROUTER" != "true" ]; then
+        log_section "Phase 3.5: DNS Resolution Verification (SKIPPED)"
+        echo "### Phase 3.5: DNS Resolution Verification" >> "$VALIDATION_REPORT"
+        echo "" >> "$VALIDATION_REPORT"
+        echo "⊘ **Status:** SKIPPED (DNS not deployed by this script)" >> "$VALIDATION_REPORT"
+        echo "" >> "$VALIDATION_REPORT"
+        return 0
+    fi
+
+    log_section "Phase 3.5: DNS Resolution Verification"
+    echo "### Phase 3.5: DNS Resolution Verification" >> "$VALIDATION_REPORT"
+    echo "" >> "$VALIDATION_REPORT"
+
+    log_step "Verifying DNS resolution works..."
+    log_info "Command: ./hack/verify-dns-resolution.sh $EXAMPLE_FOLDER/cluster.yml"
+
+    if ./hack/verify-dns-resolution.sh "$EXAMPLE_FOLDER/cluster.yml" 2>&1 | tee /tmp/dns-verify.log; then
+        log_success "DNS resolution verified - all tests passed"
+        echo "✅ **Status:** PASSED" >> "$VALIDATION_REPORT"
+        echo "" >> "$VALIDATION_REPORT"
+        echo "**Verified DNS Endpoints:**" >> "$VALIDATION_REPORT"
+        echo "- api.<cluster>.<domain> → API VIP" >> "$VALIDATION_REPORT"
+        echo "- api-int.<cluster>.<domain> → API VIP" >> "$VALIDATION_REPORT"
+        echo "- console-openshift-console.apps.<cluster>.<domain> → App VIP" >> "$VALIDATION_REPORT"
+        echo "- oauth-openshift.apps.<cluster>.<domain> → App VIP" >> "$VALIDATION_REPORT"
+        echo "- test.apps.<cluster>.<domain> → App VIP (wildcard)" >> "$VALIDATION_REPORT"
+        echo "" >> "$VALIDATION_REPORT"
+    else
+        log_error "DNS resolution verification FAILED"
+        echo "❌ **Status:** FAILED" >> "$VALIDATION_REPORT"
+        echo "" >> "$VALIDATION_REPORT"
+        echo "**DNS verification is a HARD REQUIREMENT - VM deployment cannot proceed without working DNS.**" >> "$VALIDATION_REPORT"
+        echo "" >> "$VALIDATION_REPORT"
+        echo "**Troubleshooting Steps:**" >> "$VALIDATION_REPORT"
+        echo "1. Check DNS entries exist:" >> "$VALIDATION_REPORT"
+        echo "   \`sudo cat /etc/dnsmasq.d/openshift.conf | grep <cluster-name>\`" >> "$VALIDATION_REPORT"
+        echo "" >> "$VALIDATION_REPORT"
+        echo "2. Restart dnsmasq:" >> "$VALIDATION_REPORT"
+        echo "   \`sudo systemctl restart dnsmasq\`" >> "$VALIDATION_REPORT"
+        echo "" >> "$VALIDATION_REPORT"
+        echo "3. Test resolution manually:" >> "$VALIDATION_REPORT"
+        echo "   \`dig @localhost api.<cluster>.<domain>\`" >> "$VALIDATION_REPORT"
+        echo "" >> "$VALIDATION_REPORT"
+        echo "4. Re-run DNS configuration:" >> "$VALIDATION_REPORT"
+        echo "   \`sudo ./hack/configure-dnsmasq-entries.sh add $EXAMPLE_FOLDER/cluster.yml\`" >> "$VALIDATION_REPORT"
+        echo "" >> "$VALIDATION_REPORT"
+        return 1
     fi
 
     echo "" >> "$VALIDATION_REPORT"
@@ -783,6 +846,7 @@ main() {
     phase1_environment_validation || exit 1
     phase2_iso_generation || exit 1
     phase3_dns_configuration || exit 1
+    phase3_5_dns_verification || exit 1  # HARD REQUIREMENT: Verify DNS works before VM deployment
     phase4_haproxy_forwarder || true  # Optional - don't exit on failure
     phase5_vm_deployment || exit 1
     phase6_installation_monitoring || true  # Don't exit on monitoring failure

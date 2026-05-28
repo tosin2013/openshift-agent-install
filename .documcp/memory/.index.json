@@ -1,0 +1,15 @@
+{
+  "entries": [
+    [
+      "d4c0f682bcfd5625",
+      {
+        "file": "analysis_2026_05.jsonl",
+        "line": 1,
+        "size": 500876
+      }
+    ]
+  ],
+  "lineCounters": {
+    "analysis_2026_05.jsonl": 1
+  }
+}

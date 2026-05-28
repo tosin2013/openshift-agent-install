@@ -8,6 +8,40 @@ permalink: /
 
 # OpenShift Agent-Based Installer Documentation
 
+## ⚠️ CRITICAL: Infrastructure Prerequisites
+
+**Before deploying ANY OpenShift cluster, you MUST validate these hard requirements:**
+
+### VyOS Router & DNS Validation Checklist
+
+| Requirement | Validation Command | Expected Result |
+|-------------|-------------------|-----------------|
+| **VyOS Networks Active** | `sudo virsh net-list \| grep network192` | All 5 networks (1924-1928) show "active" |
+| **VyOS Connectivity** | `ping -c 1 192.168.122.2` | Router responds |
+| **DNS Service Running** | `sudo systemctl status dnsmasq` | Service is active (running) |
+| **DNS Entries Configured** | `sudo cat /etc/dnsmasq.d/openshift.conf` | Contains entries for your cluster |
+| **DNS Resolution Works** | `./hack/verify-dns-resolution.sh <cluster.yml>` | All 5 tests pass ✅ |
+
+**Why this matters**: OpenShift bootstrap will fail or hang indefinitely without:
+- VyOS VLAN networks for cluster communication
+- Working DNS resolution for api.<cluster>.<domain> and *.apps.<cluster>.<domain>
+
+**Quick validation**:
+```bash
+# Validate environment prerequisites
+./e2e-tests/validate_env.sh
+
+# Configure DNS for your cluster
+sudo ./hack/configure-dnsmasq-entries.sh add examples/<your-cluster>/cluster.yml
+
+# Verify DNS resolution
+./hack/verify-dns-resolution.sh examples/<your-cluster>/cluster.yml
+```
+
+📖 **Detailed setup**: [Developer Guide - Infrastructure Prerequisites](developer-guide.md#hard-requirement-vyos-router)
+
+---
+
 ## 🎯 Start Here
 
 **New to this repository?**

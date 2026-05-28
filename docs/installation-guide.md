@@ -31,6 +31,36 @@ The OpenShift Agent-based Installer Helper provides utilities to easily leverage
 
 ## Prerequisites
 
+### CRITICAL: Pre-Installation Validation (MANDATORY)
+
+**Before starting ANY installation, you MUST validate these hard requirements:**
+
+```bash
+# Run comprehensive environment validation
+./e2e-tests/validate_env.sh
+```
+
+**The validation script checks**:
+1. ✅ **VyOS Router Infrastructure**
+   - All 5 VLAN networks (1924-1928) are active
+   - VyOS router is reachable (192.168.122.2)
+   - VLAN gateways respond
+
+2. ✅ **DNS Infrastructure**
+   - dnsmasq service is running
+   - DNS server responds on localhost
+   - OpenShift DNS configuration file exists
+
+3. ✅ **System Packages**
+   - nmstate, ansible-core, bind-utils, etc.
+
+4. ✅ **OpenShift CLI Tools**
+   - oc and openshift-install installed
+
+**If validation fails, DO NOT proceed with installation.** Fix the reported issues first.
+
+---
+
 ### System Requirements
 
 1. **Base System**:
@@ -59,7 +89,29 @@ sudo cp ./bin/* /usr/local/bin/
 ansible-galaxy collection install -r playbooks/collections/requirements.yml
 ```
 
-3. **Required Files**:
+3. **Infrastructure Requirements (KVM Development)**:
+
+   **VyOS Router**:
+   ```bash
+   # Deploy VyOS router with VLAN networks
+   ACTION=create ./hack/vyos-router.sh
+   
+   # Verify networks are active
+   sudo virsh net-list | grep network192
+   ```
+
+   **DNS Configuration and Verification**:
+   ```bash
+   # Configure DNS entries
+   sudo ./hack/configure-dnsmasq-entries.sh add examples/<your-cluster>/cluster.yml
+   
+   # MANDATORY: Verify DNS resolution
+   ./hack/verify-dns-resolution.sh examples/<your-cluster>/cluster.yml
+   ```
+
+   **All 5 DNS tests MUST pass before proceeding to installation.**
+
+4. **Required Files**:
    - [Red Hat OpenShift Pull Secret](https://console.redhat.com/openshift/downloads#tool-pull-secret)
    - Any additional pull secrets for disconnected registries (if needed)
 

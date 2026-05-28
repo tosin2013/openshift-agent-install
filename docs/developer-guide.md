@@ -209,11 +209,76 @@ VyOS router provides DNS services automatically when configured.
 - Production-like networking
 - VLAN isolation required
 
+## DNS Verification (MANDATORY Before Deployment)
+
+**CRITICAL**: DNS must be configured AND verified to work before VM deployment starts. OpenShift bootstrap will fail without working DNS.
+
+### Why DNS Verification is Required
+
+OpenShift requires these DNS records to be resolvable BEFORE nodes boot:
+- `api.<cluster>.<domain>` → API VIP (Kubernetes API server)
+- `api-int.<cluster>.<domain>` → API VIP (internal API)
+- `*.apps.<cluster>.<domain>` → App VIP (wildcard for all application routes)
+
+**Without working DNS**: VMs boot but can't:
+- Reach the bootstrap node
+- Join the cluster
+- Download container images
+- Complete installation (hangs indefinitely)
+
+### DNS Verification Steps
+
+```bash
+# 1. Configure DNS entries for your cluster
+sudo ./hack/configure-dnsmasq-entries.sh add examples/sno-4.20-standard/cluster.yml
+
+# 2. Verify DNS resolution works (MANDATORY)
+./hack/verify-dns-resolution.sh examples/sno-4.20-standard/cluster.yml
+```
+
+**Expected output (all must pass)**:
+```
+✅ api.sno-4-20.example.com → 192.168.50.10
+✅ api-int.sno-4-20.example.com → 192.168.50.10
+✅ console-openshift-console.apps.sno-4-20.example.com → 192.168.50.10
+✅ oauth-openshift.apps.sno-4-20.example.com → 192.168.50.10
+✅ test.apps.sno-4-20.example.com → 192.168.50.10 (wildcard)
+```
+
+### Troubleshooting DNS Issues
+
+**DNS entries not resolving**:
+```bash
+# Check dnsmasq is running
+sudo systemctl status dnsmasq
+
+# Restart dnsmasq
+sudo systemctl restart dnsmasq
+
+# Verify entries exist
+sudo cat /etc/dnsmasq.d/openshift.conf | grep <cluster-name>
+
+# Test resolution manually
+dig @localhost api.<cluster>.<domain>
+```
+
+**DNS service not listening**:
+```bash
+# Check firewall
+sudo firewall-cmd --list-services
+
+# Add DNS service if missing
+sudo firewall-cmd --add-service=dns --permanent
+sudo firewall-cmd --reload
+```
+
+---
+
 ## Complete Development Deployment Workflow
 
 ### One-Shot Deployment Script
 
-The `deploy-connected-full.sh` script orchestrates the complete deployment:
+The `deploy-connected-full.sh` script orchestrates the complete deployment with MANDATORY DNS verification:
 
 ```bash
 # Full deployment with VyOS router
@@ -223,18 +288,25 @@ The `deploy-connected-full.sh` script orchestrates the complete deployment:
 #   Phase 0: VyOS Router Infrastructure (HARD REQUIREMENT)
 #   Phase 1: Environment validation
 #   Phase 2: ISO generation
-#   Phase 3: DNS configuration
+#   Phase 3: DNS configuration (HARD REQUIREMENT - now fatal if fails)
+#   Phase 3.5: DNS Resolution Verification (NEW - blocks VM deployment)
 #   Phase 4: HAProxy forwarder (optional)
-#   Phase 5: VM deployment
+#   Phase 5: VM deployment (BLOCKED if DNS not verified)
 #   Phase 6: Installation monitoring
 #   Phase 7: Post-deployment validation
 ```
+
+**What Changed**: Phase 3.5 (DNS Verification) is now a HARD REQUIREMENT. VM deployment will NOT proceed if DNS resolution tests fail.
 
 ### Manual Step-by-Step (For Understanding)
 
 ```bash
 # 1. Ensure VyOS router is running
 ping -c 3 192.168.50.1
+
+# 1.5. Configure and VERIFY DNS (MANDATORY NEW STEP)
+sudo ./hack/configure-dnsmasq-entries.sh add examples/sno-4.20-standard/cluster.yml
+./hack/verify-dns-resolution.sh examples/sno-4.20-standard/cluster.yml
 
 # 2. Generate cluster ISO
 ./hack/create-iso.sh sno-4.20-standard
