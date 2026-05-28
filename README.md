@@ -1,16 +1,63 @@
 # OpenShift Agent Based Installer Helper
 
-This repo holds some utilities to easily leverage the OpenShift Agent-Based Installer.  Supports bare metal, vSphere, and platform=none deployments in SNO/3 Node/HA configurations.
+This repository provides automated tooling for OpenShift Agent-Based Installer deployments. Supports bare metal, vSphere, and platform=none deployments in SNO/3-Node/HA configurations.
+
+## 🎯 Development Workflow
+
+```
+Development (KVM) → Fork & Adapt → Production (Bare Metal)
+```
+
+This repository is designed for:
+1. **Development and testing** on KVM/libvirt (local infrastructure)
+2. **Forking and customization** for your organization
+3. **Production deployment** to bare metal infrastructure in your environment
+
+📖 **New to this repo?** Start with the [Developer Guide](docs/developer-guide.md)
 
 ## Prerequisites
 
-- A RHEL system to work from
-- OpenShift CLI Tools - run `./download-openshift-cli.sh` then `sudo cp ./bin/* /usr/local/bin/`
-- NMState CLI `dnf install nmstate`
-- Ansible Core `dnf install ansible-core` - or AAP
-- Ansible Collections for the automation: `ansible-galaxy install -r execution-environment/collections/requirements.yml`
-- Red Hat OpenShift Pull Secret saved to a file: https://console.redhat.com/openshift/downloads#tool-pull-secret
-- Any other Pull Secret for a disconnected registry, joined with the Red Hat OpenShift Pull Secret.  [Handy script to join pull secret files](https://github.com/kenmoini/disconnected-openshift/blob/main/scripts/join-auths.sh).
+### Core Requirements
+
+- **RHEL 9.x system** (host for KVM development or bare metal deployment)
+- **OpenShift CLI Tools** - run `./download-openshift-cli.sh` then `sudo cp ./bin/* /usr/local/bin/`
+- **NMState CLI** - `dnf install nmstate`
+- **Ansible Core** - `dnf install ansible-core` (or Ansible Automation Platform)
+- **Ansible Collections** - `ansible-galaxy install -r execution-environment/collections/requirements.yml`
+- **Red Hat Pull Secret** - https://console.redhat.com/openshift/downloads#tool-pull-secret saved to `~/pull-secret.json`
+
+### KVM Development Environment (Hard Requirements)
+
+For KVM-based development and testing, you **must** have:
+
+1. **VyOS Router** (mandatory prerequisite)
+   ```bash
+   # Deploy VyOS router with VLAN networks
+   ACTION=create ./hack/vyos-router.sh
+   ```
+   - Provides VLAN networking (192.168.49.0/24 through 192.168.58.0/24)
+   - Required for all example configurations
+   - Manual configuration via Cockpit console required
+   - See: [Developer Guide - VyOS Router Setup](docs/developer-guide.md#hard-requirement-vyos-router)
+
+2. **Cockpit Web Interface** (for VyOS console access)
+   ```bash
+   sudo dnf install -y cockpit cockpit-machines
+   sudo systemctl enable --now cockpit.socket
+   sudo firewall-cmd --add-service=cockpit --permanent
+   sudo firewall-cmd --reload
+   ```
+   - Access at: `https://<your-host>:9090`
+   - Required for VyOS router configuration
+   - Provides VM management and console access
+
+3. **Libvirt/KVM**
+   ```bash
+   sudo dnf install -y qemu-kvm libvirt virt-install virt-manager
+   sudo systemctl enable --now libvirtd
+   ```
+
+**📘 Complete KVM setup guide**: [Developer Guide](docs/developer-guide.md)
 
 ### Alternative: Pre-built Execution Environment
 

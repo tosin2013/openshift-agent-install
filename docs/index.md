@@ -1,193 +1,249 @@
----
-layout: default
-title: OpenShift Agent Install Helper
-description: Documentation for OpenShift Agent-based Installer Helper utilities
----
+# OpenShift Agent-Based Installer Documentation
 
-# OpenShift Agent Install Helper
+{% include navigation.html %}
 
-Welcome to the OpenShift Agent Install Helper documentation. This project provides utilities and automation to simplify OpenShift Agent-based installations across various environments.
+## 🎯 Start Here
 
-## Overview
+**New to this repository?**
+- 📘 [Developer Guide](developer-guide.md) - KVM development environment setup and fork workflow
+- 📖 [Installation Guide](installation-guide.md) - Step-by-step deployment walkthrough
 
-The OpenShift Agent Install Helper provides automation and configuration management to simplify the usage of the [OpenShift Agent-based Installer](https://docs.openshift.com/container-platform/latest/installing/installing_with_agent_based_installer/preparing-to-install-with-agent-based-installer.html). It supports:
-
-- Bare metal installations
-- VMware vSphere deployments
-- Platform-agnostic (none) deployments
-- Single-Node OpenShift (SNO)
-- Three-node compact clusters
-- Standard HA configurations
-
-### Key Components
-
-- Ansible playbooks for manifest generation (`playbooks/`)
-- ISO creation utilities (`get-rhcos-iso.sh`)
-- Network configuration templates (`examples/`)
-- BMC management tools (`scripts/`)
-- Validation scripts (`e2e-tests/`)
-- Example configurations (`examples/`)
-
-### Prerequisites
-
-- RHEL/CentOS system for installation host
-- OpenShift CLI Tools (`./download-openshift-cli.sh`)
-- NMState CLI (`dnf install nmstate`)
-- Ansible Core (`dnf install ansible-core`)
-- Red Hat OpenShift Pull Secret
-- Additional pull secrets for disconnected registries (if needed)
-
-## Supported Architectures
-
-| CPU Architecture | Connected Installation | Disconnected Installation |
-|-----------------|:---------------------:|:------------------------:|
-| x86_64          | ✓ | ✓ |
-| ARM64           | ✓ | ✓ |
-| ppc64le         | ✓ | ✓ |
-| s390x           | ✓ | ✓ |
-
-## Key Features
-
-- Flexible server boot options
-- Offline installation support
-- Air-gapped environment support
-- Multiple platform support (baremetal, vsphere, none)
-- FIPS compliance capabilities
-- Static and DHCP networking support
-- Advanced networking configurations (bonds, VLANs, SR-IOV)
-
-## Documentation Structure
-
-### Getting Started
-- [Installation Guide](installation-guide)
-- [Configuration Guide](configuration-guide)
-- [Contributing Guide](contributing)
-- [Architecture Decisions](adr/)
-
-### Installation and Configuration
-- [Installation Guide](installation-guide)
-- [Configuration Guide](configuration-guide)
-- [Disconnected Installation](disconnected-installation)
-- [Identity Management](identity-management)
-
-### Networking and Infrastructure
-- [Network Configuration Guide](network-configuration)
-- [Advanced Networking](advanced-networking)
-- [BMC Management](bmc-management)
-- [Infrastructure Setup](infrastructure-setup)
-
-### Testing and Validation
-- [Testing Guide](testing-guide)
-- [End-to-End Testing](e2e-testing)
-- [Environment Validation](environment-validation)
-- [Troubleshooting Guide](troubleshooting)
-
-### Reference Architecture
-- [Deployment Patterns](deployment-patterns)
-- [Reference Configurations](reference-configurations)
-- [Platform Guides](platform-guides)
-
-### Architecture and Design
-- [Architectural Decisions](adr/)
-  - [Agent-based Installation Approach](adr/0001-agent-based-installation-approach)
-  - [Advanced Networking](adr/0002-advanced-networking-configurations)
-  - [Ansible Automation](adr/0003-ansible-automation-approach)
-  - [Disconnected Support](adr/0004-disconnected-installation-support)
-  - [Asset Management](adr/0005-iso-creation-and-asset-management)
-  - [Testing Framework](adr/0006-testing-and-execution-environment)
-  - [Infrastructure Testing](adr/0007-virtual-infrastructure-testing)
-  - [BMC Management](adr/0008-bmc-management-and-automation)
-  - [Testing Infrastructure](adr/0009-testing-infrastructure-and-iso-management)
-  - [Manifest Generation](adr/0010-manifest-generation-and-templating)
-  - [Identity Integration](adr/0011-identity-management-integration)
-  - [Deployment Patterns](adr/0012-deployment-patterns-and-configurations)
-  - [E2E Testing Framework](adr/0013-end-to-end-testing-framework)
-
-## Deployment Types
-
-### Single-node OpenShift (SNO)
-- One node acting as both master and worker
-- Minimum Requirements:
-  - 8 vCPUs
-  - 16 GB RAM
-  - 120 GB Storage
-- [SNO Configuration Guide](deployment-patterns#single-node-openshift)
-- [SNO Examples]({{ site.examples_repo }}/sno-bond0-signal-vlan)
-
-### Three-node Compact Cluster
-- Three master nodes that are also worker nodes
-- Minimum Requirements per Node:
-  - 8 vCPUs
-  - 16 GB RAM
-  - 120 GB Storage
-- [Compact Cluster Guide](deployment-patterns#compact-cluster)
-- [Example Configurations]({{ site.examples_repo }}/bond0-single-bond0-vlan)
-
-### Standard HA Cluster
-- Three master nodes
-- Two or more worker nodes
-- Minimum Requirements per Node:
-  - 8 vCPUs
-  - 16 GB RAM
-  - 120 GB Storage
-- [HA Cluster Guide](deployment-patterns#ha-cluster)
-- [Example Configurations]({{ site.examples_repo }}/baremetal-example)
-
-## Platform Support
-
-### Bare Metal
-- [Bare Metal Guide](platform-guides#bare-metal)
-- [Example Configurations]({{ site.examples_repo }}/baremetal-example)
-- [BMC Management Guide](bmc-management)
-
-### VMware
-- [VMware Guide](platform-guides#vmware)
-- [Example Configurations]({{ site.examples_repo }}/vmware-example)
-- [Disconnected VMware Guide]({{ site.examples_repo }}/vmware-disconnected-example)
-
-### Network Configuration
-- [Basic Networking](network-configuration#basic)
-- [Advanced Networking](network-configuration#advanced)
-  - Bond Configuration
-  - VLAN Setup
-  - SR-IOV Support
-- [Example Configurations]({{ site.examples_repo }}/bond0-single-bond0-vlan)
-
-## Testing and Validation
-- [Testing Framework Overview](testing-guide)
-- [End-to-End Testing](e2e-testing)
-- [Environment Validation](environment-validation)
-- [Troubleshooting Guide](troubleshooting)
-
-## Example Configurations
-Browse our example configurations for common deployment scenarios in the `examples/` directory:
-- Bare Metal Examples
-- VMware Examples
-- SNO Examples
-- Network Bonding Examples
-- Stretched Cluster Examples
-
-## Utility Scripts
-- `get-rhcos-iso.sh`: Download RHCOS ISO images
-- `download-openshift-cli.sh`: Download OpenShift CLI tools
-- Additional scripts in `scripts/` and `hack/` directories
-
-## Testing
-- End-to-end tests in `e2e-tests/`
-- Execution environment setup in `execution-environment/`
-- Example configurations in `examples/`
-
-## Disconnected Installation
-For disconnected installation guidance, refer to `disconnected-info.md` in the repository root.
-
-For more detailed information, visit the [official OpenShift documentation](https://docs.redhat.com/).
-
-## Authors
-
-This project is maintained by:
-
-- Ken Moini: [https://github.com/kenmoini](https://github.com/kenmoini)
-- Tosin Akinosho: [https://github.com/tosin2013](https://github.com/tosin2013)
+**Development Workflow**: KVM Development → Fork Repository → Bare Metal Production
 
 ---
-*Note: This documentation is regularly updated to reflect the latest features and improvements in OpenShift Agent Install.*
+
+## Documentation Organization (Diataxis Framework)
+
+This documentation follows the [Diataxis framework](https://diataxis.fr/) for technical documentation:
+
+### 📚 Tutorials (Learning-Oriented)
+
+**Goal**: Learn by doing - complete a specific task from start to finish
+
+- [Installation Guide](installation-guide.md) - Deploy your first cluster on KVM
+- [Disconnected Installation](disconnected-installation.md) - Air-gapped deployment tutorial
+- [E2E Testing Guide](e2e-testing.md) - Automated testing walkthrough
+
+**When to use**: You're new to OpenShift Agent-Based Installer and want hands-on experience
+
+### 📖 How-To Guides (Problem-Oriented)
+
+**Goal**: Solve a specific problem - achieve a particular outcome
+
+- [Developer Guide](developer-guide.md) - Set up KVM development environment
+- [DNS Setup](dns-setup.md) - Configure DNS for clusters
+- [HAProxy Forwarder Guide](haproxy-forwarder-guide.md) - External access configuration
+- [BMC Management](bmc-management.md) - IPMI/Redfish configuration
+- [Network Configuration](network-configuration.md) - VLANs, bonds, static IPs
+- [Identity Management](identity-management.md) - LDAP/AD integration
+
+**When to use**: You have a specific task and need to know how to accomplish it
+
+### 📋 Reference (Information-Oriented)
+
+**Goal**: Find factual information - look up configuration options
+
+- [Configuration Guide](configuration-guide.md) - All cluster.yml and nodes.yml parameters
+- [Platform Guides](platform-guides.md) - Platform-specific settings
+- [Reference Configurations](reference-configurations.md) - Example configurations catalog
+- [Version Compatibility Matrix](version-compatibility-matrix.md) - OpenShift version support
+- [Deployment Standards (4.19)](deployment-standards-4.19.md) - Version-specific requirements
+- [Deployment Standards (4.20)](deployment-standards-4.20.md) - Version-specific requirements
+- [Deployment Standards (4.21)](deployment-standards-4.21.md) - Version-specific requirements
+
+**When to use**: You need to look up a specific configuration parameter or requirement
+
+### 💡 Explanation (Understanding-Oriented)
+
+**Goal**: Understand concepts - gain deeper knowledge
+
+- [Deployment Patterns](deployment-patterns.md) - SNO vs 3-Node vs HA architectures
+- [Advanced Networking](advanced-networking.md) - Network architecture deep dive
+- [Infrastructure Setup](infrastructure-setup.md) - Foundation concepts
+- [Testing Guide](testing-guide.md) - Testing philosophy and strategies
+- [Environment Validation](environment-validation.md) - Why validation matters
+
+**When to use**: You want to understand why things work the way they do
+
+---
+
+## Quick Navigation by Role
+
+### 👨‍💻 For Developers
+
+**Setting up local development**:
+1. [Developer Guide](developer-guide.md) - KVM environment setup
+2. [Installation Guide](installation-guide.md) - Deploy first cluster
+3. [E2E Testing](e2e-testing.md) - Automated testing
+
+**Prerequisites**:
+- VyOS router (mandatory for KVM)
+- Cockpit web interface
+- Libvirt/KVM infrastructure
+
+### 🏢 For Organizations
+
+**Adapting for production**:
+1. [Developer Guide - Forking Workflow](developer-guide.md#adapting-for-your-organization)
+2. [Deployment Patterns](deployment-patterns.md) - Choose architecture
+3. [HAProxy Forwarder Guide](haproxy-forwarder-guide.md) - External access
+
+**From KVM to Bare Metal**:
+- Test configurations on KVM
+- Fork repository for customization
+- Adapt for bare metal infrastructure
+- Apply security hardening
+
+### 🔧 For Operations
+
+**Day 2 operations**:
+1. [BMC Management](bmc-management.md) - Hardware control
+2. [Network Configuration](network-configuration.md) - Network troubleshooting
+3. [Troubleshooting](troubleshooting.md) - Common issues
+
+### 🚀 For CI/CD
+
+**Automated deployments**:
+1. [E2E Testing Guide](e2e-testing.md) - Automated validation
+2. [Testing Guide](testing-guide.md) - Test strategies
+3. [Version Validation](version-validation-quick-start.md) - Multi-version testing
+
+---
+
+## Key Concepts
+
+### Development vs Production
+
+| Aspect | KVM Development | Bare Metal Production |
+|--------|-----------------|----------------------|
+| **Networking** | VyOS VLAN networks | Physical switch VLANs |
+| **MAC Addresses** | Generated | Real hardware MACs |
+| **IPMI/BMC** | Redfish mock | Real IPMI/iDRAC/iLO |
+| **DNS** | dnsmasq or VyOS | Corporate DNS server |
+| **Storage** | qcow2 virtual disks | Physical disks |
+| **Purpose** | Testing, validation | Production workloads |
+
+See: [Developer Guide](developer-guide.md) for complete comparison
+
+### Hard Requirements for KVM Development
+
+1. **VyOS Router** - Provides VLAN networking (networks 1924-1928)
+   - Manual configuration required via Cockpit console
+   - See: [Developer Guide - VyOS Router Setup](developer-guide.md#hard-requirement-vyos-router)
+
+2. **Cockpit Web Interface** - VM management and console access
+   - Access at: `https://<host>:9090`
+   - Required for VyOS router configuration
+   - See: [Developer Guide - Cockpit](developer-guide.md#cockpit-web-interface)
+
+3. **Libvirt/KVM** - Virtualization infrastructure
+   - Standard KVM/libvirt installation
+   - See: [Developer Guide - Prerequisites](developer-guide.md#prerequisites)
+
+### HAProxy External Access
+
+Two deployment modes:
+
+**Development (example.com)**:
+- Local KVM testing
+- IP-based access
+- Simple configuration
+
+**Production (AWS/Corporate)**:
+- Elastic IP + Route53 DNS
+- SSL/TLS certificates
+- Corporate domain integration
+
+See: [HAProxy Forwarder Guide](haproxy-forwarder-guide.md)
+
+---
+
+## Version-Specific Documentation
+
+### OpenShift 4.19
+- [Deployment Standards 4.19](deployment-standards-4.19.md)
+- ImageContentSourcePolicy (deprecated)
+- OpenShiftSDN supported
+
+### OpenShift 4.20
+- [Deployment Standards 4.20](deployment-standards-4.20.md)
+- **ImageDigestMirrorSet** (new API for disconnected)
+- OpenShiftSDN deprecated (warning only)
+
+### OpenShift 4.21
+- [Deployment Standards 4.21](deployment-standards-4.21.md)
+- **OVNKubernetes mandatory** (OpenShiftSDN removed)
+- UpdateService for disconnected clusters
+
+See: [Version Compatibility Matrix](version-compatibility-matrix.md)
+
+---
+
+## Common Workflows
+
+### 1. First-Time Setup (Developer)
+
+Steps:
+1. Fork repository: [Developer Guide - Fork Workflow](developer-guide.md#fork-and-customize-workflow)
+2. Setup KVM: [Developer Guide - Prerequisites](developer-guide.md#prerequisites)
+3. Deploy VyOS: [Developer Guide - VyOS Setup](developer-guide.md#vyos-router-setup)
+4. Deploy cluster: [Installation Guide](installation-guide.md)
+
+### 2. Multi-Version Testing
+
+```bash
+# Generate manifests for versions 4.19, 4.20, 4.21
+./hack/generate-version-manifests.sh sno-disconnected "4.19 4.20 4.21"
+
+# Validate against version-specific standards
+./hack/validate-deployment-standards.sh \
+  ~/generated_assets/version-compare/sno-disconnected-4.20 4.20
+
+# Compare critical boundaries
+./hack/compare-version-manifests.sh 4.19 4.20 sno-disconnected
+```
+
+See: [Version Validation Quick Start](version-validation-quick-start.md)
+
+### 3. Production Deployment Preparation
+
+Steps:
+1. Test on KVM: [Installation Guide](installation-guide.md)
+2. Customize: [Developer Guide - Adapting](developer-guide.md#adapting-for-your-organization)
+3. Security: [Deployment Patterns - Security](deployment-patterns.md#security-considerations)
+4. Deploy: [Infrastructure Setup](infrastructure-setup.md)
+
+---
+
+## Additional Resources
+
+### External Documentation
+- [VyOS Router Configuration](https://github.com/tosin2013/demo-virt/blob/rhpds/demo.redhat.com/docs/step1.md)
+- [OpenShift Forwarder Repository](https://github.com/tosin2013/openshift-forwarder)
+- [Cockpit Project Documentation](https://cockpit-project.org/documentation.html)
+
+### Repository Files
+- [README.md](../README.md) - Repository overview
+- [CONTRIBUTING.md](../CONTRIBUTING.md) - Contribution guidelines
+- [CHANGELOG.md](../CHANGELOG.md) - Release history
+- [TODO.md](../TODO.md) - Current development tasks
+
+### LLM-Friendly References
+- [llm.txt](../llm.txt) - Comprehensive guide for AI assistants
+- [CLAUDE.md](../CLAUDE.md) - Claude Code instructions
+
+---
+
+## Contributing
+
+Found an issue? Want to contribute?
+
+See: [CONTRIBUTING.md](../CONTRIBUTING.md)
+
+---
+
+## Support
+
+- **Issues**: [GitHub Issues](https://github.com/tosin2013/openshift-agent-install/issues)
+- **Discussions**: [GitHub Discussions](https://github.com/tosin2013/openshift-agent-install/discussions)
+- **Troubleshooting**: [Troubleshooting Guide](troubleshooting.md)

@@ -1,0 +1,135 @@
+<nav class="site-nav">
+  <div class="nav-container">
+    <h3>Documentation Navigation</h3>
+
+    <div class="nav-section">
+      <h4>🚀 Getting Started</h4>
+      <ul>
+        <li><a href="{{ '/developer-guide' | relative_url }}">Developer Guide (KVM Setup)</a></li>
+        <li><a href="{{ '/installation-guide' | relative_url }}">Installation Guide</a></li>
+        <li><a href="{{ '/haproxy-forwarder-guide' | relative_url }}">HAProxy Forwarder Guide</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <h4>📚 Tutorials</h4>
+      <ul>
+        <li><a href="{{ '/installation-guide' | relative_url }}">First Cluster Deployment</a></li>
+        <li><a href="{{ '/disconnected-installation' | relative_url }}">Disconnected Installation</a></li>
+        <li><a href="{{ '/e2e-testing' | relative_url }}">E2E Testing</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <h4>📖 How-To Guides</h4>
+      <ul>
+        <li><a href="{{ '/developer-guide' | relative_url }}">KVM Development Setup</a></li>
+        <li><a href="{{ '/dns-setup' | relative_url }}">DNS Configuration</a></li>
+        <li><a href="{{ '/haproxy-forwarder-guide' | relative_url }}">External Access (HAProxy)</a></li>
+        <li><a href="{{ '/bmc-management' | relative_url }}">BMC/IPMI Management</a></li>
+        <li><a href="{{ '/network-configuration' | relative_url }}">Network Configuration</a></li>
+        <li><a href="{{ '/identity-management' | relative_url }}">Identity Management</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <h4>📋 Reference</h4>
+      <ul>
+        <li><a href="{{ '/configuration-guide' | relative_url }}">Configuration Reference</a></li>
+        <li><a href="{{ '/platform-guides' | relative_url }}">Platform Guides</a></li>
+        <li><a href="{{ '/reference-configurations' | relative_url }}">Example Configurations</a></li>
+        <li><a href="{{ '/version-compatibility-matrix' | relative_url }}">Version Compatibility</a></li>
+        <li><a href="{{ '/deployment-standards-4.21' | relative_url }}">Deployment Standards (4.21)</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <h4>💡 Understanding</h4>
+      <ul>
+        <li><a href="{{ '/deployment-patterns' | relative_url }}">Deployment Patterns</a></li>
+        <li><a href="{{ '/advanced-networking' | relative_url }}">Advanced Networking</a></li>
+        <li><a href="{{ '/infrastructure-setup' | relative_url }}">Infrastructure Concepts</a></li>
+        <li><a href="{{ '/testing-guide' | relative_url }}">Testing Philosophy</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <h4>🔧 Operations</h4>
+      <ul>
+        <li><a href="{{ '/troubleshooting' | relative_url }}">Troubleshooting</a></li>
+        <li><a href="{{ '/environment-validation' | relative_url }}">Environment Validation</a></li>
+      </ul>
+    </div>
+
+    <div class="nav-section">
+      <h4>📚 Repository</h4>
+      <ul>
+        <li><a href="https://github.com/{{ site.repo_name }}">GitHub Repository</a></li>
+        <li><a href="https://github.com/{{ site.repo_name }}/blob/{{ site.branch }}/README.md">README</a></li>
+        <li><a href="https://github.com/{{ site.repo_name }}/blob/{{ site.branch }}/CONTRIBUTING.md">Contributing</a></li>
+        <li><a href="https://github.com/{{ site.repo_name }}/blob/{{ site.branch }}/CHANGELOG.md">Changelog</a></li>
+      </ul>
+    </div>
+  </div>
+</nav>
+
+<style>
+.site-nav {
+  background-color: #f6f8fa;
+  padding: 20px;
+  margin: 20px 0;
+  border-radius: 6px;
+  border: 1px solid #d0d7de;
+}
+
+.nav-container h3 {
+  margin-top: 0;
+  color: #24292f;
+  border-bottom: 2px solid #0969da;
+  padding-bottom: 10px;
+}
+
+.nav-section {
+  margin-bottom: 20px;
+}
+
+.nav-section h4 {
+  color: #0969da;
+  margin-bottom: 8px;
+  font-size: 16px;
+}
+
+.nav-section ul {
+  list-style: none;
+  padding-left: 0;
+  margin: 0;
+}
+
+.nav-section li {
+  margin-bottom: 6px;
+}
+
+.nav-section a {
+  color: #0969da;
+  text-decoration: none;
+  padding: 4px 8px;
+  display: inline-block;
+  border-radius: 3px;
+  transition: background-color 0.2s;
+}
+
+.nav-section a:hover {
+  background-color: #ddf4ff;
+  text-decoration: none;
+}
+
+@media (max-width: 768px) {
+  .site-nav {
+    padding: 15px;
+  }
+
+  .nav-section h4 {
+    font-size: 14px;
+  }
+}
+</style>

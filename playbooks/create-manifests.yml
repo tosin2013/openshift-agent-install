@@ -57,7 +57,7 @@
         mode: '0644'
 
     - name: Template the ZTP manifests
-      when: create_ztp_manifests
+      when: create_ztp_manifests | default(false)
       ansible.builtin.template:
         src: "{{ manifest_item }}.yml.j2"
         dest: "{{ generated_asset_path }}/{{ cluster_name }}/{{ manifest_item }}.yaml"
