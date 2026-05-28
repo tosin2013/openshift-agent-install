@@ -37,11 +37,26 @@ This validates:
 
 **1. VyOS Router (MANDATORY for KVM development)**
 
-```bash
-# Deploy VyOS router with VLAN networks
-ACTION=create ./hack/vyos-router.sh
+⚠️ **MANUAL CONFIGURATION REQUIRED** - VyOS deployment requires human interaction via Cockpit web console.
 
-# Verify networks are active
+```bash
+# Deploy VyOS router with VLAN networks (will pause for manual configuration)
+ACTION=create ./hack/vyos-router.sh
+```
+
+**What to expect:**
+- Script shows manual configuration instructions
+- Pauses with "Press ENTER to continue..."
+- Creates VyOS VM after you acknowledge
+- Waits up to 30 minutes for you to complete manual configuration via Cockpit
+
+**Manual steps required:**
+1. Access Cockpit: `https://<your-host>:9090` (credentials: `cat ~/cockpit-credentials.txt`)
+2. Open VyOS console: Virtual Machines → vyos-router → Console
+3. Follow step-by-step guide: [docs/vyos-manual-configuration.md](docs/vyos-manual-configuration.md)
+
+**Verify networks are active** (after manual configuration complete):
+```bash
 sudo virsh net-list
 ```
 

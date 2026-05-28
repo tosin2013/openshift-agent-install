@@ -2215,8 +2215,21 @@ sudo ./e2e-tests/bootstrap_env.sh
 
 **Description**: Deploys VyOS router VM for network infrastructure. Provides routing, DHCP, and network isolation for cluster deployments.
 
+⚠️ **MANUAL CONFIGURATION REQUIRED** - This script requires human interaction via Cockpit web console. The script will:
+1. Display manual configuration instructions
+2. Pause with "Press ENTER to continue..."
+3. Create VyOS VM and libvirt networks
+4. Wait up to 30 minutes (5-min checks) for manual VyOS configuration
+5. Continue automatically when VyOS becomes accessible at 192.168.122.2
+
+**Manual Steps**: See [docs/vyos-manual-configuration.md](docs/vyos-manual-configuration.md) for detailed step-by-step guide.
+
+**Why Manual?** VyOS boots from live ISO and requires interactive console access to install to disk and configure network interfaces. This cannot be automated via virt-install cloud-init or preseed.
+
 **Usage**:
 ```bash
+ACTION=create ./hack/vyos-router.sh  # Preferred (non-sourcing)
+# OR
 export ACTION="create"  # or "delete"
 source ./hack/vyos-router.sh
 ```
@@ -2230,15 +2243,23 @@ source ./hack/vyos-router.sh
 
 **Dependencies**:
 - kcli
-- VyOS ISO image
+- VyOS ISO image (auto-downloaded)
 - libvirt/KVM
+- Cockpit web console (for manual configuration)
+- dnsmasq or FreeIPA (for DNS forwarder detection)
 
 **Workflow Phase**: Phase 1 (Infrastructure Preparation)
 
 **Example**:
 ```bash
-# Create VyOS router
-export ACTION="create"
+# Create VyOS router (will pause for manual configuration)
+ACTION=create ./hack/vyos-router.sh
+# Follow on-screen instructions to configure via Cockpit
+
+# Access Cockpit (credentials in ~/cockpit-credentials.txt)
+# https://<host-ip>:9090 → Virtual Machines → vyos-router → Console
+
+# After manual configuration complete, script continues automatically
 source ./hack/vyos-router.sh
 
 # Delete VyOS router

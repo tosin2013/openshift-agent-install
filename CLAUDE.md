@@ -10,6 +10,35 @@ This repository provides automated deployment tooling for OpenShift clusters usi
 
 **Primary Use Case**: Automate OpenShift cluster deployments with declarative YAML configuration and streamlined DNS management.
 
+## ⚠️ CRITICAL: VyOS Router Deployment - MANUAL CONFIGURATION REQUIRED
+
+**The VyOS router deployment script (`hack/vyos-router.sh`) REQUIRES manual human intervention via Cockpit web console. This is NOT automated.**
+
+### When Helping Users Deploy VyOS:
+
+**BEFORE running vyos-router.sh:**
+1. ⚠️ **WARN** them about manual steps (not optional, not automated)
+2. ✅ **VERIFY** Cockpit access is working: `cat ~/cockpit-credentials.txt`
+3. 📖 **POINT** to manual configuration guide: `docs/vyos-manual-configuration.md`
+4. ⏱️ **EXPLAIN** the script will pause and wait for manual configuration (up to 30 min)
+
+### What Happens During Deployment:
+
+1. Script shows instructions and **pauses** with "Press ENTER to continue..."
+2. User acknowledges and presses ENTER
+3. Script creates VyOS VM and libvirt networks
+4. Script waits (5-min checks, 30-min timeout) for VyOS at 192.168.122.2
+5. **User must manually configure VyOS** via Cockpit console:
+   - Access: `https://<host-ip>:9090` → Virtual Machines → vyos-router → Console
+   - Steps: install image, configure network, enable SSH, apply config script
+6. Script detects VyOS accessible and continues
+
+**Documentation**: `docs/vyos-manual-configuration.md` (step-by-step guide with screenshots)
+
+**Why manual?** VyOS installation requires interactive console access that cannot be automated via virt-install. The VM boots from ISO and requires manual installation to disk before network configuration can be applied.
+
+---
+
 ## Key Resources
 
 ### Primary Reference Documents
@@ -34,6 +63,7 @@ This repository provides automated deployment tooling for OpenShift clusters usi
 - `README.md` - Overview and quick start
 - `DNS_AUTOMATION.md` - DNS automation implementation details
 - `docs/` - Detailed guides and ADRs
+- `docs/vyos-manual-configuration.md` - **VyOS router manual configuration guide**
 - `examples/` - Reference cluster configurations
 
 ## Repository Structure
