@@ -1,6 +1,7 @@
 ---
 layout: default
-title: HAProxy Forwarder Configuration Guide
+title: HAProxy Forwarder Guide
+nav_order: 3
 ---
 
 # HAProxy Forwarder Configuration Guide

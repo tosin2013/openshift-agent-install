@@ -1,11 +1,10 @@
 ---
 layout: default
-title: OpenShift Agent-Based Installer Documentation
+title: Home
+nav_order: 1
 ---
 
 # OpenShift Agent-Based Installer Documentation
-
-{% include navigation.html %}
 
 ## 🎯 Start Here
 
