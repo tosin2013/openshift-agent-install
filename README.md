@@ -12,6 +12,32 @@ This repo holds some utilities to easily leverage the OpenShift Agent-Based Inst
 - Red Hat OpenShift Pull Secret saved to a file: https://console.redhat.com/openshift/downloads#tool-pull-secret
 - Any other Pull Secret for a disconnected registry, joined with the Red Hat OpenShift Pull Secret.  [Handy script to join pull secret files](https://github.com/kenmoini/disconnected-openshift/blob/main/scripts/join-auths.sh).
 
+### Alternative: Pre-built Execution Environment
+
+For offline/portable execution or use with Ansible Automation Platform, use the pre-built containerized Ansible Execution Environment:
+
+```bash
+# Pull latest version
+podman pull quay.io/kenmoini/openshift-agent-install-ee:latest
+
+# Or pull a specific release version
+podman pull quay.io/kenmoini/openshift-agent-install-ee:v4.21.0
+
+# Run playbook in container
+podman run --rm -it \
+  -v $(pwd):/runner \
+  -v ~/pull-secret.json:/runner/pull-secret.json:ro \
+  quay.io/kenmoini/openshift-agent-install-ee:latest \
+  ansible-playbook -e @examples/sno-4.20-standard/cluster.yml \
+                   -e @examples/sno-4.20-standard/nodes.yml \
+                   playbooks/create-manifests.yml
+```
+
+**EE Image Versions:**
+- `latest` - Always points to the most recent release
+- `vX.Y.Z` - Pinned semantic version tags (e.g., v4.21.0, v4.22.0)
+- Automatically built on release tag pushes
+
 ## Supported OpenShift Versions
 
 This tooling supports OpenShift 4.15 and newer. The `download-openshift-cli.sh` script automatically downloads the latest stable version of the OpenShift CLI tools.

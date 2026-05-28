@@ -2766,13 +2766,32 @@ networkConfig:
 - community.crypto
 - community.general
 
+**Pre-built Images** (Quay.io):
+```bash
+# Pull latest version
+podman pull quay.io/kenmoini/openshift-agent-install-ee:latest
+
+# Pull specific release version
+podman pull quay.io/kenmoini/openshift-agent-install-ee:v4.21.0
+podman pull quay.io/kenmoini/openshift-agent-install-ee:v4.22.0
+```
+
+**Image Versioning Scheme**:
+- **Latest tag**: `quay.io/kenmoini/openshift-agent-install-ee:latest` (always points to most recent release)
+- **Semantic versioned tags**: `quay.io/kenmoini/openshift-agent-install-ee:vX.Y.Z` (pinned releases)
+- **Trigger**: Automatically built on git tag push (e.g., `git tag v4.21.0 && git push origin v4.21.0`)
+- **Workflow**: `.github/workflows/build-ee.yml` builds both versioned and latest tags
+
 **Building Locally**:
 ```bash
 # Install ansible-builder
 pip3 install ansible-builder
 
-# Build execution environment
+# Build execution environment with version tag
 cd execution-environment/
+ansible-builder build --tag openshift-agent-install-ee:v4.21.0
+
+# Or build as latest
 ansible-builder build --tag openshift-agent-install-ee:latest
 
 # Run playbook in container

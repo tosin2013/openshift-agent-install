@@ -6,6 +6,9 @@ on:
       - main
     paths:
       - 'execution-environment/**'
+    tags:
+      # Trigger on semantic version tags (v4.21.0, v4.22.1, etc.)
+      - 'v[0-9]+.[0-9]+.[0-9]+'
 
   # Schedule workflow run at 00:00 on Sunday
   schedule:
@@ -16,13 +19,35 @@ on:
 
 # A workflow run is made up of one or more jobs that can run sequentially or in parallel
 jobs:
+  # Determine version tag from git tag or use 'latest'
+  prepare-version:
+    runs-on: ubuntu-latest
+    outputs:
+      version_tag: ${{ steps.get-version.outputs.version }}
+    steps:
+      - name: Get version from git tag
+        id: get-version
+        run: |
+          if [[ "${{ github.ref }}" == refs/tags/v* ]]; then
+            # Extract version from tag (e.g., refs/tags/v4.21.0 -> v4.21.0)
+            VERSION="${GITHUB_REF#refs/tags/}"
+            echo "version=${VERSION}" >> $GITHUB_OUTPUT
+            echo "Building versioned EE image: ${VERSION}"
+          else
+            # Not a tag push, use 'latest'
+            echo "version=latest" >> $GITHUB_OUTPUT
+            echo "Building EE image with tag: latest"
+          fi
+
+  # Build and push with version tag
   call-deploy-workflow:
+    needs: prepare-version
     uses: kenmoini/ansible-ee-builder/.github/workflows/build-ee-base.yml@main
     with:
       REGISTRY_HOSTNAME: quay.io
       REGISTRY_PATH: kenmoini
       EE_IMAGE_NAME: 'openshift-agent-install-ee'
-      EE_IMAGE_TAG: 'latest'
+      EE_IMAGE_TAG: ${{ needs.prepare-version.outputs.version_tag }}
       EE_FOLDER_NAME: 'execution-environment'
       EE_FILE_NAME: execution-environment.yml
     secrets:
@@ -30,3 +55,33 @@ jobs:
       REGISTRY_PASSWORD: ${{ secrets.REGISTRY_TOKEN }}
       # REDHAT_USERNAME: ${{ secrets.REDHAT_USERNAME }}
       # REDHAT_PASSWORD: ${{ secrets.REDHAT_PASSWORD }}
+
+  # Push 'latest' alias for tagged releases
+  push-latest-alias:
+    needs: [prepare-version, call-deploy-workflow]
+    runs-on: ubuntu-latest
+    # Only run if this was a version tag push
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Log in to Quay.io
+        uses: docker/login-action@v3
+        with:
+          registry: quay.io
+          username: ${{ secrets.REGISTRY_USERNAME }}
+          password: ${{ secrets.REGISTRY_TOKEN }}
+
+      - name: Tag and push 'latest' alias
+        run: |
+          VERSION="${{ needs.prepare-version.outputs.version_tag }}"
+          IMAGE_BASE="quay.io/kenmoini/openshift-agent-install-ee"
+
+          echo "Pulling versioned image: ${IMAGE_BASE}:${VERSION}"
+          docker pull "${IMAGE_BASE}:${VERSION}"
+
+          echo "Tagging as latest: ${IMAGE_BASE}:latest"
+          docker tag "${IMAGE_BASE}:${VERSION}" "${IMAGE_BASE}:latest"
+
+          echo "Pushing latest tag"
+          docker push "${IMAGE_BASE}:latest"
+
+          echo "✅ Successfully tagged ${VERSION} as latest"
