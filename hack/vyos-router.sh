@@ -82,7 +82,8 @@ function create(){
     create_livirt_networks
     # Vyos nightly builds
     # https://github.com/vyos/vyos-rolling-nightly-builds/releases
-    VYOS_VERSION=2026.03.16-0030-rolling
+    # Auto-updated by .github/workflows/update-vyos-version.yml
+    VYOS_VERSION=2026.05.28-0044-rolling
     ISO_LOC=https://github.com/vyos/vyos-nightly-build/releases/download/${VYOS_VERSION}/vyos-${VYOS_VERSION}-generic-amd64.iso
     if [ ! -f $HOME/vyos-${VYOS_VERSION}-generic-amd64.iso ];
     then

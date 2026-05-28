@@ -1,0 +1,94 @@
+name: Update VyOS Version
+
+on:
+  schedule:
+    # Run every Monday at 6 AM UTC
+    - cron: '0 6 * * 1'
+  workflow_dispatch:  # Allow manual trigger
+
+permissions:
+  contents: write
+  pull-requests: write
+
+jobs:
+  update-vyos-version:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Get latest VyOS rolling release
+        id: vyos-version
+        run: |
+          # Get latest release info from GitHub API
+          LATEST_RELEASE=$(curl -sL https://api.github.com/repos/vyos/vyos-rolling-nightly-builds/releases/latest)
+
+          # Extract version tag
+          VYOS_VERSION=$(echo "$LATEST_RELEASE" | jq -r '.tag_name')
+          echo "latest_version=$VYOS_VERSION" >> $GITHUB_OUTPUT
+
+          # Get current version from script
+          CURRENT_VERSION=$(grep "VYOS_VERSION=" hack/vyos-router.sh | grep -v "^#" | head -1 | cut -d'=' -f2)
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+
+          # Compare versions
+          if [ "$VYOS_VERSION" != "$CURRENT_VERSION" ]; then
+            echo "needs_update=true" >> $GITHUB_OUTPUT
+            echo "📦 New VyOS version available: $VYOS_VERSION (current: $CURRENT_VERSION)"
+          else
+            echo "needs_update=false" >> $GITHUB_OUTPUT
+            echo "✅ VyOS version is up to date: $CURRENT_VERSION"
+          fi
+
+      - name: Update VyOS version in script
+        if: steps.vyos-version.outputs.needs_update == 'true'
+        run: |
+          VYOS_VERSION="${{ steps.vyos-version.outputs.latest_version }}"
+
+          # Update the VYOS_VERSION line in hack/vyos-router.sh
+          sed -i "s|VYOS_VERSION=.*|VYOS_VERSION=$VYOS_VERSION|g" hack/vyos-router.sh
+
+          echo "Updated VyOS version to: $VYOS_VERSION"
+
+      - name: Create Pull Request
+        if: steps.vyos-version.outputs.needs_update == 'true'
+        uses: peter-evans/create-pull-request@v6
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}
+          commit-message: "chore: Update VyOS to ${{ steps.vyos-version.outputs.latest_version }}"
+          title: "chore: Update VyOS rolling release to ${{ steps.vyos-version.outputs.latest_version }}"
+          body: |
+            ## Automated VyOS Version Update
+
+            This PR updates the VyOS router ISO to the latest rolling release.
+
+            **Previous Version**: `${{ steps.vyos-version.outputs.current_version }}`
+            **New Version**: `${{ steps.vyos-version.outputs.latest_version }}`
+
+            ### Changes
+            - Updated `hack/vyos-router.sh` with latest VyOS version
+            - ISO URL: https://github.com/vyos/vyos-nightly-build/releases/download/${{ steps.vyos-version.outputs.latest_version }}/vyos-${{ steps.vyos-version.outputs.latest_version }}-generic-amd64.iso
+
+            ### Release Notes
+            See: https://github.com/vyos/vyos-rolling-nightly-builds/releases/tag/${{ steps.vyos-version.outputs.latest_version }}
+
+            ---
+
+            🤖 This PR was automatically created by the `update-vyos-version` workflow.
+
+            **Action Required**:
+            - Review the changes
+            - Merge if everything looks good
+            - Test deployment with new ISO after merge
+          branch: automated/update-vyos-${{ steps.vyos-version.outputs.latest_version }}
+          delete-branch: true
+          labels: |
+            automated
+            dependencies
+            vyos
+
+      - name: Report no update needed
+        if: steps.vyos-version.outputs.needs_update == 'false'
+        run: |
+          echo "✅ VyOS version is already up to date"
+          echo "Current version: ${{ steps.vyos-version.outputs.current_version }}"
