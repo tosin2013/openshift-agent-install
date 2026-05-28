@@ -1,32 +1,54 @@
-#!/bin/bash 
+#!/bin/bash
 
 # Source VyOS router functions
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-#ls -lath .
 
-if [ -f ${SCRIPT_DIR}/../hack/freeipa_vars.sh ]; then
-  source ${SCRIPT_DIR}/../hack/freeipa_vars.sh
-else 
-  exit 1
-fi
+# --- DNS Configuration Detection ---
+# Prefer dnsmasq (modern, per ADR-019), fallback to FreeIPA (legacy)
 
-echo "ZONE_NAME: ${ZONE_NAME}"
-echo "DOMAIN: ${DOMAIN}"
+USE_DNS="dnsmasq"  # Default to modern DNS approach
 
-if [ ! -z ${ZONE_NAME} ];
-then
-  DOMAIN=${GUID}.${ZONE_NAME}
-  ${USE_SUDO} yq e -i '.domain = "'${DOMAIN}'"' /opt/qubinode_navigator/inventories/${TARGET_SERVER}/group_vars/all.yml
-  ${USE_SUDO} yq e -i '.base_domain = "'${DOMAIN}'"' ${CLUSTER_FILE_PATH}
-  DNS_FORWARDER=$(yq eval '.dns_forwarder' "${ANSIBLE_ALL_VARIABLES}")
-  ${USE_SUDO} yq e -i '.dns_servers[0] = "'${DNS_FORWARDER}'"' ${CLUSTER_FILE_PATH}
-  ${USE_SUDO} yq e -i '.dns_search_domains[0] = "'${DOMAIN}'"' ${CLUSTER_FILE_PATH}
-  ${USE_SUDO} yq e -i 'del(.dns_search_domains[1])' ${CLUSTER_FILE_PATH}
+# Check if dnsmasq is available and running
+if systemctl is-active --quiet dnsmasq; then
+    echo "✓ Using dnsmasq for DNS (modern setup per ADR-019)"
+    USE_DNS="dnsmasq"
+    # Get DNS forwarder from system DNS or use common defaults
+    DNS_FORWARDER=$(grep -m1 "^nameserver" /etc/resolv.conf | awk '{print $2}' || echo "8.8.8.8")
+    echo "  DNS Forwarder: ${DNS_FORWARDER}"
 else
-  echo "ZONE_NAME is not set"
-  echo $DOMAIN
-  echo $TARGET_SERVER
+    echo "⚠ dnsmasq not running, checking for FreeIPA configuration..."
+    # Try to source FreeIPA variables (optional, for legacy setups)
+    if [ -f ${SCRIPT_DIR}/../hack/freeipa_vars.sh ]; then
+        source ${SCRIPT_DIR}/../hack/freeipa_vars.sh
+        USE_DNS="freeipa"
+        echo "✓ Using FreeIPA for DNS (legacy setup)"
+        echo "  ZONE_NAME: ${ZONE_NAME}"
+        echo "  DOMAIN: ${DOMAIN}"
+    else
+        echo "❌ ERROR: No DNS server found!"
+        echo ""
+        echo "VyOS router requires DNS for network configuration."
+        echo "Please ensure dnsmasq is running:"
+        echo "  sudo ./hack/setup-dnsmasq.sh"
+        echo "  sudo systemctl status dnsmasq"
+        echo ""
+        echo "Or install FreeIPA (legacy, not recommended)"
+        exit 1
+    fi
 fi
+
+# Configure domain settings if using FreeIPA
+if [ "$USE_DNS" = "freeipa" ] && [ ! -z ${ZONE_NAME} ]; then
+  DOMAIN=${GUID}.${ZONE_NAME}
+  ${USE_SUDO} yq e -i '.domain = "'${DOMAIN}'"' /opt/qubinode_navigator/inventories/${TARGET_SERVER}/group_vars/all.yml 2>/dev/null || true
+  ${USE_SUDO} yq e -i '.base_domain = "'${DOMAIN}'"' ${CLUSTER_FILE_PATH} 2>/dev/null || true
+  DNS_FORWARDER=$(yq eval '.dns_forwarder' "${ANSIBLE_ALL_VARIABLES}" 2>/dev/null || echo "8.8.8.8")
+  ${USE_SUDO} yq e -i '.dns_servers[0] = "'${DNS_FORWARDER}'"' ${CLUSTER_FILE_PATH} 2>/dev/null || true
+  ${USE_SUDO} yq e -i '.dns_search_domains[0] = "'${DOMAIN}'"' ${CLUSTER_FILE_PATH} 2>/dev/null || true
+  ${USE_SUDO} yq e -i 'del(.dns_search_domains[1])' ${CLUSTER_FILE_PATH} 2>/dev/null || true
+fi
+
+echo "✓ DNS configuration ready (${USE_DNS})"
 
 function create_livirt_networks(){
     array=( "1924" "1925" "1926" "1927"  "1928" )
