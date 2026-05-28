@@ -2769,16 +2769,16 @@ networkConfig:
 **Pre-built Images** (Quay.io):
 ```bash
 # Pull latest version
-podman pull quay.io/kenmoini/openshift-agent-install-ee:latest
+podman pull quay.io/takinosh/openshift-agent-install-ee:latest
 
 # Pull specific release version
-podman pull quay.io/kenmoini/openshift-agent-install-ee:v4.21.0
-podman pull quay.io/kenmoini/openshift-agent-install-ee:v4.22.0
+podman pull quay.io/takinosh/openshift-agent-install-ee:v4.21.0
+podman pull quay.io/takinosh/openshift-agent-install-ee:v4.22.0
 ```
 
 **Image Versioning Scheme**:
-- **Latest tag**: `quay.io/kenmoini/openshift-agent-install-ee:latest` (always points to most recent release)
-- **Semantic versioned tags**: `quay.io/kenmoini/openshift-agent-install-ee:vX.Y.Z` (pinned releases)
+- **Latest tag**: `quay.io/takinosh/openshift-agent-install-ee:latest` (always points to most recent release)
+- **Semantic versioned tags**: `quay.io/takinosh/openshift-agent-install-ee:vX.Y.Z` (pinned releases)
 - **Trigger**: Automatically built on git tag push (e.g., `git tag v4.21.0 && git push origin v4.21.0`)
 - **Workflow**: `.github/workflows/build-ee.yml` builds both versioned and latest tags
 

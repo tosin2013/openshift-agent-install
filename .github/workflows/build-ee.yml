@@ -45,7 +45,7 @@ jobs:
     uses: kenmoini/ansible-ee-builder/.github/workflows/build-ee-base.yml@main
     with:
       REGISTRY_HOSTNAME: quay.io
-      REGISTRY_PATH: kenmoini
+      REGISTRY_PATH: takinosh
       EE_IMAGE_NAME: 'openshift-agent-install-ee'
       EE_IMAGE_TAG: ${{ needs.prepare-version.outputs.version_tag }}
       EE_FOLDER_NAME: 'execution-environment'
@@ -73,7 +73,7 @@ jobs:
       - name: Tag and push 'latest' alias
         run: |
           VERSION="${{ needs.prepare-version.outputs.version_tag }}"
-          IMAGE_BASE="quay.io/kenmoini/openshift-agent-install-ee"
+          IMAGE_BASE="quay.io/takinosh/openshift-agent-install-ee"
 
           echo "Pulling versioned image: ${IMAGE_BASE}:${VERSION}"
           docker pull "${IMAGE_BASE}:${VERSION}"

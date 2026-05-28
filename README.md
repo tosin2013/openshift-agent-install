@@ -18,16 +18,16 @@ For offline/portable execution or use with Ansible Automation Platform, use the 
 
 ```bash
 # Pull latest version
-podman pull quay.io/kenmoini/openshift-agent-install-ee:latest
+podman pull quay.io/takinosh/openshift-agent-install-ee:latest
 
 # Or pull a specific release version
-podman pull quay.io/kenmoini/openshift-agent-install-ee:v4.21.0
+podman pull quay.io/takinosh/openshift-agent-install-ee:v4.21.0
 
 # Run playbook in container
 podman run --rm -it \
   -v $(pwd):/runner \
   -v ~/pull-secret.json:/runner/pull-secret.json:ro \
-  quay.io/kenmoini/openshift-agent-install-ee:latest \
+  quay.io/takinosh/openshift-agent-install-ee:latest \
   ansible-playbook -e @examples/sno-4.20-standard/cluster.yml \
                    -e @examples/sno-4.20-standard/nodes.yml \
                    playbooks/create-manifests.yml
