@@ -9013,3 +9013,200 @@ We chose **LLM-Powered Intelligent Validation** using Granite-3-2-8b-instruct be
 - **v4.22.0 - AI/ML Readiness & Forward Compatibility** [v4-22-0-ai-ml-readiness-forward-compatibility]
 
 <!-- /ADR-GENERATED-TASKS -->
+
+<!-- MANUAL VALIDATION TASKS -->
+
+## 🧪 Pre-Release Validation for v4.21.0 (Issue #31)
+
+**Goal:** Validate deployment workflows across OpenShift versions and platforms before release.
+
+### Phase 1: Manifest Generation & Validation
+
+#### OpenShift 4.19 Validation
+- [ ] Generate manifests: `sno-4.20-standard` with `ocp_version=4.19`
+- [ ] Verify ImageDigestSources in install-config.yaml (transitional API)
+- [ ] Validate deployment standards: `./hack/validate-deployment-standards.sh ~/generated_assets/sno-4-20 4.19`
+
+#### OpenShift 4.20 Validation
+- [ ] Generate manifests: `sno-4.20-standard` (default version)
+- [ ] Verify NO image sources in install-config.yaml
+- [ ] Verify standalone `image-mirror-config.yaml` exists for disconnected
+- [ ] Test: `ha-4.21-disconnected` with `ocp_version=4.20`
+- [ ] Test: `vmware-disconnected-example` with `ocp_version=4.20`
+- [ ] Validate deployment standards for each
+
+#### OpenShift 4.21 Validation
+- [ ] Generate manifests: `sno-4.20-standard` with `ocp_version=4.21`
+- [ ] Verify OVNKubernetes enforcement (should block OpenShiftSDN)
+- [ ] Test NetworkType rejection: Create test with `network_type: OpenShiftSDN` (should fail)
+- [ ] Test: `nutanix-sno` (NEW platform in v4.21.0)
+- [ ] Test: `ha-4.21-disconnected` (default version)
+- [ ] Validate all deployment standards pass
+
+### Phase 2: Platform Coverage Validation
+
+#### Platform: none (SNO common pattern)
+- [ ] Test: `sno-4.20-standard` across all versions
+- [ ] Verify VIP = node IP pattern works
+- [ ] Validate no VIP management features attempted
+
+#### Platform: baremetal (HA with VIPs)
+- [ ] Test: `ha-4.21-disconnected`
+- [ ] Verify separate api_vips and app_vips configured
+- [ ] Check VIP management in generated manifests
+
+#### Platform: vsphere (VMware)
+- [ ] Test: `vmware-disconnected-example`
+- [ ] Verify vCenter configuration templates
+- [ ] Validate vsphere-specific parameters
+
+#### Platform: nutanix (NEW in v4.21.0)
+- [ ] Test: `nutanix-sno` (SNO topology)
+- [ ] Test: `nutanix-ha` (HA topology)
+- [ ] Verify Prism Central/Element configuration
+- [ ] Validate subnet UUIDs parameter
+
+### Phase 3: Disconnected Workflow Validation (Dry-Run)
+
+#### ImageDigestMirrorSet Migration (4.20 boundary)
+- [ ] Generate: `ha-4.21-disconnected` with `ocp_version=4.19`
+- [ ] Verify: imageDigestSources in install-config.yaml
+- [ ] Generate: `ha-4.21-disconnected` with `ocp_version=4.20`
+- [ ] Verify: standalone `image-mirror-config.yaml` created
+- [ ] Compare manifests: document differences
+
+#### UpdateService Integration (NEW in v4.21.0)
+- [ ] Generate: `ha-4.21-disconnected` (has UpdateService config)
+- [ ] Verify: `updateservice.yaml` created
+- [ ] Validate: graph-data image reference
+- [ ] Validate: release list configuration
+- [ ] Check: replica count (should be 2 for HA)
+
+#### Disconnected Example Coverage
+- [ ] Test: `sno-disconnected`
+- [ ] Test: `ha-4.21-disconnected`
+- [ ] Test: `vmware-disconnected-example`
+- [ ] Test: `jfrog-disconnected`
+- [ ] Verify all generate UpdateService manifests when enabled
+
+### Phase 4: Network Type Enforcement Testing
+
+#### OVNKubernetes (4.21+ mandatory)
+- [ ] Test: All examples with `ocp_version=4.21` default to OVNKubernetes
+- [ ] Verify: No OpenShiftSDN references in 4.21 manifests
+
+#### OpenShiftSDN Rejection (4.21+)
+- [ ] Create test config with `network_type: OpenShiftSDN` and `ocp_version: 4.21`
+- [ ] Run: `./hack/create-iso.sh <test-config>`
+- [ ] Expected: Script fails with clear error message
+- [ ] Verify: Error mentions "OpenShiftSDN removed in 4.21"
+
+### Phase 5: Validation Script Testing
+
+#### Deployment Standards Validation
+- [ ] Run on 4.19 manifests: `./hack/validate-deployment-standards.sh <path> 4.19`
+- [ ] Run on 4.20 manifests: `./hack/validate-deployment-standards.sh <path> 4.20`
+- [ ] Run on 4.21 manifests: `./hack/validate-deployment-standards.sh <path> 4.21`
+- [ ] Verify: No false positives
+- [ ] Verify: Catches actual violations (OpenShiftSDN in 4.21, etc.)
+
+### Phase 6: Optional Full Deployment Test
+
+#### Connected SNO Deployment (if resources available)
+- [ ] Deploy: `sno-4.20-standard` on KVM
+- [ ] Command: `./hack/create-iso.sh sno-4.20-standard`
+- [ ] Command: `./hack/deploy-on-kvm.sh examples/sno-4.20-standard/nodes.yml --redfish`
+- [ ] Monitor: `./bin/openshift-install agent wait-for install-complete`
+- [ ] Verify: Cluster reaches Ready state
+- [ ] Verify: All operators running
+
+### Validation Deliverables
+
+#### Documentation Updates
+- [ ] Create validation report in issue #31 comments
+- [ ] Document any version-specific caveats found
+- [ ] Update llm.txt if validation reveals gaps
+- [ ] Update example READMEs if issues found
+
+#### Issue Updates
+- [ ] Update #31 with validation progress
+- [ ] Update #24 (release tracking) with validation status
+- [ ] Close validation blockers before release
+
+#### Release Readiness Criteria
+- [ ] All "Must Pass" validations complete (see issue #31)
+- [ ] No critical issues found in manifest generation
+- [ ] OVNKubernetes enforcement working correctly
+- [ ] Nutanix platform examples validated
+- [ ] Disconnected workflow (dry-run) validated
+
+---
+
+**Estimated Total Effort:** 4-6 hours
+**Blocker For:** v4.21.0 release tag
+**Related Issue:** #31
+**Related Milestone:** v4.21.0 - Platform Stability & Enterprise Integration
+
+<!-- /MANUAL VALIDATION TASKS -->
+
+## 🚀 One-Shot HA Deployment with HAProxy Integration (NEW)
+
+**Script:** `hack/deploy-ha-full.sh`
+**Created:** 2026-05-28
+**Purpose:** Complete HA cluster deployment orchestration in a single command
+
+### Features
+- [x] Integrates all existing scripts (create-iso, deploy-on-kvm, configure-haproxy-forwarder)
+- [x] 7-phase deployment workflow with comprehensive reporting
+- [x] HAProxy forwarder integration for external access
+- [x] Flexible options (--skip-haproxy, --skip-dns, --skip-monitor)
+- [x] Resource validation and prerequisite checking
+- [x] Markdown report generation with troubleshooting info
+
+### Usage Examples
+
+#### Full HA Deployment with HAProxy
+```bash
+export EXTERNAL_IP="192.168.1.100"
+./hack/deploy-ha-full.sh examples/ha-4.21-disconnected
+```
+
+#### 3-Node Compact (No External Access)
+```bash
+./hack/deploy-ha-full.sh examples/baremetal-example --skip-haproxy
+```
+
+#### Deploy VMs Only (No Monitoring)
+```bash
+./hack/deploy-ha-full.sh examples/cnv-bond0-tagged --skip-monitor
+```
+
+### v4.21.0 Pre-Release Validation Use Case
+
+This script is ideal for comprehensive validation testing:
+
+```bash
+# Test HA deployment with all v4.21.0 features
+export EXTERNAL_IP=$(hostname -I | awk '{print $1}')
+./hack/deploy-ha-full.sh examples/ha-4.21-disconnected
+```
+
+**What This Validates:**
+- ✅ UpdateService integration (NEW in v4.21.0)
+- ✅ OVNKubernetes enforcement for 4.21+
+- ✅ ImageDigestMirrorSet manifests (4.20+ API)
+- ✅ HAProxy external access configuration
+- ✅ Full HA topology (3 masters + 2 workers)
+- ✅ Complete installation workflow
+
+### Related Tasks
+- See issue #31: Pre-Release Validation
+- Related to Phase 6 in validation checklist above
+
+### Output
+- **Report:** `~/ha-deployment-report-YYYYMMDD-HHMMSS.md`
+- **Logs:** `/tmp/*-log` (per-phase logs)
+- **KUBECONFIG:** `~/generated_assets/<cluster-name>/auth/kubeconfig`
+
+---
+
