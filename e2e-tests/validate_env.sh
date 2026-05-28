@@ -198,9 +198,9 @@ validate_infrastructure() {
 validate_registry_auth() {
     print_section "Validating Registry Authentication"
 
-    # Check pull secret in common locations
+    # Check pull secret in common locations (prioritize ~/pull-secret.json)
     PULL_SECRET_FOUND=false
-    for path in "/home/lab-user/pullsecret.json" "$HOME/pullsecret.json" "$HOME/ocp-install-pull-secret.json"; do
+    for path in "$HOME/pull-secret.json" "$HOME/ocp-install-pull-secret.json" "/home/lab-user/pullsecret.json" "$HOME/pullsecret.json"; do
         if [ -f "$path" ]; then
             print_status "Pull secret exists at $path" 0
             PULL_SECRET_FOUND=true

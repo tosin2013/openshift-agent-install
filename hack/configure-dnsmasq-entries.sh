@@ -120,14 +120,14 @@ EOF
 
     print_status "DNS entries added successfully" 0
 
-    # Reload dnsmasq
-    print_info "Reloading dnsmasq..."
-    systemctl reload dnsmasq
+    # Restart dnsmasq (reload not supported)
+    print_info "Restarting dnsmasq..."
+    systemctl restart dnsmasq
 
     if [ $? -eq 0 ]; then
-        print_status "dnsmasq reloaded successfully" 0
+        print_status "dnsmasq restarted successfully" 0
     else
-        print_status "Failed to reload dnsmasq" 1
+        print_status "Failed to restart dnsmasq" 1
     fi
 
     # Display added entries
