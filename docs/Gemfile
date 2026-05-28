@@ -5,6 +5,9 @@ gem "jekyll", "~> 3.9.3"
 gem "webrick", "~> 1.8"
 gem "github-pages", "~> 228"
 
+# Required by Just the Docs theme
+gem "rake"
+
 group :jekyll_plugins do
   gem "jekyll-remote-theme"
   gem "jekyll-seo-tag"
