@@ -1,3 +1,8 @@
+---
+layout: default
+title: OpenShift Version Compatibility Validation
+---
+
 # OpenShift Version Compatibility Validation
 
 ## Overview

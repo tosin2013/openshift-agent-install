@@ -1,3 +1,8 @@
+---
+layout: default
+title: DNS Setup for OpenShift Agent-Based Installation
+---
+
 # DNS Setup for OpenShift Agent-Based Installation
 
 ## Overview

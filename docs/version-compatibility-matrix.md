@@ -1,3 +1,8 @@
+---
+layout: default
+title: OpenShift Version Compatibility Matrix
+---
+
 # OpenShift Version Compatibility Matrix
 
 ## Overview

@@ -1,3 +1,8 @@
+---
+layout: default
+title: OpenShift Agent-Based Installer Documentation
+---
+
 # OpenShift Agent-Based Installer Documentation
 
 {% include navigation.html %}

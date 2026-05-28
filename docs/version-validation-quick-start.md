@@ -1,3 +1,8 @@
+---
+layout: default
+title: Version Validation Quick Start
+---
+
 # Version Validation Quick Start
 
 ## Prerequisites

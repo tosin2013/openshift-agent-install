@@ -1,3 +1,8 @@
+---
+layout: default
+title: BMC Management Guide
+---
+
 # BMC Management Guide
 
 This guide provides detailed information about Baseboard Management Controller (BMC) configuration and management in OpenShift Agent-based installations. For a comprehensive introduction to BMC technology, see the [DMTF BMC Management Specifications](https://www.dmtf.org/standards/pmci).

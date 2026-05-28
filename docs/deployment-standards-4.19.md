@@ -1,3 +1,8 @@
+---
+layout: default
+title: OpenShift 4.19 Deployment Pattern Standards
+---
+
 # OpenShift 4.19 Deployment Pattern Standards
 
 ## Deployment Types Supported

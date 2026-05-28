@@ -1,3 +1,8 @@
+---
+layout: default
+title: Deployment Patterns Guide
+---
+
 # Deployment Patterns Guide
 
 This guide describes the supported deployment patterns and configurations for OpenShift Agent-based installations, providing detailed information about each pattern and its use cases.

@@ -1,3 +1,8 @@
+---
+layout: default
+title: HAProxy Forwarder Configuration Guide
+---
+
 # HAProxy Forwarder Configuration Guide
 
 ## Overview
