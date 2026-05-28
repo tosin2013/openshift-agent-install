@@ -1,0 +1,76 @@
+# Dependabot configuration for automated dependency updates
+# https://docs.github.com/en/code-security/dependabot/dependabot-version-updates/configuration-options-for-the-dependabot.yml-file
+
+version: 2
+updates:
+  # GitHub Actions workflow dependencies
+  - package-ecosystem: "github-actions"
+    directory: "/"
+    schedule:
+      interval: "weekly"
+      day: "monday"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "github-actions"
+    reviewers:
+      - "tosin2013"
+    open-pull-requests-limit: 5
+
+  # Docker base images in Execution Environment
+  - package-ecosystem: "docker"
+    directory: "/execution-environment"
+    schedule:
+      interval: "weekly"
+      day: "tuesday"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "docker"
+      - "execution-environment"
+    reviewers:
+      - "tosin2013"
+    open-pull-requests-limit: 3
+
+  # Python dependencies in Execution Environment
+  - package-ecosystem: "pip"
+    directory: "/execution-environment"
+    schedule:
+      interval: "weekly"
+      day: "wednesday"
+    commit-message:
+      prefix: "chore(deps)"
+      include: "scope"
+    labels:
+      - "dependencies"
+      - "python"
+      - "execution-environment"
+    reviewers:
+      - "tosin2013"
+    open-pull-requests-limit: 5
+
+  # Ansible collections (requirements.yml)
+  # Note: Dependabot doesn't natively support Ansible Galaxy
+  # This monitors the GitHub Actions that use ansible-galaxy
+  # Manual updates still needed for collection versions
+
+# Dependabot will create PRs for:
+# - GitHub Actions version updates (e.g., docker/login-action@v3 → @v4)
+# - Docker base image updates (e.g., quay.io/ansible/creator-ee:latest)
+# - Python package updates (jmespath, nmstate)
+#
+# Benefits:
+# - Automatic security patches
+# - Dependency version tracking
+# - Reduced maintenance burden
+# - Grouped updates by ecosystem
+#
+# PR Review Workflow:
+# 1. Dependabot opens PR with dependency update
+# 2. GitHub Actions automatically test the change
+# 3. Review and merge if tests pass
+# 4. EE image rebuilds automatically on merge to main
