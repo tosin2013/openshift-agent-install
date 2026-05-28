@@ -446,9 +446,12 @@ phase3_dns_configuration() {
     echo "" >> "$VALIDATION_REPORT"
 
     log_step "Configuring DNS entries..."
-    log_info "Command: ./hack/configure-dnsmasq-entries.sh add $EXAMPLE_FOLDER/cluster.yml"
+    log_info "Command: sudo ./hack/configure-dnsmasq-entries.sh add $EXAMPLE_FOLDER/cluster.yml"
 
-    if ./hack/configure-dnsmasq-entries.sh add "$EXAMPLE_FOLDER/cluster.yml" 2>&1 | tee /tmp/dns-config.log; then
+    sudo ./hack/configure-dnsmasq-entries.sh add "$EXAMPLE_FOLDER/cluster.yml" 2>&1 | tee /tmp/dns-config.log
+    DNS_CONFIG_EXIT=${PIPESTATUS[0]}
+
+    if [ $DNS_CONFIG_EXIT -eq 0 ]; then
         log_success "DNS entries configured"
         echo "✅ **Status:** PASSED" >> "$VALIDATION_REPORT"
 
@@ -500,7 +503,10 @@ phase3_5_dns_verification() {
     log_step "Verifying DNS resolution works..."
     log_info "Command: ./hack/verify-dns-resolution.sh $EXAMPLE_FOLDER/cluster.yml"
 
-    if ./hack/verify-dns-resolution.sh "$EXAMPLE_FOLDER/cluster.yml" 2>&1 | tee /tmp/dns-verify.log; then
+    ./hack/verify-dns-resolution.sh "$EXAMPLE_FOLDER/cluster.yml" 2>&1 | tee /tmp/dns-verify.log
+    DNS_VERIFY_EXIT=${PIPESTATUS[0]}
+
+    if [ $DNS_VERIFY_EXIT -eq 0 ]; then
         log_success "DNS resolution verified - all tests passed"
         echo "✅ **Status:** PASSED" >> "$VALIDATION_REPORT"
         echo "" >> "$VALIDATION_REPORT"
