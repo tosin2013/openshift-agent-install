@@ -99,7 +99,94 @@ EOF"
 }
 
 
+function show_manual_config_instructions(){
+    # Write instructions to file for user to read
+    INSTRUCTIONS_FILE="/tmp/vyos-manual-config-instructions.txt"
+
+    cat > "$INSTRUCTIONS_FILE" << 'EOFINSTRUCTIONS'
+============================================================================
+⚠️  MANUAL CONFIGURATION REQUIRED - VyOS Router
+============================================================================
+
+The VyOS router VM will be created and will require manual configuration
+via Cockpit web console before deployment can continue.
+
+📋 STEP 1: Access Cockpit Web Console
+EOFINSTRUCTIONS
+
+    echo "   URL: https://$(hostname -I | awk '{print $1}'):9090" >> "$INSTRUCTIONS_FILE"
+
+    cat >> "$INSTRUCTIONS_FILE" << 'EOFINSTRUCTIONS'
+
+   Credentials:
+EOFINSTRUCTIONS
+
+    # Check for Cockpit credentials file
+    COCKPIT_CREDS="$HOME/cockpit-credentials.txt"
+    if [ -f "$COCKPIT_CREDS" ]; then
+        echo "   → View with: cat ~/cockpit-credentials.txt" >> "$INSTRUCTIONS_FILE"
+    else
+        echo "   → Use your system user credentials" >> "$INSTRUCTIONS_FILE"
+    fi
+
+    cat >> "$INSTRUCTIONS_FILE" << 'EOFINSTRUCTIONS'
+
+📋 STEP 2: Open VyOS Console in Cockpit
+   1. Click 'Virtual Machines' in left sidebar
+   2. Click 'vyos-router'
+   3. Click 'Console' tab
+
+📋 STEP 3: Configure VyOS Router
+   Login: vyos / vyos
+
+   Commands to run:
+   1. install image          (VM will restart - manually start it again)
+   2. Configure network:
+      configure
+      set interfaces ethernet eth0 address 192.168.122.2/24
+      set interfaces ethernet eth0 description Internet-Facing
+      set protocols static route 0.0.0.0/0 next-hop 192.168.122.1
+      commit
+      save
+   3. Enable SSH:
+      configure
+      set service ssh
+      commit
+      save
+      exit
+   4. Apply config script:
+      scp ~/vyos-config.sh vyos@192.168.122.2:/tmp/
+      ssh vyos@192.168.122.2
+      chmod +x /tmp/vyos-config.sh
+      vbash /tmp/vyos-config.sh
+
+   Detailed guide:
+   https://github.com/tosin2013/demo-virt/blob/rhpds/demo.redhat.com/docs/step1.md
+
+⏱️  The script will wait up to 30 minutes (checking every 5 minutes)
+
+============================================================================
+EOFINSTRUCTIONS
+
+    # Display to console
+    cat "$INSTRUCTIONS_FILE"
+    echo ""
+    echo "Instructions saved to: $INSTRUCTIONS_FILE"
+    echo ""
+
+    # Pause for user acknowledgment
+    echo "════════════════════════════════════════════════════════════════════════════"
+    echo "⚠️  IMPORTANT: Please read the instructions above carefully"
+    echo "════════════════════════════════════════════════════════════════════════════"
+    echo ""
+    read -p "Press ENTER to continue and start VyOS VM deployment..."
+    echo ""
+}
+
 function create(){
+    # Show instructions FIRST, before creating anything
+    show_manual_config_instructions
+
     export ip_address="${DNS_FORWARDER}"
     create_livirt_networks
     # Vyos nightly builds
