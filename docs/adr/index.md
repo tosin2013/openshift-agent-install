@@ -128,6 +128,12 @@ Each ADR follows a consistent format:
     - GitHub Actions CI/CD integration
     - Critical version boundaries (4.19→4.20→4.21)
 
+19. [ADR-019: Automated DNS Configuration with dnsmasq](0019-automated-dns-configuration-dnsmasq)
+    - Automated DNS configuration for OpenShift deployments
+    - dnsmasq integration with libvirt network DNS
+    - Replaces manual FreeIPA DNS configuration
+    - Multi-cluster support with automatic cleanup
+
 ## Categories
 
 ### Installation Strategy
@@ -157,6 +163,7 @@ Each ADR follows a consistent format:
 - [ADR-010: Manifest Generation and Template Management](0010-manifest-generation-and-templating)
 - [ADR-011: Identity Management Integration](0011-identity-management-integration)
 - [ADR-015: Multipath Root Device Configuration](0015-multipath-root-device-configuration)
+- [ADR-019: Automated DNS Configuration with dnsmasq](0019-automated-dns-configuration-dnsmasq)
 
 ### Reference Architecture
 - [ADR-012: Deployment Patterns and Reference Configurations](0012-deployment-patterns-and-configurations)

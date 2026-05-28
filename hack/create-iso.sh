@@ -51,6 +51,39 @@ CLUSTER_NAME=$(grep "cluster_name" ${SITE_CONFIG_DIR}/${1}/cluster.yml | awk '{p
 # Get the base_domain
 BASE_DOMAIN=$(grep "base_domain" ${SITE_CONFIG_DIR}/${1}/cluster.yml | awk '{print $2}' | tr -d '"')
 
+# Validate pull secret exists
+PULL_SECRET_PATH=$(grep "pull_secret_path" ${SITE_CONFIG_DIR}/${1}/cluster.yml | awk '{print $2}' | tr -d '"' || echo "")
+if [ -n "$PULL_SECRET_PATH" ]; then
+    # Expand tilde to home directory
+    PULL_SECRET_EXPANDED="${PULL_SECRET_PATH/#\~/$HOME}"
+
+    if [ ! -f "$PULL_SECRET_EXPANDED" ]; then
+        echo "============================================================="
+        echo "❌ ERROR: Pull Secret Not Found"
+        echo "============================================================="
+        echo ""
+        echo "The pull secret file does not exist:"
+        echo "  Expected: $PULL_SECRET_EXPANDED"
+        echo ""
+        echo "📥 Download your Red Hat OpenShift pull secret from:"
+        echo "   https://console.redhat.com/openshift/downloads#tool-pull-secret"
+        echo ""
+        echo "💾 Save it to: ~/pull-secret.json"
+        echo "   Or update pull_secret_path in your cluster.yml"
+        echo ""
+        echo "Example:"
+        echo "  # Visit the URL above, copy the pull secret, then run:"
+        echo "  cat > ~/pull-secret.json << 'EOF'"
+        echo "  {paste-your-pull-secret-here}"
+        echo "  EOF"
+        echo ""
+        echo "============================================================="
+        exit 1
+    else
+        echo "✓ Pull secret found: $PULL_SECRET_EXPANDED"
+    fi
+fi
+
 # Validate OpenShift version and network type compatibility
 OCP_VERSION=$(grep "ocp_version" ${SITE_CONFIG_DIR}/${1}/cluster.yml | awk '{print $2}' | tr -d '"' || echo "")
 NETWORK_TYPE=$(grep "network_type" ${SITE_CONFIG_DIR}/${1}/cluster.yml | awk '{print $2}' | tr -d '"' || echo "OVNKubernetes")

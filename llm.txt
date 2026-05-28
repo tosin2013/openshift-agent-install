@@ -110,7 +110,7 @@ export GENERATED_ASSET_PATH="~/generated_assets"  # Where ISOs/manifests go
 sudo cp ./bin/* /usr/local/bin/
 
 # 4. Create pull secret file
-cat > ~/ocp-install-pull-secret.json << 'EOF'
+cat > ~/pull-secret.json << 'EOF'
 {your-pull-secret-json-here}
 EOF
 
