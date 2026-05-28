@@ -2,6 +2,8 @@
 layout: default
 title: Home
 nav_order: 1
+description: "OpenShift Agent-Based Installer Documentation"
+permalink: /
 ---
 
 # OpenShift Agent-Based Installer Documentation

@@ -2,6 +2,8 @@
 layout: default
 title: Network Configuration
 description: Guide for configuring networking using the OpenShift Agent-based Installation Helper
+parent: Configuration
+nav_order: 2
 ---
 
 # Network Configuration Guide

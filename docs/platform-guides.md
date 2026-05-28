@@ -2,6 +2,8 @@
 layout: default
 title: Platform Guides
 description: Platform-specific guides for OpenShift Agent-based installations using the helper utilities
+parent: Deployment Guides
+nav_order: 3
 ---
 
 # Platform Guides

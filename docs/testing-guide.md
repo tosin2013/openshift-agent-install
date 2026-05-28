@@ -2,6 +2,8 @@
 layout: default
 title: Testing Framework Overview
 description: Overview of the OpenShift Agent Install Helper Testing Framework
+parent: Testing & Validation
+nav_order: 1
 ---
 
 # Testing Framework Overview

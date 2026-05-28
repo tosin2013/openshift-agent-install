@@ -1,7 +1,8 @@
 ---
 layout: default
 title: Installation Guide
-description: A comprehensive guide for installing OpenShift using the Agent-based Installer
+parent: Getting Started
+nav_order: 1
 ---
 
 # Installation Guide

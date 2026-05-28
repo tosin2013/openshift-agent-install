@@ -1,6 +1,8 @@
 ---
 layout: default
 title: DNS Setup for OpenShift Agent-Based Installation
+parent: Configuration
+nav_order: 3
 ---
 
 # DNS Setup for OpenShift Agent-Based Installation

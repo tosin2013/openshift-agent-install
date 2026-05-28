@@ -1,6 +1,8 @@
 ---
 layout: default
 title: Deployment Patterns Guide
+parent: Deployment Guides
+nav_order: 1
 ---
 
 # Deployment Patterns Guide

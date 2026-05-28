@@ -2,6 +2,8 @@
 layout: default
 title: Infrastructure Setup
 description: Guide for setting up infrastructure for OpenShift Agent-based installations using this helper utility
+parent: Advanced Topics
+nav_order: 3
 ---
 
 # Infrastructure Setup Guide

@@ -1,8 +1,8 @@
 ---
 layout: default
-title: Developer Guide
+title: Getting Started
 nav_order: 2
-has_children: false
+has_children: true
 ---
 
 # Developer Guide - KVM Development Environment

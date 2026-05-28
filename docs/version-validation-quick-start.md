@@ -1,6 +1,8 @@
 ---
 layout: default
 title: Version Validation Quick Start
+parent: Reference
+nav_order: 1
 ---
 
 # Version Validation Quick Start

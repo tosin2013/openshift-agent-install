@@ -1,6 +1,8 @@
 ---
 layout: default
 title: OpenShift Version Compatibility Matrix
+parent: Advanced Topics
+nav_order: 4
 ---
 
 # OpenShift Version Compatibility Matrix

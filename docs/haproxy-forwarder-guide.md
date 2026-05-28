@@ -2,6 +2,7 @@
 layout: default
 title: HAProxy Forwarder Guide
 nav_order: 3
+parent: Getting Started
 ---
 
 # HAProxy Forwarder Configuration Guide

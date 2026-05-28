@@ -1,6 +1,7 @@
 ---
 layout: default
 title: OpenShift Version Compatibility Validation
+nav_exclude: true
 ---
 
 # OpenShift Version Compatibility Validation

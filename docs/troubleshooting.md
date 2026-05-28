@@ -2,6 +2,8 @@
 layout: default
 title: Troubleshooting Guide
 description: Guide for troubleshooting common issues with the OpenShift Agent Install Helper
+parent: Testing & Validation
+nav_order: 4
 ---
 
 # Troubleshooting Guide

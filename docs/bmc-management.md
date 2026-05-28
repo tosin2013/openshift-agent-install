@@ -1,6 +1,8 @@
 ---
 layout: default
 title: BMC Management Guide
+parent: Configuration
+nav_order: 4
 ---
 
 # BMC Management Guide

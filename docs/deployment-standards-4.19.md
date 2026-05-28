@@ -1,6 +1,7 @@
 ---
 layout: default
 title: OpenShift 4.19 Deployment Pattern Standards
+nav_exclude: true
 ---
 
 # OpenShift 4.19 Deployment Pattern Standards

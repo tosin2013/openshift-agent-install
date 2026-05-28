@@ -2,6 +2,8 @@
 layout: default
 title: Reference Configurations
 description: Reference configurations for the OpenShift Agent-based Installation Helper
+parent: Deployment Guides
+nav_order: 4
 ---
 
 # Reference Configurations

@@ -2,6 +2,8 @@
 layout: default
 title: Advanced Networking
 description: Advanced networking configurations and features for OpenShift Agent-based installations
+parent: Advanced Topics
+nav_order: 1
 ---
 
 # Advanced Networking Guide
