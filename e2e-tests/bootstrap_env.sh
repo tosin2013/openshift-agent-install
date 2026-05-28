@@ -47,12 +47,28 @@ check_sudo() {
 # --- Package Management ---
 install_system_packages() {
     print_section "Installing System Packages"
-    packages=(nmstate ansible-core bind-utils libguestfs cloud-init virt-install qemu-img virt-manager selinux-policy-targeted python3-pip)
+    packages=(nmstate ansible-core bind-utils libguestfs cloud-init virt-install qemu-img selinux-policy-targeted python3-pip)
+    optional_packages=(virt-manager)
+
     for package in "${packages[@]}"; do
         if ! rpm -q $package &>/dev/null; then
             print_info "Installing $package..."
             sudo dnf install -y $package || print_status "Failed to install $package" 1
             print_status "$package installed successfully" 0
+        else
+            print_status "$package is already installed" 0
+        fi
+    done
+
+    # Install optional packages (non-fatal if they fail)
+    for package in "${optional_packages[@]}"; do
+        if ! rpm -q $package &>/dev/null; then
+            print_info "Installing optional package $package..."
+            if sudo dnf install -y $package 2>/dev/null; then
+                print_status "$package installed successfully" 0
+            else
+                echo -e "\033[1;33m⚠ $package not available (optional, GUI-only)\033[0m"
+            fi
         else
             print_status "$package is already installed" 0
         fi
@@ -256,14 +272,63 @@ setup_dns_server() {
     print_status "DNS server configured successfully" 0
 }
 
-# --- Environment Setup ---
-setup_virtualization() {
-    print_section "Setting up Virtualization"
-    print_info "Enabling libvirtd..."
-    sudo systemctl enable --now libvirtd || print_status "Failed to enable libvirtd" 1
-    print_status "libvirtd enabled successfully" 0
-    # Configure LVM for libvirt
-    source "${SCRIPT_DIR}/../hack/configure-lvm.sh"
+# --- Cockpit User Setup ---
+setup_cockpit_user() {
+    print_section "Setting up Cockpit Access"
+
+    COCKPIT_USER="cockpit-admin"
+    PASSWORD_FILE="${ACTUAL_USER_HOME}/cockpit-credentials.txt"
+
+    # Check if default user has a locked password (SSH key-only)
+    if passwd -S "$ACTUAL_USER" 2>/dev/null | grep -q " L "; then
+        print_info "Default user has SSH key-only authentication (no password)"
+        print_info "Creating dedicated Cockpit admin user..."
+
+        # Check if Cockpit user already exists
+        if id "$COCKPIT_USER" &>/dev/null; then
+            print_status "Cockpit admin user already exists" 0
+        else
+            # Generate secure random password
+            COCKPIT_PASSWORD=$(openssl rand -base64 16)
+
+            # Create user with sudo and libvirt access
+            useradd -m -G wheel,libvirt "$COCKPIT_USER" || print_status "Failed to create Cockpit user" 1
+            echo "$COCKPIT_USER:$COCKPIT_PASSWORD" | chpasswd || print_status "Failed to set Cockpit user password" 1
+
+            # Save credentials
+            cat > "$PASSWORD_FILE" << EOFCREDS
+============================================
+Cockpit Web Console Credentials
+============================================
+
+Access URL: https://\$(hostname -I | awk '{print \$1}'):9090
+
+Username: $COCKPIT_USER
+Password: $COCKPIT_PASSWORD
+
+Created: \$(date)
+
+This user has:
+- Sudo access (wheel group)
+- VM management (libvirt group)
+- Cockpit console access
+
+⚠️ REQUIRED for VyOS Router Configuration
+You MUST use Cockpit to access the VyOS router console
+during bootstrap deployment.
+
+============================================
+EOFCREDS
+
+            chmod 600 "$PASSWORD_FILE"
+            chown "${ACTUAL_USER}:${ACTUAL_USER_GROUP}" "$PASSWORD_FILE"
+
+            print_status "Cockpit admin user created" 0
+            echo -e "${GREEN}✓ Credentials saved to: $PASSWORD_FILE${NC}"
+        fi
+    else
+        print_status "Default user has password authentication enabled (Cockpit ready)" 0
+    fi
 }
 
 setup_registry_auth() {
@@ -309,6 +374,7 @@ install_openshift_cli
 configure_selinux
 install_container_tools
 setup_virtualization
+setup_cockpit_access  # Create Cockpit user for SSH key-only setups
 setup_dns_server  # Setup lightweight dnsmasq DNS instead of FreeIPA
 configure_infrastructure
 setup_registry_auth

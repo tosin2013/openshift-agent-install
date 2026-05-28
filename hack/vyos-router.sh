@@ -152,30 +152,100 @@ function configure_router(){
       sed -i "s/example.com/${DOMAIN}/g" vyos-config.sh
     fi
 
-    echo "Waiting for VyOS to boot"
+    echo ""
+    echo "============================================================================"
+    echo "⚠️  MANUAL CONFIGURATION REQUIRED - VyOS Router"
+    echo "============================================================================"
+    echo ""
+    echo "The VyOS router VM has been created and is booting."
+    echo "You MUST manually configure it via Cockpit web console before"
+    echo "this script can continue."
+    echo ""
+    echo "📋 STEP 1: Access Cockpit Web Console"
+    echo "   URL: https://$(hostname -I | awk '{print $1}'):9090"
+    echo ""
+
+    # Check for Cockpit credentials file
+    COCKPIT_CREDS="$HOME/cockpit-credentials.txt"
+    if [ -f "$COCKPIT_CREDS" ]; then
+        echo "   Credentials are in: $COCKPIT_CREDS"
+        echo "   (Use 'cat ~/cockpit-credentials.txt' to view)"
+    else
+        echo "   Login with your system user credentials"
+    fi
+    echo ""
+    echo "📋 STEP 2: Open VyOS Console"
+    echo "   1. Click 'Virtual Machines' in left sidebar"
+    echo "   2. Click 'vyos-router'"
+    echo "   3. Click 'Console' tab"
+    echo ""
+    echo "📋 STEP 3: Configure VyOS Router"
+    echo "   Follow the configuration guide:"
+    echo "   https://github.com/tosin2013/demo-virt/blob/rhpds/demo.redhat.com/docs/step1.md"
+    echo ""
+    echo "   Quick summary:"
+    echo "   - Login: vyos / vyos"
+    echo "   - Run: install image (VM will restart)"
+    echo "   - Configure network interfaces"
+    echo "   - Enable SSH"
+    echo "   - Apply configuration script"
+    echo ""
+    echo "⏱️  This script will check every 5 minutes for VyOS to become accessible"
+    echo "⏱️  Maximum wait time: 30 minutes"
+    echo ""
+    echo "============================================================================"
+    echo ""
+
     MAX_WAIT_TIME=1800
     WAIT_INTERVAL=300
     IP_ADDRESS=192.168.122.2
     start_time=$(date +%s)
     end_time=$((start_time + $MAX_WAIT_TIME))
 
-    echo "Waiting for $IP_ADDRESS to be accessible..."
+    echo "⏳ Waiting for VyOS router to become accessible at $IP_ADDRESS..."
+    echo ""
 
     router_accessible=false
+    check_count=0
     while [ "$router_accessible" = false ]; do
       if ping -c 1 "$IP_ADDRESS" > /dev/null 2>&1; then
-        echo "Router is accessible now. Continuing..."
+        echo ""
+        echo "✅ Router is accessible now at $IP_ADDRESS"
+        echo "✅ Continuing with deployment..."
         router_accessible=true
       else
         current_time=$(date +%s)
         remaining_time=$((end_time - current_time))
 
         if [ $remaining_time -gt 0 ]; then
-          echo "Router is not accessible yet. Please access this page to manually configure the router: https://github.com/tosin2013/demo-virt/blob/rhpds/demo.redhat.com/docs/step1.md"
-          echo "Remaining time: $((remaining_time / 60)) minutes"
+          check_count=$((check_count + 1))
+          echo "⏳ Check #$check_count: VyOS not yet accessible (still configuring?)"
+          echo "   Remaining time: $((remaining_time / 60)) minutes"
+          echo "   If you haven't started configuration yet, access Cockpit now:"
+          echo "   → https://$(hostname -I | awk '{print $1}'):9090"
+          echo ""
           sleep "$WAIT_INTERVAL"
         else
-          echo "Timeout reached. Router is still not accessible."
+          echo ""
+          echo "============================================================================"
+          echo "❌ Timeout reached after 30 minutes"
+          echo "============================================================================"
+          echo ""
+          echo "VyOS router is still not accessible at $IP_ADDRESS"
+          echo ""
+          echo "Troubleshooting:"
+          echo "1. Check VyOS VM is running: sudo virsh list"
+          echo "2. Access Cockpit console to check VyOS status"
+          echo "3. Verify you completed all configuration steps"
+          echo "4. Check VyOS console for errors"
+          echo ""
+          echo "You can manually retry configuration:"
+          echo "   sudo virsh console vyos-router"
+          echo ""
+          echo "Or re-run this script:"
+          echo "   ACTION=create ./hack/vyos-router.sh"
+          echo ""
+          echo "============================================================================"
           return 1
         fi
       fi
