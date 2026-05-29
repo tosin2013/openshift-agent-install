@@ -1,8 +1,10 @@
 ---
 layout: default
-title: "ADR-0002-advanced-networking-configurations: ---"
-description: "Architecture Decision Record for Advanced Networking Configurations Support"
+title: "ADR-0002: Advanced Networking Configurations Support"
+parent: ADRs
+nav_order: 0002
 ---
+
 
 # ADR-002: Advanced Networking Configurations Support
 

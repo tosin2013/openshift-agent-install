@@ -1,3 +1,10 @@
+---
+layout: default
+title: "ADR-0017: HyperShift Hosted Control Planes for Edge Deployments"
+parent: ADRs
+nav_order: 0017
+---
+
 # ADR-0017: HyperShift Hosted Control Planes for Edge Deployments
 
 **Status:** Accepted  

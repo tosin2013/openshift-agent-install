@@ -1,8 +1,10 @@
 ---
 layout: default
-title: "ADR-009: Testing Infrastructure and ISO Management"
-description: "Architecture Decision Record for Testing Infrastructure and ISO Management"
+title: "ADR-0009: Testing Infrastructure and ISO Management"
+parent: ADRs
+nav_order: 0009
 ---
+
 
 # ADR-009: Testing Infrastructure and ISO Management
 

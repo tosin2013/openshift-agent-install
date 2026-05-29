@@ -1,8 +1,10 @@
 ---
 layout: default
-title: "ADR-0003-ansible-automation-approach: ---"
-description: "Architecture Decision Record for Ansible-based Automation for Agent Installation"
+title: "ADR-0003: Ansible-based Automation for Agent Installation"
+parent: ADRs
+nav_order: 0003
 ---
+
 
 # ADR-003: Ansible-based Automation for Agent Installation
 

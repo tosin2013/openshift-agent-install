@@ -1,6 +1,8 @@
 ---
 layout: default
-title: "Architecture Decision Records (ADRs)"
+title: "ADRs"
+nav_order: 8
+has_children: true
 description: "Index of Architecture Decision Records for the OpenShift Agent Install Helper project"
 ---
 

@@ -1,8 +1,10 @@
 ---
 layout: default
-title: "ADR-0010-manifest-generation-and-templating: ---"
-description: "Architecture Decision Record for Manifest Generation and Template Management"
+title: "ADR-0010: 10. Manifest Generation and Template Management"
+parent: ADRs
+nav_order: 0010
 ---
+
 
 # 10. Manifest Generation and Template Management
 

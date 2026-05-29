@@ -1,8 +1,10 @@
 ---
 layout: default
-title: "ADR-006: Testing and Execution Environment"
-description: "Architecture Decision Record for Testing and Execution Environment"
+title: "ADR-0006: Testing and Execution Environment"
+parent: ADRs
+nav_order: 0006
 ---
+
 
 # ADR-006: Testing and Execution Environment
 

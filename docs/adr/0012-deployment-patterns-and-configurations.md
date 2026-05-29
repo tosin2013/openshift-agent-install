@@ -1,8 +1,10 @@
 ---
 layout: default
-title: "ADR-0012-deployment-patterns-and-configurations: ---"
-description: "Architecture Decision Record for standardized deployment patterns and reference configurations"
+title: "ADR-0012: 12. Deployment Patterns and Reference Configurations"
+parent: ADRs
+nav_order: 0012
 ---
+
 
 # 12. Deployment Patterns and Reference Configurations
 

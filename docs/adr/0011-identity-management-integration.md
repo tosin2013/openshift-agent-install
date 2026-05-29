@@ -1,8 +1,10 @@
 ---
 layout: default
-title: "ADR-0011: DNS Infrastructure for OpenShift Testing"
-description: "Architecture Decision Record for DNS Infrastructure"
+title: "ADR-0011: 11. DNS Infrastructure for OpenShift Testing"
+parent: ADRs
+nav_order: 0011
 ---
+
 
 # 11. DNS Infrastructure for OpenShift Testing
 

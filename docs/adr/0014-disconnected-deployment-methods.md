@@ -1,8 +1,10 @@
 ---
 layout: default
 title: "ADR-0014: Disconnected Deployment Methods"
-description: "Architecture Decision Record for Disconnected Deployment Methods"
+parent: ADRs
+nav_order: 0014
 ---
+
 
 # ADR-014: Disconnected Deployment Methods
 

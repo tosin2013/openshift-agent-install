@@ -1,8 +1,10 @@
 ---
 layout: default
-title: "ADR-0005-iso-creation-and-asset-management: ---"
-description: "Architecture Decision Record for ISO Creation and Asset Management"
+title: "ADR-0005: ISO Creation and Asset Management"
+parent: ADRs
+nav_order: 0005
 ---
+
 
 # ADR-005: ISO Creation and Asset Management
 

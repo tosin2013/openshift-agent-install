@@ -1,8 +1,10 @@
 ---
 layout: default
-title: "ADR-0004-disconnected-installation-support: ---"
-description: "Architecture Decision Record for Disconnected Installation Support"
+title: "ADR-0004: Disconnected Installation Support"
+parent: ADRs
+nav_order: 0004
 ---
+
 
 # ADR-004: Disconnected Installation Support
 

@@ -1,3 +1,10 @@
+---
+layout: default
+title: "ADR-0019: Use Automated DNS Configuration with dnsmasq"
+parent: ADRs
+nav_order: 0019
+---
+
 # ADR-0001: Use Automated DNS Configuration with dnsmasq
 
 ## Date

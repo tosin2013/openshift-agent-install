@@ -1,8 +1,10 @@
 ---
 layout: default
-title: "ADR-007: Virtual Infrastructure Testing Environment"
-description: "Architecture Decision Record for Virtual Infrastructure Testing Environment"
+title: "ADR-0007: Virtual Infrastructure Testing Environment"
+parent: ADRs
+nav_order: 0007
 ---
+
 
 # ADR-007: Virtual Infrastructure Testing Environment
 

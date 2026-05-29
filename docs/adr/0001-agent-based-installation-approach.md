@@ -1,8 +1,10 @@
 ---
 layout: default
-title: "ADR-0001-agent-based-installation-approach: ---"
-description: "Architecture Decision Record for Agent-based Installation Approach for OpenShift Deployment"
+title: "ADR-0001: Agent-based Installation Approach for OpenShift Deployment"
+parent: ADRs
+nav_order: 0001
 ---
+
 
 # ADR-001: Agent-based Installation Approach for OpenShift Deployment
 

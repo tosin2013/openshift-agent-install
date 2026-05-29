@@ -1,8 +1,10 @@
 ---
 layout: default
-title: "ADR-0018-version-compatibility-validation: ---"
-description: "Architecture Decision Record for OpenShift Version Compatibility Validation and Testing"
+title: "ADR-0018: OpenShift Version Compatibility Validation and Testing"
+parent: ADRs
+nav_order: 0018
 ---
+
 
 # ADR-018: OpenShift Version Compatibility Validation and Testing
 
@@ -143,7 +145,6 @@ We chose **LLM-Powered Intelligent Validation** using Granite-3-2-8b-instruct be
 **OpenShift Version:** 4.20
 **Example:** sno-disconnected
 
----
 
 ## LLM Validation Results
 

@@ -1,3 +1,10 @@
+---
+layout: default
+title: "ADR-0016: RHACM Hub Cluster as Deployment Target"
+parent: ADRs
+nav_order: 0016
+---
+
 # ADR-0016: RHACM Hub Cluster as Deployment Target
 
 **Status:** Accepted  

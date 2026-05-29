@@ -1,8 +1,10 @@
 ---
 layout: default
-title: "ADR-013: End-to-End Testing Framework"
-description: "Architecture Decision Record for End-to-End Testing Framework"
+title: "ADR-0013: End-to-End Testing Framework"
+parent: ADRs
+nav_order: 0013
 ---
+
 
 # ADR-013: End-to-End Testing Framework
 

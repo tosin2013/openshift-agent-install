@@ -1,8 +1,10 @@
 ---
 layout: default
-title: "ADR-0008-bmc-management-and-automation: ---"
-description: "Architecture Decision Record for BMC Management and Infrastructure Automation"
+title: "ADR-0008: 8. BMC Management and Infrastructure Automation"
+parent: ADRs
+nav_order: 0008
 ---
+
 
 # 8. BMC Management and Infrastructure Automation
 

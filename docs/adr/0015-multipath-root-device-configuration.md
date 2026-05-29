@@ -1,8 +1,10 @@
 ---
 layout: default
 title: "ADR-0015: Multipath Root Device Configuration"
-description: "Architecture Decision Record for Multipath Root Device Configuration with rootDeviceHints"
+parent: ADRs
+nav_order: 0015
 ---
+
 
 # ADR-0015: Multipath Root Device Configuration
 
