@@ -221,7 +221,31 @@ dig @8.8.8.8 console-openshift-console.apps.<cluster-name>.<domain> +short
 # Should return: 169.59.189.20
 ```
 
-### 7. Verify External Access
+### 7. Configure Local Firewall (CRITICAL)
+
+**RHEL/Fedora systems run firewalld by default** - you must open the HAProxy ports:
+
+```bash
+# Add HAProxy ports to firewalld
+sudo firewall-cmd --permanent --add-port=6443/tcp   # Kubernetes API
+sudo firewall-cmd --permanent --add-port=22623/tcp  # Machine Config Server
+sudo firewall-cmd --permanent --add-port=80/tcp     # HTTP Ingress
+sudo firewall-cmd --permanent --add-port=443/tcp    # HTTPS Ingress
+sudo firewall-cmd --permanent --add-port=8404/tcp   # HAProxy Stats (optional)
+
+# Reload firewall rules
+sudo firewall-cmd --reload
+
+# Verify rules are active
+sudo firewall-cmd --list-all
+```
+
+**Expected output** should include:
+```
+ports: 6443/tcp 22623/tcp 80/tcp 443/tcp 8404/tcp
+```
+
+### 8. Verify External Access
 
 **From your workstation (Mac/Linux/Windows)**:
 
@@ -239,9 +263,33 @@ https://console-openshift-console.apps.<cluster-name>.<domain>
 
 You should see the OpenShift login page!
 
-## IBM Cloud Firewall Configuration
+## Firewall Configuration (TWO Layers)
 
-Ensure these ports are open in your IBM Cloud firewall rules:
+### Layer 1: Local Firewall (firewalld)
+
+**CRITICAL**: RHEL/Fedora systems have firewalld enabled by default. You **MUST** open ports before external access works.
+
+```bash
+# Check if firewalld is running
+systemctl status firewalld
+
+# Add all required ports
+sudo firewall-cmd --permanent --add-port=6443/tcp
+sudo firewall-cmd --permanent --add-port=22623/tcp
+sudo firewall-cmd --permanent --add-port=80/tcp
+sudo firewall-cmd --permanent --add-port=443/tcp
+sudo firewall-cmd --permanent --add-port=8404/tcp  # HAProxy stats (optional)
+
+# Apply changes
+sudo firewall-cmd --reload
+
+# Verify
+sudo firewall-cmd --list-all | grep ports
+```
+
+### Layer 2: IBM Cloud Firewall
+
+Ensure these ports are also open in your IBM Cloud firewall rules:
 
 | Port | Protocol | Service | Required |
 |------|----------|---------|----------|
@@ -306,7 +354,7 @@ dig @1.1.1.1 api.<cluster>.<domain>
 
 These warnings occur because HAProxy is in TCP mode (required for TLS passthrough). The `forwardfor` option only applies to HTTP mode. This does not affect functionality.
 
-### Problem: IBM Cloud Firewall Blocking Traffic
+### Problem: Firewall Blocking Traffic
 
 **Symptoms**:
 - HAProxy is configured correctly
@@ -321,7 +369,23 @@ curl -k https://localhost:6443/version
 # If this works but external access doesn't = firewall issue
 ```
 
-**Solution**: Check IBM Cloud firewall rules allow ports 6443, 22623, 80, 443
+**Solution - Check BOTH firewalls**:
+
+1. **Local firewall (firewalld)**:
+```bash
+# Check if blocking
+sudo firewall-cmd --list-all | grep ports
+
+# If ports are missing, add them
+sudo firewall-cmd --permanent --add-port=6443/tcp
+sudo firewall-cmd --permanent --add-port=22623/tcp
+sudo firewall-cmd --permanent --add-port=80/tcp
+sudo firewall-cmd --permanent --add-port=443/tcp
+sudo firewall-cmd --permanent --add-port=8404/tcp
+sudo firewall-cmd --reload
+```
+
+2. **IBM Cloud firewall**: Check IBM Cloud console firewall rules allow the same ports
 
 ## Example Configuration
 
@@ -372,6 +436,51 @@ api-int.ha-test.sandbox590.opentlc.com   → 169.59.189.20
 - Local dnsmasq: Resolves to internal VIPs (192.168.x.x)
 - Public DNS: Resolves to public IP (169.x.x.x)
 - Both are correct for their respective use cases
+
+## HAProxy Statistics Dashboard (Optional)
+
+Enable the HAProxy stats dashboard for real-time monitoring:
+
+### Enable Stats Dashboard
+
+Add to `/etc/haproxy/haproxy.cfg`:
+
+```haproxy
+# HAProxy Stats Dashboard
+listen stats
+    bind 0.0.0.0:8404
+    mode http
+    stats enable
+    stats uri /
+    stats refresh 30s
+    stats show-legends
+    stats show-node
+    stats auth admin:<your-password>
+```
+
+**Restart HAProxy**:
+```bash
+sudo systemctl restart haproxy
+```
+
+**Add firewall rule**:
+```bash
+sudo firewall-cmd --permanent --add-port=8404/tcp
+sudo firewall-cmd --reload
+```
+
+### Access Dashboard
+
+**URL**: `http://169.59.189.20:8404/` (use your public IP)
+
+**Features**:
+- Real-time frontend/backend status
+- Connection counts and rates
+- Request rates per second
+- Health check results
+- Auto-refresh every 30 seconds
+
+**Security Note**: Port 8404 is HTTP (unencrypted). Restrict access via IBM Cloud firewall to trusted IPs only.
 
 ## Validation
 
