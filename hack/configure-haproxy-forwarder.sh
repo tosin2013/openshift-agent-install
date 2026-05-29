@@ -343,6 +343,69 @@ configure_haproxy() {
     print_status "HAProxy configured successfully" 0
 }
 
+# Function to configure firewall for HAProxy
+configure_firewall() {
+    print_section "Configuring Firewall for HAProxy"
+
+    # Check if firewalld is running
+    if systemctl is-active --quiet firewalld; then
+        print_info "Detected firewalld - configuring HAProxy ports"
+
+        # Add ports to firewall
+        local ports=("6443/tcp" "22623/tcp" "80/tcp" "443/tcp")
+        local failed=0
+
+        for port in "${ports[@]}"; do
+            if sudo firewall-cmd --permanent --add-port="${port}" >/dev/null 2>&1; then
+                print_status "Added port ${port} to firewall" 0
+            else
+                # Check if already exists
+                if sudo firewall-cmd --list-all | grep -q "${port}"; then
+                    print_info "Port ${port} already exists in firewall"
+                else
+                    print_warning "Failed to add port ${port} to firewall"
+                    failed=1
+                fi
+            fi
+        done
+
+        # Reload firewall
+        if sudo firewall-cmd --reload >/dev/null 2>&1; then
+            print_status "Firewall rules reloaded" 0
+        else
+            print_error "Failed to reload firewall rules"
+            failed=1
+        fi
+
+        # Verify rules were applied
+        local verified=0
+        for port in "${ports[@]}"; do
+            if sudo firewall-cmd --list-all | grep -q "${port}"; then
+                ((verified++))
+            fi
+        done
+
+        if [ $verified -eq ${#ports[@]} ]; then
+            print_status "All HAProxy ports verified in firewall" 0
+        else
+            print_warning "Only ${verified}/${#ports[@]} ports verified in firewall"
+            print_warning "You may need to manually configure firewall rules"
+            failed=1
+        fi
+
+        if [ $failed -eq 1 ]; then
+            echo ""
+            print_warning "Some firewall configuration issues detected"
+            print_info "Manual firewall configuration command:"
+            echo "  sudo firewall-cmd --permanent --add-port={6443,22623,80,443}/tcp && sudo firewall-cmd --reload"
+        fi
+    else
+        print_info "firewalld not running - skipping firewall configuration"
+        print_info "If using a different firewall (iptables/ufw), configure manually:"
+        echo "  Ports to allow: 6443/tcp, 22623/tcp, 80/tcp, 443/tcp"
+    fi
+}
+
 # Function to verify HAProxy configuration
 verify_haproxy() {
     print_section "Verifying HAProxy Configuration"
@@ -433,6 +496,7 @@ main() {
     generate_inventory
     generate_playbook
     configure_haproxy
+    configure_firewall
     verify_haproxy
 
     print_section "HAProxy Forwarder Configuration Complete"
