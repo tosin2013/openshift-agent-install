@@ -491,11 +491,25 @@ After completing the setup, validate:
 3. ✅ API accessible from workstation (`curl -k https://api.<cluster>.<domain>:6443/version`)
 4. ✅ Console accessible from browser (https://console-openshift-console.apps.<cluster>.<domain>)
 
+## Alternative: Using openshift-forwarder Role Directly
+
+The `configure-haproxy-forwarder.sh` script includes firewall configuration via a bash function (added in fix for #33). However, the upstream [openshift-forwarder](https://github.com/tosin2013/openshift-forwarder) Ansible role also handles firewall and SELinux configuration automatically.
+
+**See**: [docs/openshift-forwarder-role.md](openshift-forwarder-role.md) for details on using the role directly.
+
+**Key differences**:
+- **Our script**: Bash firewall function, simpler setup, integrated workflow
+- **Upstream role**: Ansible firewalld module, includes SELinux config, gets upstream updates
+
+Both approaches work - use our script for simplicity, or the role directly for SELinux support.
+
 ## References
 
 - **Main Documentation**: [README.md](../README.md)
 - **HAProxy Configuration**: [hack/configure-haproxy-forwarder.sh](../hack/configure-haproxy-forwarder.sh)
 - **Route 53 Configuration**: [hack/configure-route53-dns.sh](../hack/configure-route53-dns.sh)
+- **openshift-forwarder Role**: [docs/openshift-forwarder-role.md](openshift-forwarder-role.md)
+- **Upstream Role Repository**: https://github.com/tosin2013/openshift-forwarder
 - **IBM Cloud Firewall**: https://cloud.ibm.com/docs/bare-metal?topic=bare-metal-about-firewalls
 
 ## Support
