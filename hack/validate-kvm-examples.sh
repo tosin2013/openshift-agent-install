@@ -50,6 +50,14 @@ for dir in examples/*/; do
 
   issues_found=0
 
+  # Check ocp_version exists
+  ocp_version=$(grep "^ocp_version:" "$cluster_yml" | awk '{print $2}' | tr -d '"' || echo "")
+  if [ -z "$ocp_version" ]; then
+    echo "  ⚠️  WARNING: No ocp_version specified (required for version validation)"
+  else
+    echo "  ✅ OCP Version: $ocp_version"
+  fi
+
   # Check DNS
   dns=$(grep -A1 "dns_servers:" "$cluster_yml" | grep -E "^\s*-\s*" | awk '{print $2}' | head -1)
   if [ "$dns" != "$REQUIRED_DNS" ]; then

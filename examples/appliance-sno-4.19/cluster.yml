@@ -15,6 +15,9 @@ pull_secret_path: ~/pull-secret.json
 base_domain: example.com
 cluster_name: appliance-sno
 
+# OpenShift version - required for version-specific validation
+ocp_version: "4.19"
+
 # Platform type (must be none for SNO)
 platform_type: none
 
