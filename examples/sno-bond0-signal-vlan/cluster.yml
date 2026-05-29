@@ -22,8 +22,11 @@ ntp_servers:
   - 216.239.35.0 #0.rhel.pool.ntp.org
   - 216.239.35.4 #1.rhel.pool.ntp.org
 # Optional DNS Server definitions
+# For KVM deployments: use libvirt dnsmasq at 192.168.122.1
+# deploy-on-kvm.sh auto-configures DNS entries via virsh net-update
+# VMs can reach this through VyOS routing
 dns_servers:
-  - 192.168.122.126
+  - 192.168.122.1
 dns_search_domains:
   - example.com
   - example.network

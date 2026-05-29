@@ -18,11 +18,12 @@ platform_type: none
 
 # VIPs - set as a list in case this is a dual-stack cluster
 # For SNO, VIPs must match the node IP
+# Using VLAN 1924 (192.168.50.0/24) - standard VyOS VLAN for KVM deployments
 api_vips:
-  - 192.168.100.50
+  - 192.168.50.50
 
 app_vips:
-  - 192.168.100.50
+  - 192.168.50.50
 
 # Optional NTP Servers
 ntp_servers:
@@ -30,8 +31,8 @@ ntp_servers:
   - 1.rhel.pool.ntp.org
 
 # Optional DNS Server definitions
-# For KVM deployments, use libvirt dnsmasq at 192.168.122.1
-# deploy-on-kvm.sh will auto-configure DNS entries via virsh net-update
+# For KVM with VyOS: use VyOS gateway on VLAN 1924 (192.168.50.1)
+# VyOS provides DNS forwarding and routes to internet
 dns_servers:
   - 192.168.122.1
 
@@ -45,12 +46,14 @@ service_network_cidrs:
   - 172.30.0.0/16
 
 # machine_network_cidr is the CIDR space for the Machines in the cluster
+# VLAN 1924 (192.168.50.0/24) - standard VyOS VLAN for KVM deployments
 machine_network_cidrs:
-  - 192.168.100.0/24
+  - 192.168.50.0/24
 
 # networkType is the type of network to use for the cluster (OVNKubernetes)
 # OpenShift 4.20+ defaults to OVNKubernetes, OpenShiftSDN is deprecated
 network_type: OVNKubernetes
 
 # rendezvous_ip is the IP address of the node that will be used for the bootstrap node
-rendezvous_ip: 192.168.100.50
+# Must match the node IP for SNO deployments
+rendezvous_ip: 192.168.50.50

@@ -30,7 +30,7 @@ ntp_servers:
 
 # Optional DNS Server definitions
 dns_servers:
-  - 192.168.122.158
+  - 192.168.122.1
   - 1.1.1.1
 dns_search_domains:
   - example.com

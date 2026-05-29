@@ -29,7 +29,7 @@ ntp_servers:
 
 # Optional DNS Server definitions
 dns_servers:
-  - 192.168.42.9
+  - 192.168.122.1
   - 192.168.42.10
 dns_search_domains:
   - kemo.labs

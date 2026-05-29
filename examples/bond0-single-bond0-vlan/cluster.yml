@@ -23,7 +23,7 @@ ntp_servers:
   - 216.239.35.4 #1.rhel.pool.ntp.org
 # Optional DNS Server definitions
 dns_servers:
-  - 192.168.122.91
+  - 192.168.122.1
   - 192.168.122.92
   
 dns_search_domains:

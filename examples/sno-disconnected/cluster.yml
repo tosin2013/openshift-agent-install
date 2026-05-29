@@ -34,7 +34,7 @@ ntp_servers:
 
 # DNS Server definitions (FreeIPA or other DNS)
 dns_servers:
-  - 192.168.122.161
+  - 192.168.122.1
 dns_search_domains:
   - example.com
 
