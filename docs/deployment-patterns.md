@@ -279,7 +279,7 @@ networkConfig:
 - [Deployment Patterns ADR](adr/0012-deployment-patterns-and-configurations.md)
 - [Network Configuration Guide](network-configuration.md)
 - [BMC Management Guide](bmc-management.md)
-- [Example Configurations](examples/)
+- [Example Configurations](https://github.com/tosin2013/openshift-agent-install/tree/main/examples)
 - [End-to-End Testing Guide](e2e-testing.md)
 - [Installation Guide](installation-guide.md)
 

@@ -317,7 +317,7 @@ For detailed troubleshooting procedures, refer to:
 - [BMC Management and Infrastructure Automation ADR](adr/0008-bmc-management-and-automation.md)
 - [Virtual Infrastructure Testing ADR](adr/0007-virtual-infrastructure-testing.md)
 - [Installation Guide](installation-guide.md)
-- [Example Configurations](examples/)
+- [Example Configurations](https://github.com/tosin2013/openshift-agent-install/tree/main/examples)
 
 ### OpenShift Documentation
 - [OpenShift Bare Metal Installation](https://docs.openshift.com/container-platform/latest/installing/installing_bare_metal/installing-bare-metal.html)

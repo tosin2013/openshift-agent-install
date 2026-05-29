@@ -308,7 +308,6 @@ oc get routes -n openshift-authentication
 
 - [Installation Guide](installation-guide)
 - [Configuration Guide](configuration-guide)
-- [Security Guide](security-guide)
 - [Troubleshooting Guide](troubleshooting)
 
 ## External Resources

@@ -9,7 +9,7 @@ nav_order: 2
 
 A comprehensive guide for installing OpenShift using the Agent-based Installer, covering all major deployment scenarios and configurations.
 
-> **Important**: OpenShift documentation will be moving to docs.redhat.com on March 12, 2025. Links will be updated accordingly. For the current status of all external links used in this documentation, please refer to [External Links](external-links.md).
+> **Important**: OpenShift documentation has moved to [docs.redhat.com](https://docs.redhat.com/en/documentation/openshift_container_platform). Links in this guide use the latest available version URLs.
 
 > **Related ADR**: [ADR-0001: Agent-based Installation Approach](adr/0001-agent-based-installation-approach.md)
 

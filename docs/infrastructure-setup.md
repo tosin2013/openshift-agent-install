@@ -136,8 +136,6 @@ Scripts available in `scripts/` directory for:
 - [Disconnected Installation Guide](disconnected-installation.md)
 - [BMC Management Guide](bmc-management.md)
 - [Network Configuration Guide](network-configuration.md)
-- [Storage Configuration Guide](storage-configuration.md)
-
 ### External References
 - [OpenShift 4.17 Documentation](https://docs.openshift.com/container-platform/4.17/welcome/index.html)
 - [Red Hat Enterprise Linux 9 Documentation](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9)

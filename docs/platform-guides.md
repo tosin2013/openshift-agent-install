@@ -271,9 +271,6 @@ For troubleshooting help:
 
 - [Installation Guide](installation-guide.md)
 - [Network Configuration](network-configuration.md)
-- [Storage Configuration](storage-configuration.md)
-- [Disconnected Installation](../disconnected-info.md)
-- [Contributing Guide](../CONTRIBUTING.md)
 - [Official OpenShift Agent-based Installation Guide](https://docs.redhat.com/en/documentation/openshift_container_platform/4.12/html-single/installing_an_on-premise_cluster_with_the_agent-based_installer/index)
 - [OpenShift Container Platform Documentation](https://docs.openshift.com/container-platform/4.14/welcome/index.html)
 - [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift)

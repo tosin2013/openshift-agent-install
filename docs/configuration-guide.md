@@ -858,7 +858,7 @@ control_plane_replicas: 1
 - **Nutanix**: `examples/nutanix-sno/`, `examples/nutanix-ha/`
 
 ### Tools & Scripts
-- **ISO Generation**: `/hack/create-iso.sh` - See [Script Reference](/hack/REFERENCE.md)
+- **ISO Generation**: `/hack/create-iso.sh` - See [Script Reference](https://github.com/tosin2013/openshift-agent-install/blob/main/hack/REFERENCE.md)
 - **Validation**: `/hack/validate-kvm-examples.sh` - Check DNS/VLAN/network compliance
 - **Deployment Standards**: `/hack/validate-deployment-standards.sh` - Version-specific validation
 
@@ -878,7 +878,7 @@ control_plane_replicas: 1
 - **llm.txt** - Comprehensive AI-friendly reference (3,481 lines)
 - **disconnected-info.md** - Disconnected deployment details
 - **DNS_AUTOMATION.md** - DNS automation implementation
-- **ADRs** - [Architectural Decision Records](/docs/adr/)
+- **ADRs** - [Architectural Decision Records](adr/)
 
 ---
 
