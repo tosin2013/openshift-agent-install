@@ -327,6 +327,198 @@ For more information:
 - [Installing OpenShift on Nutanix](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/installing_on_nutanix/)
 - [Agent-Based Installer on Nutanix](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/installing_an_on-premise_cluster_with_the_agent-based_installer/)
 
+## Control Plane and Worker Node Configuration
+
+Each node listed in `nodes.yml` must declare its role. The role controls which OpenShift components the Agent-Based Installer assigns to that node.
+
+### Node roles
+
+| Role | `role:` value | Topologies | Function |
+|------|--------------|------------|---------|
+| Control plane | `master` | All topologies | Runs etcd, API server, scheduler, and controller manager |
+| Worker | `worker` | HA only | Runs application workloads; no cluster control components |
+| Combined (SNO) | `master` (or omit) | SNO only | Single node acts as both control plane and worker |
+
+### Minimum resources by role
+
+| Role | Min vCPU | Recommended vCPU | Min RAM | Recommended RAM | Min Disk |
+|------|----------|------------------|---------|-----------------|----------|
+| Control plane | 4 | 8 | 16 GB | 32 GB | 120 GB |
+| Worker | 2 | 4 | 8 GB | 16 GB | 120 GB |
+
+> **SNO exception**: A Single Node OpenShift control plane node runs all workloads and
+> therefore needs the higher control plane spec (8 vCPU, 32 GB RAM, 120 GB disk minimum).
+
+### Key rules
+
+| Topology | `control_plane_replicas` | `app_node_replicas` | nodes.yml roles |
+|----------|--------------------------|---------------------|-----------------|
+| SNO | 1 | 0 | 1 × `master` |
+| 3-node compact | 3 | 0 | 3 × `master` |
+| HA | 3 | 2+ | 3 × `master` + N × `worker` |
+
+The total number of entries in `nodes.yml` must equal `control_plane_replicas + app_node_replicas`. Platform `none` only supports SNO (1 control plane, 0 workers).
+
+### Combined nodes.yml example (HA cluster)
+
+The `networkConfig` structure is identical for both roles — only `role:`, `hostname`, and `mac_address` differ between nodes:
+
+```yaml
+control_plane_replicas: 3
+app_node_replicas: 2
+
+nodes:
+  # ── Control plane nodes ──────────────────────────────────
+  - hostname: master-0
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:00:00:01"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:00:00:01"
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.1.21
+                prefix-length: 24
+            dhcp: false
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.1.1
+            next-hop-interface: enp1s0
+            table-id: 254
+
+  - hostname: master-1
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:00:00:02"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:00:00:02"
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.1.22
+                prefix-length: 24
+            dhcp: false
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.1.1
+            next-hop-interface: enp1s0
+            table-id: 254
+
+  - hostname: master-2
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:00:00:03"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:00:00:03"
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.1.23
+                prefix-length: 24
+            dhcp: false
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.1.1
+            next-hop-interface: enp1s0
+            table-id: 254
+
+  # ── Worker nodes ─────────────────────────────────────────
+  - hostname: worker-0
+    role: worker                         # <-- only difference from master entry
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:00:00:04"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:00:00:04"
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.1.31
+                prefix-length: 24
+            dhcp: false
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.1.1
+            next-hop-interface: enp1s0
+            table-id: 254
+
+  - hostname: worker-1
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/sda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:00:00:05"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:00:00:05"
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.1.32
+                prefix-length: 24
+            dhcp: false
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.1.1
+            next-hop-interface: enp1s0
+            table-id: 254
+```
+
+### Platform-specific notes
+
+**Bare metal**
+Workers and control plane nodes can have entirely different hardware — different NIC names, disk devices, and `rootDeviceHints` — because each node's config is independent. Use `deviceName`, `wwn`, or `minSizeGigabytes` in `rootDeviceHints` to target the correct disk on each server model.
+
+**VMware vSphere**
+The installer provisions all VMs (masters and workers) automatically using the vSphere credentials in `cluster.yml`. Workers and masters can share the same resource pool or be placed in separate folders using the `vsphere.folder` parameter.
+
+**Nutanix AHV**
+VMs must be created manually for all nodes. You may use lower resource specs for worker VMs (fewer vCPUs, less RAM) compared to control plane VMs. Use the same agent ISO for all nodes regardless of role.
+
+**Platform none / KVM**
+`deploy-on-kvm.sh` creates VMs for all nodes in `nodes.yml` regardless of role. `watch-and-reboot-kvm-vms.sh` monitors and reboots all VMs — masters and workers — during installation. No role-specific action is needed.
+
+For complete configuration parameter reference, see the [Configuration Reference](configuration-guide) and [Deployment Patterns](deployment-patterns).
+
+---
+
 ## Advanced Configurations
 
 ### Network Bonding
