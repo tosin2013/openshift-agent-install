@@ -20,10 +20,10 @@ This documentation follows the [Diataxis framework](https://diataxis.fr/). Choos
 
 | | I want to... | Go to |
 |-|-------------|-------|
-| **Learn** | Work through a deployment from scratch to gain experience | [Tutorials](tutorials.md) |
-| **Do** | Accomplish a specific task I already understand | [How-to Guides](how-to-guides.md) |
-| **Look up** | Find a specific parameter, version requirement, or example | [Reference](reference.md) |
-| **Understand** | Learn why things work the way they do | [Explanation](explanation.md) |
+| **Learn** | Work through a deployment from scratch to gain experience | [Tutorials](tutorials) |
+| **Do** | Accomplish a specific task I already understand | [How-to Guides](how-to-guides) |
+| **Look up** | Find a specific parameter, version requirement, or example | [Reference](reference) |
+| **Understand** | Learn why things work the way they do | [Explanation](explanation) |
 
 ---
 
@@ -77,7 +77,7 @@ See the [Version Compatibility Matrix](version-compatibility-matrix.md) for full
 
 ## Additional Resources
 
-- [README](../README.md) — Repository overview and quick start
-- [llm.txt](../llm.txt) — Comprehensive reference for AI assistants
-- [CONTRIBUTING.md](../CONTRIBUTING.md) — How to contribute
+- [README](https://github.com/tosin2013/openshift-agent-install#readme) — Repository overview and quick start
+- [llm.txt](https://github.com/tosin2013/openshift-agent-install/blob/main/llm.txt) — Comprehensive reference for AI assistants
+- [CONTRIBUTING.md](https://github.com/tosin2013/openshift-agent-install/blob/main/CONTRIBUTING.md) — How to contribute
 - [GitHub Issues](https://github.com/tosin2013/openshift-agent-install/issues) — Bug reports and feature requests
