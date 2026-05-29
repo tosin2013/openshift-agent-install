@@ -1,3 +1,10 @@
+---
+layout: default
+title: "DNS Troubleshooting Guide"
+parent: Testing & Validation
+nav_order: 5
+---
+
 # DNS Troubleshooting Guide
 
 ## Quick Fix - Most Common Issue ⚡

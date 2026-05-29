@@ -1,7 +1,8 @@
 ---
 layout: default
-title: OpenShift 4.19 Deployment Pattern Standards
-nav_exclude: true
+title: "Deployment Standards: OpenShift 4.19"
+parent: Reference
+nav_order: 5
 ---
 
 # OpenShift 4.19 Deployment Pattern Standards

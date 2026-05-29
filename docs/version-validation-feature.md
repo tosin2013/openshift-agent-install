@@ -1,7 +1,8 @@
 ---
 layout: default
-title: OpenShift Version Compatibility Validation
-nav_exclude: true
+title: "OpenShift Version Compatibility Validation"
+parent: Reference
+nav_order: 8
 ---
 
 # OpenShift Version Compatibility Validation

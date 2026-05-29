@@ -1,3 +1,10 @@
+---
+layout: default
+title: "Networking Architecture for KVM Deployments"
+parent: Advanced Topics
+nav_order: 1
+---
+
 # Networking Architecture for KVM Deployments
 
 ## Overview
