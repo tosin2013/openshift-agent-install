@@ -31,12 +31,47 @@ fi
 # Get the script directory
 SCRIPT_DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" >/dev/null 2>&1 && pwd )"
 
-# Download the binaries
+cd $SCRIPT_DIR/..
+
+# Extract OCP version from cluster.yml to download correct binaries
+CLUSTER_OCP_VERSION=$(grep "ocp_version" ${SITE_CONFIG_DIR}/${1}/cluster.yml | awk '{print $2}' | tr -d '"' || echo "")
+
+# Download the binaries (version-specific)
 if [ ! -d "bin" ] || [ ! -f "bin/openshift-install" ] || [ ! -f "bin/oc" ]; then
-    ./download-openshift-cli.sh
+    if [ -n "$CLUSTER_OCP_VERSION" ]; then
+        echo "Downloading OpenShift CLI tools for version ${CLUSTER_OCP_VERSION}..."
+        ./download-openshift-cli.sh "$CLUSTER_OCP_VERSION"
+    else
+        echo "⚠️  WARNING: No ocp_version specified in cluster.yml, using auto-detection"
+        ./download-openshift-cli.sh
+    fi
 fi
 
-cd $SCRIPT_DIR/..
+# Validate installed version matches cluster.yml
+if [ -n "$CLUSTER_OCP_VERSION" ] && [ -f "bin/openshift-install" ]; then
+    INSTALLED_VERSION=$(./bin/openshift-install version | head -1 | awk '{print $2}' | cut -d'.' -f1-2)
+    if [ "$INSTALLED_VERSION" != "$CLUSTER_OCP_VERSION" ]; then
+        echo "============================================================="
+        echo "⚠️  WARNING: OpenShift Version Mismatch"
+        echo "============================================================="
+        echo "Cluster configuration expects: $CLUSTER_OCP_VERSION"
+        echo "Installed openshift-install:   $INSTALLED_VERSION"
+        echo ""
+        echo "This may cause compatibility issues. Recommendations:"
+        echo "  1. Update cluster.yml ocp_version to match: $INSTALLED_VERSION"
+        echo "  2. Or re-download correct version:"
+        echo "     rm -rf ./bin && ./download-openshift-cli.sh $CLUSTER_OCP_VERSION"
+        echo "============================================================="
+        echo ""
+        read -p "Continue anyway? [y/N] " -n 1 -r
+        echo
+        if [[ ! $REPLY =~ ^[Yy]$ ]]; then
+            exit 1
+        fi
+    else
+        echo "✓ OpenShift version validated: $CLUSTER_OCP_VERSION"
+    fi
+fi
 
 # Check that the cluster name exists
 if [ ! -d "${SITE_CONFIG_DIR}/$1" ]; then

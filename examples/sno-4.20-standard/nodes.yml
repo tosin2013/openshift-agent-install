@@ -12,25 +12,29 @@ nodes:
         mac_address: "00:50:56:9a:12:34"
     networkConfig:
       interfaces:
-        - name: ens192.100
+        - name: ens192.1924
           type: vlan
           state: up
           vlan:
-            id: 100
+            id: 1924
             base-iface: ens192
           ipv4:
             enabled: true
             address:
-              - ip: 192.168.100.50
+              - ip: 192.168.50.50
                 prefix-length: 24
             dhcp: false
         - name: ens192
           type: ethernet
           state: up
           mac-address: "00:50:56:9a:12:34"
+      dns-resolver:
+        config:
+          server:
+            - 192.168.50.1
       routes:
         config:
           - destination: 0.0.0.0/0
-            next-hop-address: 192.168.100.1
-            next-hop-interface: ens192.100
+            next-hop-address: 192.168.50.1
+            next-hop-interface: ens192.1924
             table-id: 254
