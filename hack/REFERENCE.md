@@ -676,14 +676,53 @@ VyOS deployment requires manual configuration via Cockpit console. See [VyOS Man
 
 ### watch-and-reboot-kvm-vms.sh
 
-**Purpose**: Monitor and auto-reboot KVM VMs if needed
+**Purpose**: **CRITICAL** - Auto-restart VMs after Agent-Based Installer image writing
 
 **Usage**:
 ```bash
-./hack/watch-and-reboot-kvm-vms.sh
+./hack/watch-and-reboot-kvm-vms.sh <nodes.yml>
 ```
 
-**Use Case**: Debugging VM boot issues during development
+**Parameters**:
+- `nodes.yml`: Path to nodes configuration file
+
+**Examples**:
+```bash
+# Watch and auto-restart VMs during HA deployment
+./hack/watch-and-reboot-kvm-vms.sh examples/converged-bond0-signal-vlan/nodes.yml
+
+# Run in background during deployment
+./hack/watch-and-reboot-kvm-vms.sh site-config/ha-test/nodes.yml &
+```
+
+**Why This Is Critical**:
+During Agent-Based Installer deployments, VMs automatically shut down after writing the RHCOS image to disk. Without this script running, **the installation will hang** waiting for VMs to restart.
+
+**How It Works**:
+1. Monitors `virsh list --state-shutoff` every 30 seconds
+2. Detects when cluster VMs power off
+3. Automatically runs `virsh start <vm-name>`
+4. Tracks which VMs have been restarted
+5. Exits when all VMs have completed their first reboot
+
+**When To Use**:
+- **ALWAYS** during Agent-Based Installer deployments on KVM
+- Run this script **in parallel** with `openshift-install agent wait-for install-complete`
+- Start it after deploying VMs but before monitoring installation
+
+**Troubleshooting**:
+- **Symptom**: Installation stuck at "Writing image to disk: 100%"
+- **Cause**: VMs powered off but didn't restart
+- **Fix**: Run this script to auto-restart VMs
+
+**Related Commands**:
+```bash
+# Check which VMs are powered off
+virsh list --state-shutoff
+
+# Manually restart a VM
+virsh start lab-ctlplane-0
+```
 
 ---
 

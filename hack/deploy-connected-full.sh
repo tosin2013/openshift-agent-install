@@ -617,6 +617,21 @@ phase5_vm_deployment() {
             local status=$(sudo virsh list --all | grep "$node" | awk '{print $3}' || echo "unknown")
             echo "- \`$node\`: $status" >> "$VALIDATION_REPORT"
         done
+
+        # Start watch-and-reboot script in background (CRITICAL for Agent-Based Installer)
+        log_step "Starting VM auto-reboot watcher..."
+        log_info "Agent-Based Installer VMs will shut down after writing image to disk"
+        log_info "The watch script will automatically restart them"
+
+        ./hack/watch-and-reboot-kvm-vms.sh "$EXAMPLE_FOLDER/nodes.yml" > /tmp/vm-reboot-watcher.log 2>&1 &
+        WATCH_PID=$!
+
+        log_success "VM watcher started (PID: $WATCH_PID)"
+        echo "" >> "$VALIDATION_REPORT"
+        echo "**VM Auto-Reboot Watcher:** Started (PID: $WATCH_PID)" >> "$VALIDATION_REPORT"
+        echo "" >> "$VALIDATION_REPORT"
+        echo "⚠️ **Important:** VMs will automatically shut down and restart during installation" >> "$VALIDATION_REPORT"
+
     else
         log_error "VM deployment failed"
         echo "❌ **Status:** FAILED" >> "$VALIDATION_REPORT"
@@ -681,6 +696,15 @@ phase6_installation_monitoring() {
         echo "✅ **Status:** PASSED" >> "$VALIDATION_REPORT"
         echo "" >> "$VALIDATION_REPORT"
         echo "**Installation Time:** ${duration_min} minutes" >> "$VALIDATION_REPORT"
+
+        # Stop watch-and-reboot script (installation complete)
+        if [ -n "$WATCH_PID" ] && kill -0 "$WATCH_PID" 2>/dev/null; then
+            log_step "Stopping VM auto-reboot watcher..."
+            kill "$WATCH_PID" 2>/dev/null || true
+            wait "$WATCH_PID" 2>/dev/null || true
+            log_success "VM watcher stopped"
+        fi
+
     else
         local exit_code=$?
         if [ $exit_code -eq 124 ]; then
@@ -689,6 +713,12 @@ phase6_installation_monitoring() {
         else
             log_error "Installation failed (exit code: $exit_code)"
             echo "❌ **Status:** FAILED" >> "$VALIDATION_REPORT"
+        fi
+
+        # Stop watch-and-reboot script on failure
+        if [ -n "$WATCH_PID" ] && kill -0 "$WATCH_PID" 2>/dev/null; then
+            kill "$WATCH_PID" 2>/dev/null || true
+            wait "$WATCH_PID" 2>/dev/null || true
         fi
 
         return 1
