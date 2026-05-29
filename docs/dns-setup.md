@@ -335,4 +335,4 @@ listen-address=192.168.100.1
 
 - [dnsmasq documentation](http://www.thekelleys.org.uk/dnsmasq/doc.html)
 - [OpenShift Agent-Based Installation](https://docs.openshift.com/container-platform/latest/installing/installing_with_agent_based_installer/preparing-to-install-with-agent-based-installer.html)
-- [Project README](../README.md)
+- [Project README](../README)

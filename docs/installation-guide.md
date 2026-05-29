@@ -11,7 +11,7 @@ A comprehensive guide for installing OpenShift using the Agent-based Installer, 
 
 > **Important**: OpenShift documentation has moved to [docs.redhat.com](https://docs.redhat.com/en/documentation/openshift_container_platform). Links in this guide use the latest available version URLs.
 
-> **Related ADR**: [ADR-0001: Agent-based Installation Approach](adr/0001-agent-based-installation-approach.md)
+> **Related ADR**: [ADR-0001: Agent-based Installation Approach](adr/0001-agent-based-installation-approach)
 
 ## Table of Contents
 
@@ -27,7 +27,7 @@ A comprehensive guide for installing OpenShift using the Agent-based Installer, 
 
 The OpenShift Agent-based Installer Helper provides utilities to easily leverage the OpenShift Agent-Based Installer. It supports bare metal, vSphere, and platform=none deployments in SNO/3 Node/HA configurations.
 
-> **Related ADR**: [ADR-0012: Deployment Patterns and Configurations](adr/0012-deployment-patterns-and-configurations.md)
+> **Related ADR**: [ADR-0012: Deployment Patterns and Configurations](adr/0012-deployment-patterns-and-configurations)
 
 ## Prerequisites
 
@@ -265,17 +265,17 @@ oc get pods --all-namespaces
 ## Related Documentation
 
 ### Internal References
-- [Network Configuration](network-configuration.md)
-- [BMC Management](bmc-management.md)
-- [Deployment Patterns](deployment-patterns.md)
-- [Disconnected Installation](disconnected-installation.md)
+- [Network Configuration](network-configuration)
+- [BMC Management](bmc-management)
+- [Deployment Patterns](deployment-patterns)
+- [Disconnected Installation](disconnected-installation)
 
 ### ADR References
-- [ADR-0001: Agent-based Installation Approach](adr/0001-agent-based-installation-approach.md)
-- [ADR-0002: Advanced Networking Configurations](adr/0002-advanced-networking-configurations.md)
-- [ADR-0003: Ansible Automation Approach](adr/0003-ansible-automation-approach.md)
-- [ADR-0004: Disconnected Installation Support](adr/0004-disconnected-installation-support.md)
-- [ADR-0005: ISO Creation and Asset Management](adr/0005-iso-creation-and-asset-management.md)
+- [ADR-0001: Agent-based Installation Approach](adr/0001-agent-based-installation-approach)
+- [ADR-0002: Advanced Networking Configurations](adr/0002-advanced-networking-configurations)
+- [ADR-0003: Ansible Automation Approach](adr/0003-ansible-automation-approach)
+- [ADR-0004: Disconnected Installation Support](adr/0004-disconnected-installation-support)
+- [ADR-0005: ISO Creation and Asset Management](adr/0005-iso-creation-and-asset-management)
 
 ### OpenShift Documentation
 - [OpenShift Agent-Based Installation Overview](https://docs.openshift.com/container-platform/latest/installing/installing_with_agent_based_installer/preparing-to-install-with-agent-based-installer.html)
@@ -316,4 +316,4 @@ oc get pods --all-namespaces
 | Disconnected | ✓ | ✓ | ✓ |
 
 ---
-*Note: For detailed examples of networking configurations (VLAN, Bond, Bond+VLAN), refer to the [Network Configuration Guide](network-configuration.md).*
+*Note: For detailed examples of networking configurations (VLAN, Bond, Bond+VLAN), refer to the [Network Configuration Guide](network-configuration).*

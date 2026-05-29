@@ -396,9 +396,9 @@ oc get nodes
 ---
 
 ## Related Documentation
-- [Bare Metal Production Guide](bare-metal-production-guide.md)
-- [BMC Management Guide](bmc-management.md)
-- [Corporate DNS Integration](corporate-dns-integration.md)
+- [Bare Metal Production Guide](bare-metal-production-guide)
+- [BMC Management Guide](bmc-management)
+- [Corporate DNS Integration](corporate-dns-integration)
 - [Testing Framework Overview](testing-guide)
 - [End-to-End Testing](e2e-testing)
 - [Environment Validation](environment-validation)

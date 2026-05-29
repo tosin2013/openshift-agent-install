@@ -276,12 +276,12 @@ networkConfig:
 ## Related Documentation
 
 ### Internal References
-- [Deployment Patterns ADR](adr/0012-deployment-patterns-and-configurations.md)
-- [Network Configuration Guide](network-configuration.md)
-- [BMC Management Guide](bmc-management.md)
+- [Deployment Patterns ADR](adr/0012-deployment-patterns-and-configurations)
+- [Network Configuration Guide](network-configuration)
+- [BMC Management Guide](bmc-management)
 - [Example Configurations](https://github.com/tosin2013/openshift-agent-install/tree/main/examples)
-- [End-to-End Testing Guide](e2e-testing.md)
-- [Installation Guide](installation-guide.md)
+- [End-to-End Testing Guide](e2e-testing)
+- [Installation Guide](installation-guide)
 
 ### External References
 - [OpenShift 4.17 Documentation](https://docs.openshift.com/container-platform/4.17/welcome/index.html)

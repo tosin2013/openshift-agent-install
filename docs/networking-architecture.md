@@ -538,7 +538,7 @@ sudo virsh net-autostart 1924
 
 ## Further Reading
 
-- [VyOS Manual Configuration](vyos-manual-configuration.md)
-- [DNS Automation (ADR-019)](../DNS_AUTOMATION.md)
+- [VyOS Manual Configuration](vyos-manual-configuration)
+- [DNS Automation (ADR-019)](../DNS_AUTOMATION)
 - [Agent-Based Installer Guide](https://docs.openshift.com/container-platform/latest/installing/installing_with_agent_based_installer/preparing-to-install-with-agent-based-installer.html)
 - [NMState Documentation](https://nmstate.io/)

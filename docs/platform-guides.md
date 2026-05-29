@@ -68,7 +68,7 @@ Additional requirements:
 - [Firewall requirements](https://docs.openshift.com/container-platform/4.14/installing/installing_platform_agnostic/installing-platform-agnostic.html#configuring-firewall)
 - [DNS requirements](https://docs.openshift.com/container-platform/4.14/installing/installing_bare_metal/installing-bare-metal.html#installation-dns-user-infra_installing-bare-metal)
 
-For detailed prerequisites, see our [disconnected-info.md](../disconnected-info.md) guide.
+For detailed prerequisites, see our [disconnected-info.md](../disconnected-info) guide.
 
 ## Quick Start
 
@@ -203,7 +203,7 @@ For more network configuration:
 ### Disconnected Installations
 
 For disconnected environments, see:
-- Local guide: [disconnected-info.md](../disconnected-info.md)
+- Local guide: [disconnected-info.md](../disconnected-info)
 - Example: `examples/vmware-disconnected-example/`
 - [Official disconnected installation guide](https://docs.openshift.com/container-platform/4.14/installing/disconnected_install/installing-disconnected.html)
 - [Mirroring images for disconnected installation](https://docs.openshift.com/container-platform/4.14/installing/installing_with_agent_based_installer/installing-with-agent-based-installer.html#mirroring-images-disconnected-installation_installing-with-agent-based-installer)
@@ -269,8 +269,8 @@ For troubleshooting help:
 
 ## Related Documentation
 
-- [Installation Guide](installation-guide.md)
-- [Network Configuration](network-configuration.md)
+- [Installation Guide](installation-guide)
+- [Network Configuration](network-configuration)
 - [Official OpenShift Agent-based Installation Guide](https://docs.redhat.com/en/documentation/openshift_container_platform/4.12/html-single/installing_an_on-premise_cluster_with_the_agent-based_installer/index)
 - [OpenShift Container Platform Documentation](https://docs.openshift.com/container-platform/4.14/welcome/index.html)
 - [Red Hat Hybrid Cloud Console](https://console.redhat.com/openshift)

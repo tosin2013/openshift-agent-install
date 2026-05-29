@@ -291,8 +291,8 @@ A: dnsmasq is not running. Run `sudo systemctl restart dnsmasq`
 
 ## Related Documentation
 
-- [DNS Automation Implementation](../DNS_AUTOMATION.md)
-- [ADR-019: Automated DNS Configuration](../docs/adr/0019-automated-dns-configuration-dnsmasq.md)
+- [DNS Automation Implementation](../DNS_AUTOMATION)
+- [ADR-019: Automated DNS Configuration](../docs/adr/0019-automated-dns-configuration-dnsmasq)
 - [Developer Guide - DNS Prerequisites](developer-guide.md#hard-requirement-vyos-router)
 - [llm.txt - DNS Configuration](../llm.txt) (search for "DNS")
 

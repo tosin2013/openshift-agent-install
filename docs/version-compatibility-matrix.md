@@ -267,9 +267,9 @@ gh workflow run version-validation.yml \
 
 Version-specific deployment standards are documented separately:
 
-- **4.19**: [docs/deployment-standards-4.19.md](deployment-standards-4.19.md)
-- **4.20**: [docs/deployment-standards-4.20.md](deployment-standards-4.20.md)
-- **4.21**: [docs/deployment-standards-4.21.md](deployment-standards-4.21.md)
+- **4.19**: [docs/deployment-standards-4.19.md](deployment-standards-4.19)
+- **4.20**: [docs/deployment-standards-4.20.md](deployment-standards-4.20)
+- **4.21**: [docs/deployment-standards-4.21.md](deployment-standards-4.21)
 
 Each document covers:
 - Image registry configuration (connected, disconnected, proxy)
@@ -344,9 +344,9 @@ The version validation feature uses **Granite-3-2-8b-instruct** LLM for intellig
 
 ## Additional Resources
 
-- **Feature Documentation**: [docs/version-validation-feature.md](version-validation-feature.md)
-- **Quick Start Guide**: [docs/version-validation-quick-start.md](version-validation-quick-start.md)
-- **Cheat Sheet**: [VERSION_VALIDATION_CHEATSHEET.md](../VERSION_VALIDATION_CHEATSHEET.md)
+- **Feature Documentation**: [docs/version-validation-feature.md](version-validation-feature)
+- **Quick Start Guide**: [docs/version-validation-quick-start.md](version-validation-quick-start)
+- **Cheat Sheet**: [VERSION_VALIDATION_CHEATSHEET.md](../VERSION_VALIDATION_CHEATSHEET)
 - **GitHub Workflow**: [.github/workflows/version-validation.yml](../.github/workflows/version-validation.yml)
 
 ## Release Notes

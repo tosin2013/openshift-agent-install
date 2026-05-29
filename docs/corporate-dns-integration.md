@@ -282,8 +282,8 @@ If your corporate DNS returns different answers depending on the client's networ
 
 ## Related Documentation
 
-- [Fork & Adapt Checklist](fork-and-adapt-checklist.md) — Step 7: Corporate DNS registration
-- [Bare Metal Production Guide](bare-metal-production-guide.md) — Phase 2: DNS registration
-- [DNS Setup Guide](dns-setup.md) — dnsmasq for development environments
-- [DNS Troubleshooting](dns-troubleshooting.md) — Common DNS resolution issues
+- [Fork & Adapt Checklist](fork-and-adapt-checklist) — Step 7: Corporate DNS registration
+- [Bare Metal Production Guide](bare-metal-production-guide) — Phase 2: DNS registration
+- [DNS Setup Guide](dns-setup) — dnsmasq for development environments
+- [DNS Troubleshooting](dns-troubleshooting) — Common DNS resolution issues
 - [Verify DNS Resolution Script](../hack/verify-dns-resolution.sh) — dnsmasq-specific verification (development only)

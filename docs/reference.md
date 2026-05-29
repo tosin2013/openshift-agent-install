@@ -13,9 +13,9 @@ Use reference pages when you already know what you are looking for and need prec
 
 | Reference | Contents |
 |-----------|---------|
-| [Configuration Guide](configuration-guide.md) | All `cluster.yml` and `nodes.yml` parameters |
-| [Reference Configurations](reference-configurations.md) | Example configuration catalog for all deployment patterns |
-| [Version Compatibility Matrix](version-compatibility-matrix.md) | OpenShift version support and API changes across 4.19–4.21 |
-| [Deployment Standards 4.19](deployment-standards-4.19.md) | MUST/SHOULD requirements for OpenShift 4.19 |
-| [Deployment Standards 4.20](deployment-standards-4.20.md) | MUST/SHOULD requirements for OpenShift 4.20 |
-| [Deployment Standards 4.21](deployment-standards-4.21.md) | MUST/SHOULD requirements for OpenShift 4.21 |
+| [Configuration Guide](configuration-guide) | All `cluster.yml` and `nodes.yml` parameters |
+| [Reference Configurations](reference-configurations) | Example configuration catalog for all deployment patterns |
+| [Version Compatibility Matrix](version-compatibility-matrix) | OpenShift version support and API changes across 4.19–4.21 |
+| [Deployment Standards 4.19](deployment-standards-4.19) | MUST/SHOULD requirements for OpenShift 4.19 |
+| [Deployment Standards 4.20](deployment-standards-4.20) | MUST/SHOULD requirements for OpenShift 4.20 |
+| [Deployment Standards 4.21](deployment-standards-4.21) | MUST/SHOULD requirements for OpenShift 4.21 |

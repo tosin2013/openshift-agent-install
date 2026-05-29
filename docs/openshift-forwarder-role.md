@@ -210,7 +210,7 @@ For now, **Option C is implemented** with improved firewall handling.
 
 ## Related Documentation
 
-- **IBM Cloud Deployment**: [docs/ibm-cloud-deployment.md](ibm-cloud-deployment.md)
+- **IBM Cloud Deployment**: [docs/ibm-cloud-deployment.md](ibm-cloud-deployment)
 - **HAProxy Script Reference**: [hack/REFERENCE.md](../hack/REFERENCE.md#configure-haproxy-forwardersh)
 - **Upstream Role**: https://github.com/tosin2013/openshift-forwarder
 - **GitHub Issue #33**: Firewall configuration bug (fixed in our script)

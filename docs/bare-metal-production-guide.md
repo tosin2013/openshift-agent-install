@@ -8,7 +8,7 @@ nav_order: 1
 
 # Bare Metal Production Guide
 
-This guide covers the full production deployment lifecycle for OpenShift on physical bare metal servers. It is the second half of the **Development (KVM) → Fork & Adapt → Production (Bare Metal)** workflow — start with the [Developer Guide](developer-guide.md) and [Fork & Adapt Checklist](fork-and-adapt-checklist.md) before proceeding here.
+This guide covers the full production deployment lifecycle for OpenShift on physical bare metal servers. It is the second half of the **Development (KVM) → Fork & Adapt → Production (Bare Metal)** workflow — start with the [Developer Guide](developer-guide) and [Fork & Adapt Checklist](fork-and-adapt-checklist) before proceeding here.
 
 ## Overview
 
@@ -40,8 +40,8 @@ This guide covers the full production deployment lifecycle for OpenShift on phys
 
 Before starting, verify:
 
-- [ ] All nodes validated on KVM (see [Developer Guide](developer-guide.md))
-- [ ] Fork and Adapt checklist completed (see [Fork & Adapt Checklist](fork-and-adapt-checklist.md))
+- [ ] All nodes validated on KVM (see [Developer Guide](developer-guide))
+- [ ] Fork and Adapt checklist completed (see [Fork & Adapt Checklist](fork-and-adapt-checklist))
 - [ ] `site-config/<cluster-name>/cluster.yml` and `nodes.yml` committed with real hardware values
 - [ ] Red Hat pull secret available at the path set in `cluster.yml`
 - [ ] SSH public key available
@@ -193,7 +193,7 @@ curl -sk -u "root:${BMC_PASSWORD}" \
 
 ## Phase 2: Corporate DNS Registration
 
-OpenShift **requires** these DNS records to exist before any node boots. Register them in your corporate DNS (see [Corporate DNS Integration](corporate-dns-integration.md) for BIND, Infoblox, and AD DNS specifics).
+OpenShift **requires** these DNS records to exist before any node boots. Register them in your corporate DNS (see [Corporate DNS Integration](corporate-dns-integration) for BIND, Infoblox, and AD DNS specifics).
 
 ### Required Records
 
@@ -501,7 +501,7 @@ If the cluster is not directly reachable from the end-user network:
 ./hack/configure-letsencrypt-certs.sh site-config/<cluster-name>/cluster.yml
 ```
 
-See [HAProxy Forwarder Guide](haproxy-forwarder-guide.md) for detailed setup.
+See [HAProxy Forwarder Guide](haproxy-forwarder-guide) for detailed setup.
 
 ---
 
@@ -540,10 +540,10 @@ Common issues:
 
 ## Related Documentation
 
-- [Fork & Adapt Checklist](fork-and-adapt-checklist.md) — Migration checklist from KVM to bare metal
-- [Corporate DNS Integration](corporate-dns-integration.md) — Enterprise DNS registration guide
-- [BMC Management Guide](bmc-management.md) — Real hardware BMC configuration
-- [Developer Guide](developer-guide.md) — KVM development environment setup
-- [Configuration Guide](configuration-guide.md) — All `cluster.yml` and `nodes.yml` parameters
-- [HAProxy Forwarder Guide](haproxy-forwarder-guide.md) — External cluster access
+- [Fork & Adapt Checklist](fork-and-adapt-checklist) — Migration checklist from KVM to bare metal
+- [Corporate DNS Integration](corporate-dns-integration) — Enterprise DNS registration guide
+- [BMC Management Guide](bmc-management) — Real hardware BMC configuration
+- [Developer Guide](developer-guide) — KVM development environment setup
+- [Configuration Guide](configuration-guide) — All `cluster.yml` and `nodes.yml` parameters
+- [HAProxy Forwarder Guide](haproxy-forwarder-guide) — External cluster access
 - [Red Hat ABI Documentation](https://docs.openshift.com/container-platform/latest/installing/installing_with_agent_based_installer/preparing-to-install-with-agent-based-installer.html)

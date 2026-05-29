@@ -330,7 +330,7 @@ After VyOS configuration is complete:
 
 ## Related Documentation
 
-- [DNS Troubleshooting Guide](dns-troubleshooting.md)
+- [DNS Troubleshooting Guide](dns-troubleshooting)
 - [Developer Guide - Hard Requirements](developer-guide.md#hard-requirement-vyos-router)
 - [VyOS Official Documentation](https://docs.vyos.io/)
 - [demo-virt VyOS Configuration Guide](https://github.com/tosin2013/demo-virt/blob/rhpds/demo.redhat.com/docs/step1.md)

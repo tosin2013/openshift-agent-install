@@ -19,7 +19,7 @@ Proper infrastructure setup is crucial for a successful OpenShift deployment. Th
 - BMC Setup
 - Platform-specific Requirements
 
-For disconnected environments, see our [Disconnected Installation Guide](disconnected-installation.md) and the [OpenShift 4 Disconnected Helper](https://github.com/tosin2013/ocp4-disconnected-helper).
+For disconnected environments, see our [Disconnected Installation Guide](disconnected-installation) and the [OpenShift 4 Disconnected Helper](https://github.com/tosin2013/ocp4-disconnected-helper).
 
 ## Hardware Requirements
 
@@ -82,7 +82,7 @@ Examples and configurations available in `examples/` directory. For supported st
 ## BMC Setup
 
 ### Supported Management
-For detailed BMC configuration, see our [BMC Management Guide](bmc-management.md) and:
+For detailed BMC configuration, see our [BMC Management Guide](bmc-management) and:
 - [IPMI Specification](https://www.intel.com/content/www/us/en/products/docs/servers/ipmi/ipmi-second-gen-interface-spec-v2-rev1-1.html)
 - [Redfish API](https://www.dmtf.org/standards/redfish)
 - [Dell iDRAC Guide](https://www.dell.com/support/kbdoc/en-us/000178115/idrac9-versions-and-features)
@@ -108,7 +108,7 @@ Reference our VMware-specific examples in `examples/` directory and [VMware vSph
 
 ## Registry Setup
 
-For container registry setup, see our [Disconnected Installation Guide](disconnected-installation.md) and:
+For container registry setup, see our [Disconnected Installation Guide](disconnected-installation) and:
 - [Red Hat Quay](https://access.redhat.com/documentation/en-us/red_hat_quay/3.10)
 - [Harbor Registry](https://goharbor.io/)
 - [JFrog Artifactory](https://jfrog.com/artifactory/)
@@ -133,9 +133,9 @@ Scripts available in `scripts/` directory for:
 ## Related Documentation
 
 ### Internal References
-- [Disconnected Installation Guide](disconnected-installation.md)
-- [BMC Management Guide](bmc-management.md)
-- [Network Configuration Guide](network-configuration.md)
+- [Disconnected Installation Guide](disconnected-installation)
+- [BMC Management Guide](bmc-management)
+- [Network Configuration Guide](network-configuration)
 ### External References
 - [OpenShift 4.17 Documentation](https://docs.openshift.com/container-platform/4.17/welcome/index.html)
 - [Red Hat Enterprise Linux 9 Documentation](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/9)

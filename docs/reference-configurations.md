@@ -159,10 +159,10 @@ The repository provides several helper scripts for common tasks:
 
 ## Related Documentation
 
-- [Installation Guide](./installation-guide.md)
-- [Network Configuration](./network-configuration.md)
-- [Platform Guides](./platform-guides.md)
-- [Deployment Patterns](./deployment-patterns.md)
+- [Installation Guide](./installation-guide)
+- [Network Configuration](./network-configuration)
+- [Platform Guides](./platform-guides)
+- [Deployment Patterns](./deployment-patterns)
 
 ## External Resources
 

@@ -598,8 +598,8 @@ For production, consider multiple HAProxy instances:
 
 ## Related Documentation
 
-- [Developer Guide](developer-guide.md) - KVM development setup
-- [Installation Guide](installation-guide.md) - Complete deployment walkthrough
+- [Developer Guide](developer-guide) - KVM development setup
+- [Installation Guide](installation-guide) - Complete deployment walkthrough
 - [OpenShift Forwarder Repository](https://github.com/tosin2013/openshift-forwarder)
 - [HAProxy Official Documentation](http://www.haproxy.org/#docs)
 - [AWS Elastic Load Balancing](https://docs.aws.amazon.com/elasticloadbalancing/)

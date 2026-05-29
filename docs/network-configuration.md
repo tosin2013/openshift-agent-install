@@ -130,10 +130,10 @@ The repository provides validation tools to ensure your network configuration is
 
 ## Related Documentation
 
-- [Installation Guide](./installation-guide.md)
-- [Configuration Guide](./configuration-guide.md)
-- [Troubleshooting Guide](./troubleshooting.md)
-- [Advanced Networking](./advanced-networking.md)
+- [Installation Guide](./installation-guide)
+- [Configuration Guide](./configuration-guide)
+- [Troubleshooting Guide](./troubleshooting)
+- [Advanced Networking](./advanced-networking)
 
 ## External Resources
 

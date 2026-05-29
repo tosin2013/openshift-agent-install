@@ -10,7 +10,7 @@ nav_order: 2
 
 This checklist bridges the gap between **KVM development** and **bare metal production**. Work through each section in order. Every item that requires a change maps to a specific file and field so nothing is ambiguous.
 
-For background on the full workflow, see the [Developer Guide](developer-guide.md). For the production deployment steps after this checklist is complete, see the [Bare Metal Production Guide](bare-metal-production-guide.md).
+For background on the full workflow, see the [Developer Guide](developer-guide). For the production deployment steps after this checklist is complete, see the [Bare Metal Production Guide](bare-metal-production-guide).
 
 ---
 
@@ -276,7 +276,7 @@ Never store BMC passwords in plaintext in `nodes.yml` on shared systems.
 
 ## Step 7: Corporate DNS Registration
 
-- [ ] Register DNS records in your corporate DNS server (see [Corporate DNS Integration](corporate-dns-integration.md))
+- [ ] Register DNS records in your corporate DNS server (see [Corporate DNS Integration](corporate-dns-integration))
 
   Required records for `prod-ocp4.corp.example.com` with VIPs `10.0.0.100` / `10.0.0.101`:
 
@@ -349,7 +349,7 @@ export SITE_CONFIG_DIR=site-config
 
 ## Step 10: Deploy to Bare Metal
 
-Proceed to the [Bare Metal Production Guide](bare-metal-production-guide.md) for:
+Proceed to the [Bare Metal Production Guide](bare-metal-production-guide) for:
 
 - Phase 4: ISO Delivery (virtual media / USB / PXE)
 - Phase 5: Boot and Monitor

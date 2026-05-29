@@ -13,7 +13,7 @@ Use explanation pages when you want deeper understanding of architecture, design
 
 | Topic | What it explains |
 |-------|-----------------|
-| [Deployment Patterns](deployment-patterns.md) | SNO, 3-node compact, and HA cluster architectures and when to use each |
-| [Networking Architecture](networking-architecture.md) | How KVM VLAN networking maps to physical network topology |
-| [Testing Guide](testing-guide.md) | The philosophy, strategy, and structure of the testing framework |
-| [Version Compatibility Validation](version-validation-feature.md) | How the LLM-powered version validation feature works |
+| [Deployment Patterns](deployment-patterns) | SNO, 3-node compact, and HA cluster architectures and when to use each |
+| [Networking Architecture](networking-architecture) | How KVM VLAN networking maps to physical network topology |
+| [Testing Guide](testing-guide) | The philosophy, strategy, and structure of the testing framework |
+| [Version Compatibility Validation](version-validation-feature) | How the LLM-powered version validation feature works |

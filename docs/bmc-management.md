@@ -314,9 +314,9 @@ For detailed troubleshooting procedures, refer to:
 ## Related Documentation
 
 ### Internal References
-- [BMC Management and Infrastructure Automation ADR](adr/0008-bmc-management-and-automation.md)
-- [Virtual Infrastructure Testing ADR](adr/0007-virtual-infrastructure-testing.md)
-- [Installation Guide](installation-guide.md)
+- [BMC Management and Infrastructure Automation ADR](adr/0008-bmc-management-and-automation)
+- [Virtual Infrastructure Testing ADR](adr/0007-virtual-infrastructure-testing)
+- [Installation Guide](installation-guide)
 - [Example Configurations](https://github.com/tosin2013/openshift-agent-install/tree/main/examples)
 
 ### OpenShift Documentation

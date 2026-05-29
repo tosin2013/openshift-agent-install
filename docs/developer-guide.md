@@ -655,7 +655,7 @@ Once you have validated a cluster configuration on KVM, use the following guides
 
 ### Step 1: Complete the Fork & Adapt Checklist
 
-The [Fork & Adapt Checklist](fork-and-adapt-checklist.md) walks you through every field that must change when moving from KVM to bare metal:
+The [Fork & Adapt Checklist](fork-and-adapt-checklist) walks you through every field that must change when moving from KVM to bare metal:
 
 - MAC addresses → real hardware MACs
 - Interface names → real NIC names (`eno1`, `enp97s0f0`)
@@ -670,7 +670,7 @@ The [Fork & Adapt Checklist](fork-and-adapt-checklist.md) walks you through ever
 
 ### Step 2: Register Corporate DNS Records
 
-Unlike the KVM workflow (which uses dnsmasq via `configure-dnsmasq-entries.sh`), production bare metal requires DNS records in your corporate DNS server. See [Corporate DNS Integration](corporate-dns-integration.md) for BIND, Infoblox, and Active Directory DNS instructions.
+Unlike the KVM workflow (which uses dnsmasq via `configure-dnsmasq-entries.sh`), production bare metal requires DNS records in your corporate DNS server. See [Corporate DNS Integration](corporate-dns-integration) for BIND, Infoblox, and Active Directory DNS instructions.
 
 ```bash
 # Required records (replace with your values)
@@ -697,7 +697,7 @@ export SITE_CONFIG_DIR=site-config
 
 ### Step 4: Deliver ISO and Boot Physical Servers
 
-The [Bare Metal Production Guide](bare-metal-production-guide.md) covers all ISO delivery methods:
+The [Bare Metal Production Guide](bare-metal-production-guide) covers all ISO delivery methods:
 
 - **Virtual media via Redfish** (iDRAC / iLO) — scriptable, no physical access required
 - **IPMI chassis boot** — for hardware without Redfish
@@ -738,19 +738,19 @@ If managing nodes via Red Hat Advanced Cluster Management after installation, ge
 
 ## Next Steps
 
-1. **Read**: [Installation Guide](installation-guide.md) - Complete deployment walkthrough
-2. **Reference**: [Configuration Guide](configuration-guide.md) - All configuration parameters
-3. **Understand**: [Network Configuration](network-configuration.md) - Detailed networking guide
+1. **Read**: [Installation Guide](installation-guide) - Complete deployment walkthrough
+2. **Reference**: [Configuration Guide](configuration-guide) - All configuration parameters
+3. **Understand**: [Network Configuration](network-configuration) - Detailed networking guide
 4. **Deploy**: Start with `examples/sno-4.20-standard` on KVM
-5. **Adapt**: Follow [Fork & Adapt Checklist](fork-and-adapt-checklist.md) for bare metal
-6. **Validate**: Test on KVM, then proceed to [Bare Metal Production Guide](bare-metal-production-guide.md)
+5. **Adapt**: Follow [Fork & Adapt Checklist](fork-and-adapt-checklist) for bare metal
+6. **Validate**: Test on KVM, then proceed to [Bare Metal Production Guide](bare-metal-production-guide)
 
 ## Related Documentation
 
-- [Fork & Adapt Checklist](fork-and-adapt-checklist.md) - KVM → Bare Metal migration checklist
-- [Bare Metal Production Guide](bare-metal-production-guide.md) - Physical server deployment runbook
-- [Corporate DNS Integration](corporate-dns-integration.md) - Enterprise DNS registration
-- [BMC Management Guide](bmc-management.md) - Real hardware BMC configuration
+- [Fork & Adapt Checklist](fork-and-adapt-checklist) - KVM → Bare Metal migration checklist
+- [Bare Metal Production Guide](bare-metal-production-guide) - Physical server deployment runbook
+- [Corporate DNS Integration](corporate-dns-integration) - Enterprise DNS registration
+- [BMC Management Guide](bmc-management) - Real hardware BMC configuration
 - [VyOS Router Setup (External)](https://github.com/tosin2013/demo-virt/blob/rhpds/demo.redhat.com/docs/step1.md)
 - [OpenShift Forwarder Repository](https://github.com/tosin2013/openshift-forwarder)
 - [Cockpit Documentation](https://cockpit-project.org/documentation.html)

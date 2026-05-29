@@ -29,9 +29,9 @@ This documentation follows the [Diataxis framework](https://diataxis.fr/). Choos
 
 ## Quick Start
 
-**New to this repository?** Start with the [Developer Guide](developer-guide.md) to set up a KVM development environment, then work through the [Installation Guide](installation-guide.md) to deploy your first cluster.
+**New to this repository?** Start with the [Developer Guide](developer-guide) to set up a KVM development environment, then work through the [Installation Guide](installation-guide) to deploy your first cluster.
 
-**Ready for production?** Use the [Fork & Adapt Checklist](fork-and-adapt-checklist.md) to migrate your validated KVM configuration to physical bare metal, then follow the [Bare Metal Production Guide](bare-metal-production-guide.md).
+**Ready for production?** Use the [Fork & Adapt Checklist](fork-and-adapt-checklist) to migrate your validated KVM configuration to physical bare metal, then follow the [Bare Metal Production Guide](bare-metal-production-guide).
 
 ```bash
 # 1. Validate your environment
@@ -67,11 +67,11 @@ This documentation follows the [Diataxis framework](https://diataxis.fr/). Choos
 
 | OpenShift Version | Standards |
 |------------------|-----------|
-| 4.21 | [Deployment Standards 4.21](deployment-standards-4.21.md) — OVNKubernetes mandatory |
-| 4.20 | [Deployment Standards 4.20](deployment-standards-4.20.md) — ImageDigestMirrorSet required |
-| 4.19 | [Deployment Standards 4.19](deployment-standards-4.19.md) — ImageContentSourcePolicy |
+| 4.21 | [Deployment Standards 4.21](deployment-standards-4.21) — OVNKubernetes mandatory |
+| 4.20 | [Deployment Standards 4.20](deployment-standards-4.20) — ImageDigestMirrorSet required |
+| 4.19 | [Deployment Standards 4.19](deployment-standards-4.19) — ImageContentSourcePolicy |
 
-See the [Version Compatibility Matrix](version-compatibility-matrix.md) for full API change history.
+See the [Version Compatibility Matrix](version-compatibility-matrix) for full API change history.
 
 ---
 
