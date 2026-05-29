@@ -18,3 +18,4 @@ Use tutorials when you are new to the OpenShift Agent-Based Installer or want to
 | [Disconnected Installation](disconnected-installation) | Deploy an air-gapped cluster with a local mirror registry |
 | [E2E Testing Guide](e2e-testing) | Run automated end-to-end validation of a cluster deployment |
 | [IBM Cloud Deployment](ibm-cloud-deployment) | Deploy on IBM Cloud bare metal with HAProxy and Route 53 |
+| [Bare Metal Deployment](bare-metal-tutorial) | Deploy OpenShift on physical servers end-to-end from scratch |

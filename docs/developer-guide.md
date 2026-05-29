@@ -7,6 +7,12 @@ nav_order: 1
 
 # Developer Guide - KVM Development Environment
 
+> **Contributions welcome** — KVM hardware configurations, networking setups, and
+> VyOS versions vary. If a step does not work in your environment, please
+> [open an issue](https://github.com/tosin2013/openshift-agent-install/issues) or
+> [submit a PR](https://github.com/tosin2013/openshift-agent-install/blob/main/CONTRIBUTING.md).
+> This applies to both the KVM and bare metal tutorials.
+
 ## Overview
 
 This guide is for developers who want to:
@@ -735,6 +741,13 @@ If managing nodes via Red Hat Advanced Cluster Management after installation, ge
 ```
 
 ---
+
+---
+
+> **Contributions welcome** — If you found a better way to configure KVM networking,
+> a VyOS version quirk, or an edge case not covered here, the community will benefit.
+> [Open an issue](https://github.com/tosin2013/openshift-agent-install/issues) or
+> [submit a PR](https://github.com/tosin2013/openshift-agent-install/blob/main/CONTRIBUTING.md).
 
 ## Next Steps
 

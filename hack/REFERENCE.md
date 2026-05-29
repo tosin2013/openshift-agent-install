@@ -606,6 +606,88 @@ DNS_SERVER=10.0.0.53 SITE_CONFIG_DIR=site-config ./hack/validate-baremetal-env.s
 
 ---
 
+### deploy-iso-baremetal.sh
+
+**Purpose**: Automate ISO delivery to physical bare metal servers via Redfish virtual media or IPMI — the bare metal counterpart to `deploy-on-kvm.sh`
+
+**Usage**:
+```bash
+./hack/deploy-iso-baremetal.sh <nodes.yml> --method <redfish|ipmi|check> [options]
+```
+
+**Parameters**:
+- `nodes.yml`: Path to nodes.yml containing `bmc:` blocks with address, username, password
+- `--method redfish`: Mount ISO via Redfish virtual media (iDRAC 9+ / iLO 5+)
+- `--method ipmi`: Set IPMI chassis boot device to cdrom and power-cycle
+- `--method check`: Test BMC reachability only — no boot action taken
+- `--iso <path>`: Path to agent.x86_64.iso (required for redfish and ipmi methods)
+- `--http-port <port>`: HTTP server port for Redfish ISO serving (default: 8080)
+- `--http-ip <ip>`: Override the IP advertised to BMCs for ISO download
+
+**Environment Variables**:
+- `SITE_CONFIG_DIR`: Config location (default: `examples`)
+- `GENERATED_ASSET_PATH`: ISO output directory (default: `~/generated_assets`)
+- `HTTP_BIND_IP`: HTTP server IP override (auto-detected by default)
+
+**What It Does (Redfish method)**:
+1. Starts a Python HTTP server on the deployment host to serve the ISO
+2. Mounts the ISO on each node's BMC virtual media slot via Redfish API
+3. Sets one-time boot override to virtual CD for each node
+4. Power-cycles each node (ForceRestart, falls back to GracefulRestart)
+5. Stops the HTTP server and prints `wait-for` monitoring commands
+
+**What It Does (IPMI method)**:
+1. Sets chassis boot device to `cdrom` (UEFI mode, falls back to legacy)
+2. Issues chassis power reset on each node
+
+**BMC Address Formats Supported** (from nodes.yml `bmc.address` field):
+```yaml
+# Dell iDRAC 9+
+address: redfish-virtualmedia://10.0.1.10/redfish/v1/Systems/System.Embedded.1
+
+# HPE iLO 5+
+address: redfish-virtualmedia://10.0.1.10/redfish/v1/Systems/1
+
+# Generic IPMI
+address: ipmi://10.0.1.10
+```
+
+**Examples**:
+```bash
+# Deliver ISO via Redfish to all nodes in nodes.yml
+export SITE_CONFIG_DIR=site-config
+./hack/deploy-iso-baremetal.sh site-config/prod-ocp4/nodes.yml \
+    --method redfish \
+    --iso ~/generated_assets/prod-ocp4/agent.x86_64.iso
+
+# Deliver via IPMI (user must pre-stage physical or virtual media)
+./hack/deploy-iso-baremetal.sh site-config/prod-ocp4/nodes.yml \
+    --method ipmi \
+    --iso ~/generated_assets/prod-ocp4/agent.x86_64.iso
+
+# Check BMC reachability only
+./hack/deploy-iso-baremetal.sh site-config/prod-ocp4/nodes.yml --method check
+
+# Custom HTTP port (if 8080 is in use)
+./hack/deploy-iso-baremetal.sh site-config/prod-ocp4/nodes.yml \
+    --method redfish \
+    --iso ~/generated_assets/prod-ocp4/agent.x86_64.iso \
+    --http-port 9090
+```
+
+**Notes**:
+- Firewall: ensure port 8080 (or custom `--http-port`) is open from BMC IPs to the deployment host
+- Passwords are read from `nodes.yml`; use Ansible Vault for production credentials
+- The `check` method is safe to run before generating the ISO
+
+**Related**:
+- [Bare Metal Deployment Tutorial](/docs/bare-metal-tutorial.md)
+- [Bare Metal Production Guide](/docs/bare-metal-production-guide.md)
+- [BMC Management Guide](/docs/bmc-management.md)
+- [validate-baremetal-env.sh](#validate-baremetal-envsh) — run this before deploy-iso-baremetal.sh
+
+---
+
 ### validate-kvm-examples.sh
 
 **Purpose**: Validate all KVM example configurations for DNS, VLAN, and network compliance
