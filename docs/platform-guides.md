@@ -22,6 +22,7 @@ Across various platforms:
 - Bare Metal
 - VMware vSphere
 - Platform None (Generic x86)
+- Nutanix AHV
 
 For detailed topology recommendations, see [Agent-based Installer workflow and recommended resources](https://docs.openshift.com/container-platform/4.14/installing/installing_with_agent_based_installer/preparing-to-install-with-agent-based-installer.html#understanding-agent-based-installer_preparing-to-install-with-agent-based-installer).
 
@@ -186,6 +187,145 @@ nodes:
 ```
 
 Note: Platform `none` is only supported for single-node OpenShift clusters with OVNKubernetes network type. See [Platform support limitations](https://docs.openshift.com/container-platform/4.14/installing/installing_with_agent_based_installer/preparing-to-install-with-agent-based-installer.html#understanding-agent-based-installer_preparing-to-install-with-agent-based-installer).
+
+### Nutanix AHV
+
+The repository includes two Nutanix reference examples:
+
+- `examples/nutanix-sno/` — Single Node OpenShift on Nutanix AHV
+- `examples/nutanix-ha/` — HA cluster (3 masters, 2 workers) on Nutanix AHV
+
+> **Important**: The Agent-Based Installer does **not** create VMs automatically on Nutanix.
+> You must upload the generated ISO to the Nutanix Image Service and create VMs manually
+> in Prism Central, then boot each VM from the ISO.
+
+#### Prerequisites
+
+Before configuring, collect the following from your Nutanix environment:
+
+| Value | Where to find it |
+|-------|-----------------|
+| Prism Central hostname/IP | Prism Central login URL |
+| Prism Element UUID | Prism Central → Infrastructure → Clusters → select cluster → UUID |
+| Subnet UUID | Prism Central → Network & Security → Subnets → select subnet → UUID |
+
+Verify Prism Central connectivity from the deployment host:
+
+```bash
+curl -k -X POST \
+  https://prism-central.example.com:9440/api/nutanix/v3/clusters/list \
+  -H "Content-Type: application/json" \
+  -u admin:changeme \
+  -d '{}'
+```
+
+#### cluster.yml — SNO example (`examples/nutanix-sno/`)
+
+```yaml
+platform_type: nutanix
+cluster_name: nutanix-sno
+base_domain: example.com
+ocp_version: "4.21"          # 4.21+ recommended for Nutanix
+
+# Prism Central connection
+nutanix_prism_central_host: prism-central.example.com
+nutanix_prism_central_port: 9440
+nutanix_prism_central_username: admin
+nutanix_prism_central_password: "changeme"
+
+# Prism Element
+nutanix_prism_element_host: prism-element.example.com
+nutanix_prism_element_port: 9440
+nutanix_prism_element_uuid: "00000000-0000-0000-0000-000000000000"
+
+# Subnet UUID
+nutanix_subnet_uuids:
+  - "subnet-uuid-1234-5678-90ab-cdef"
+
+# SNO: api_vips and app_vips must equal the node IP
+api_vips:
+  - 192.168.1.100
+app_vips:
+  - 192.168.1.100
+
+control_plane_replicas: 1
+app_node_replicas: 0
+rendezvous_ip: 192.168.1.100
+network_type: OVNKubernetes
+machine_network_cidrs:
+  - 192.168.1.0/24
+```
+
+For HA (`examples/nutanix-ha/`), use separate VIPs and increase replicas:
+
+```yaml
+# HA: api_vips and app_vips are separate unused IPs
+api_vips:
+  - 192.168.1.100
+app_vips:
+  - 192.168.1.101
+
+control_plane_replicas: 3
+app_node_replicas: 2
+rendezvous_ip: 192.168.1.110   # IP of the first control plane node
+```
+
+#### nodes.yml — Nutanix-specific notes
+
+Nutanix AHV assigns MAC addresses when VMs are created. The MAC address in `nodes.yml` is a placeholder; the actual MAC is set at VM creation time in Prism Central. The typical interface name is `enp1s0` and the root disk is `/dev/sda`:
+
+```yaml
+nodes:
+  - hostname: nutanix-sno-master-0
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/sda        # Nutanix virtual disk
+    interfaces:
+      - name: enp1s0              # Common AHV interface name; may vary
+        mac-address: "52:54:00:00:00:01"   # Placeholder — Nutanix assigns actual MAC
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.1.100
+                prefix-length: 24
+            dhcp: false
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.1.1
+            next-hop-interface: enp1s0
+            table-id: 254
+```
+
+#### Generate ISO and deploy
+
+```bash
+# Generate the agent ISO
+./hack/create-iso.sh nutanix-sno
+
+# Verify the generated Nutanix platform section in the manifest
+grep -A 20 "^platform:" ~/generated_assets/nutanix-sno/install-config.yaml
+```
+
+Then in Prism Central:
+1. **Upload ISO**: Prism Central → Infrastructure → Images → Add Image → upload `agent.x86_64.iso`
+2. **Create VM**: set vCPU ≥ 8, RAM ≥ 32 GB, disk ≥ 120 GB, attach to the configured subnet, mount the ISO
+3. **Power on** each VM
+4. **Monitor** installation:
+
+```bash
+./bin/openshift-install agent wait-for install-complete \
+  --dir ~/generated_assets/nutanix-sno/ --log-level=info
+```
+
+For more information:
+- [Installing OpenShift on Nutanix](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/installing_on_nutanix/)
+- [Agent-Based Installer on Nutanix](https://docs.redhat.com/en/documentation/openshift_container_platform/4.21/html/installing_an_on-premise_cluster_with_the_agent-based_installer/)
 
 ## Advanced Configurations
 
