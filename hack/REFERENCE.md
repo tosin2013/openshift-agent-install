@@ -562,6 +562,50 @@ VyOS deployment requires manual configuration via Cockpit console. See [VyOS Man
 
 ## Validation & Testing
 
+### validate-baremetal-env.sh
+
+**Purpose**: Pre-flight validation for bare metal OpenShift deployments — mirrors `validate_env.sh` but for physical servers instead of KVM
+
+**Usage**:
+```bash
+./hack/validate-baremetal-env.sh <cluster-config-name>
+SITE_CONFIG_DIR=site-config ./hack/validate-baremetal-env.sh my-production-cluster
+```
+
+**Parameters**:
+- `cluster-config-name`: Directory name in `SITE_CONFIG_DIR` containing `cluster.yml` and `nodes.yml`
+
+**Environment Variables**:
+- `SITE_CONFIG_DIR`: Config location (default: `examples`)
+- `GENERATED_ASSET_PATH`: ISO output directory (default: `~/generated_assets`)
+- `DNS_SERVER`: DNS server to test against (auto-detected from cluster.yml `dns_servers`)
+
+**What It Checks**:
+1. Required tools: `dig`, `ipmitool`, `yq`, `nmstatectl`, `openssl`
+2. Config files exist and key fields are populated
+3. Corporate DNS records resolve: `api.*`, `api-int.*`, `*.apps.*`
+4. API and App VIPs are within `machine_network_cidrs`
+5. BMC IP addresses are network-reachable (ping)
+6. NMState `networkConfig` syntax is valid
+7. SSH public key and pull secret are readable
+8. Node count matches `control_plane_replicas` / `app_node_replicas`
+
+**Examples**:
+```bash
+# Validate production cluster config
+SITE_CONFIG_DIR=site-config ./hack/validate-baremetal-env.sh prod-ocp4
+
+# Validate with explicit DNS server
+DNS_SERVER=10.0.0.53 SITE_CONFIG_DIR=site-config ./hack/validate-baremetal-env.sh prod-ocp4
+```
+
+**Related**:
+- [Bare Metal Production Guide](/docs/bare-metal-production-guide.md)
+- [Fork & Adapt Checklist](/docs/fork-and-adapt-checklist.md)
+- [Corporate DNS Integration](/docs/corporate-dns-integration.md)
+
+---
+
 ### validate-kvm-examples.sh
 
 **Purpose**: Validate all KVM example configurations for DNS, VLAN, and network compliance

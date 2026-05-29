@@ -2,8 +2,8 @@
 layout: default
 title: Disconnected Installation
 description: Guide for installing OpenShift in disconnected and air-gapped environments
-parent: Deployment Guides
-nav_order: 2
+parent: Tutorials
+nav_order: 3
 ---
 
 # Disconnected Installation Guide

@@ -1,8 +1,8 @@
 ---
 layout: default
 title: "DNS Troubleshooting Guide"
-parent: Testing & Validation
-nav_order: 5
+parent: How-to Guides
+nav_order: 6
 ---
 
 # DNS Troubleshooting Guide

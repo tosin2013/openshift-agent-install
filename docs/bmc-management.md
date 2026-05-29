@@ -1,8 +1,8 @@
 ---
 layout: default
 title: BMC Management Guide
-parent: Configuration
-nav_order: 4
+parent: How-to Guides
+nav_order: 9
 ---
 
 # BMC Management Guide
@@ -105,6 +105,138 @@ sudo podman generate systemd --restart-policy=always --new -n sushy-emulator > \
 sudo systemctl daemon-reload
 sudo systemctl enable --now sushy-emulator
 ```
+
+## Real Hardware BMC Configuration
+
+This section covers connecting to and managing physical server BMCs (iDRAC, iLO, IPMI) for production bare metal deployments. For KVM development, see [Testing Environment](#testing-environment) below.
+
+### Address Schemes in nodes.yml
+
+The `bmc.address` field in `nodes.yml` determines which protocol the Agent-Based Installer uses:
+
+```yaml
+# iDRAC 9+ (Dell) — Redfish virtual media (recommended)
+bmc:
+  address: redfish-virtualmedia://10.0.1.10/redfish/v1/Systems/System.Embedded.1
+  username: root
+  password: "changeme"
+  disableCertificateVerification: true
+
+# HPE iLO 5+ — Redfish virtual media
+bmc:
+  address: redfish-virtualmedia://10.0.1.11/redfish/v1/Systems/1
+  username: Administrator
+  password: "changeme"
+  disableCertificateVerification: true
+
+# Generic IPMI — falls back to IPMI chassis boot
+bmc:
+  address: ipmi://10.0.1.12
+  username: ADMIN
+  password: "changeme"
+```
+
+### Verify BMC Connectivity
+
+```bash
+# Test IPMI connectivity (all vendors)
+ipmitool -I lanplus -H <bmc-ip> -U <user> -P "${BMC_PASSWORD}" power status
+
+# Test Redfish API (Dell iDRAC)
+curl -sk -u "root:${BMC_PASSWORD}" \
+  https://<idrac-ip>/redfish/v1/Systems/System.Embedded.1 \
+  | python3 -m json.tool | grep -E "PowerState|Name"
+
+# Test Redfish API (HPE iLO)
+curl -sk -u "Administrator:${BMC_PASSWORD}" \
+  https://<ilo-ip>/redfish/v1/Systems/1 \
+  | python3 -m json.tool | grep -E "PowerState|Model"
+```
+
+### Dell iDRAC — Virtual Media ISO Mount
+
+Serve the agent ISO over HTTP, then mount it via iDRAC Redfish:
+
+```bash
+# Serve ISO on port 8080
+python3 -m http.server 8080 --directory ~/generated_assets/<cluster-name> &
+
+ISO_URL="http://<deployment-host>:8080/agent.x86_64.iso"
+IDRAC="10.0.1.10"
+AUTH="root:${BMC_PASSWORD}"
+
+# Mount virtual CD
+curl -sk -u "${AUTH}" -X POST \
+  "https://${IDRAC}/redfish/v1/Managers/iDRAC.Embedded.1/VirtualMedia/CD/Actions/VirtualMedia.InsertMedia" \
+  -H "Content-Type: application/json" \
+  -d "{\"Image\": \"${ISO_URL}\", \"Inserted\": true, \"WriteProtected\": true}"
+
+# Set boot device to CD (once)
+curl -sk -u "${AUTH}" -X PATCH \
+  "https://${IDRAC}/redfish/v1/Systems/System.Embedded.1" \
+  -H "Content-Type: application/json" \
+  -d '{"Boot": {"BootSourceOverrideTarget": "Cd", "BootSourceOverrideEnabled": "Once"}}'
+
+# Power cycle
+curl -sk -u "${AUTH}" -X POST \
+  "https://${IDRAC}/redfish/v1/Systems/System.Embedded.1/Actions/ComputerSystem.Reset" \
+  -H "Content-Type: application/json" \
+  -d '{"ResetType": "ForceRestart"}'
+```
+
+### HPE iLO — Virtual Media ISO Mount
+
+```bash
+ISO_URL="http://<deployment-host>:8080/agent.x86_64.iso"
+ILO="10.0.1.11"
+AUTH="Administrator:${BMC_PASSWORD}"
+
+# Mount virtual CD
+curl -sk -u "${AUTH}" -X POST \
+  "https://${ILO}/redfish/v1/Managers/1/VirtualMedia/2/Actions/VirtualMedia.InsertMedia" \
+  -H "Content-Type: application/json" \
+  -d "{\"Image\": \"${ISO_URL}\"}"
+
+# Set one-time boot to CD
+curl -sk -u "${AUTH}" -X PATCH \
+  "https://${ILO}/redfish/v1/Systems/1" \
+  -H "Content-Type: application/json" \
+  -d '{"Boot": {"BootSourceOverrideTarget": "Cd", "BootSourceOverrideEnabled": "Once"}}'
+
+# Reset
+curl -sk -u "${AUTH}" -X POST \
+  "https://${ILO}/redfish/v1/Systems/1/Actions/ComputerSystem.Reset" \
+  -H "Content-Type: application/json" \
+  -d '{"ResetType": "GracefulRestart"}'
+```
+
+### IPMI Chassis Boot (Fallback)
+
+For hardware that does not support Redfish virtual media:
+
+```bash
+# Set boot to virtual CD and power on
+ipmitool -I lanplus -H <bmc-ip> -U <user> -P "${BMC_PASSWORD}" \
+  chassis bootdev cdrom options=efiboot
+
+ipmitool -I lanplus -H <bmc-ip> -U <user> -P "${BMC_PASSWORD}" \
+  chassis power reset
+```
+
+### ACM BareMetalHost Resource Generation
+
+After installation, if using Red Hat Advanced Cluster Management (ACM), generate `BareMetalHost` and `Secret` resources from your `nodes.yml`:
+
+```bash
+./hack/generate_bmc_acm_hosts.py \
+  site-config/<cluster-name>/nodes.yml \
+  ~/generated_assets/<cluster-name>/bmc-hosts.yaml
+
+# Apply to ACM hub
+oc apply -f ~/generated_assets/<cluster-name>/bmc-hosts.yaml
+```
+
+---
 
 ## Testing Environment
 

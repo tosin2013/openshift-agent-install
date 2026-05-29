@@ -2,8 +2,8 @@
 layout: default
 title: Reference Configurations
 description: Reference configurations for the OpenShift Agent-based Installation Helper
-parent: Deployment Guides
-nav_order: 4
+parent: Reference
+nav_order: 2
 ---
 
 # Reference Configurations
@@ -150,12 +150,11 @@ The repository provides several helper scripts for common tasks:
 # Generate installation media
 ./hack/create-iso.sh <cluster-dir>
 
-# Validate configuration
-./hack/validate-config.sh <cluster-dir>
+# Validate deployment standards (manifest compliance)
+./hack/validate-deployment-standards.sh ~/generated_assets/<cluster-dir> <ocp-version>
 
-# Deploy using Ansible
-cd playbooks/
-ansible-playbook -e "@../my-cluster/cluster.yml" deploy.yml
+# Deploy to KVM
+./hack/deploy-on-kvm.sh <cluster-dir>/nodes.yml --redfish
 ```
 
 ## Related Documentation

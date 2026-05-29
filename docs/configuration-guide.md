@@ -2,7 +2,7 @@
 layout: default
 title: Configuration Reference
 description: Comprehensive configuration guide for OpenShift Agent-based installations
-parent: Configuration
+parent: Reference
 nav_order: 1
 ---
 

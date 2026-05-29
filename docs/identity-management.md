@@ -2,8 +2,8 @@
 layout: default
 title: Identity Management
 description: Guide for configuring identity management in OpenShift Agent-based installations
-parent: Advanced Topics
-nav_order: 2
+parent: How-to Guides
+nav_order: 13
 ---
 
 # Identity Management Guide

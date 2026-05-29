@@ -2,7 +2,7 @@
 layout: default
 title: Platform Guides
 description: Platform-specific guides for OpenShift Agent-based installations using the helper utilities
-parent: Deployment Guides
+parent: How-to Guides
 nav_order: 3
 ---
 
@@ -76,7 +76,7 @@ The fastest way to get started is using our example configurations:
 
 ```bash
 # Clone the repository
-git clone https://github.com/kenmoini/openshift-agent-install.git
+git clone https://github.com/tosin2013/openshift-agent-install.git
 cd openshift-agent-install
 
 # Download OpenShift CLI tools

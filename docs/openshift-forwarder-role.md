@@ -1,3 +1,11 @@
+---
+layout: default
+title: OpenShift Forwarder Role
+description: Use the openshift-forwarder Ansible role directly for HAProxy configuration
+parent: How-to Guides
+nav_order: 12
+---
+
 # Using the openshift-forwarder Ansible Role
 
 ## Overview

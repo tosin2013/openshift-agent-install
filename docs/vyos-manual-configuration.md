@@ -1,8 +1,8 @@
 ---
 layout: default
 title: "VyOS Router Manual Configuration Guide"
-parent: Getting Started
-nav_order: 4
+parent: How-to Guides
+nav_order: 10
 ---
 
 # VyOS Router Manual Configuration Guide

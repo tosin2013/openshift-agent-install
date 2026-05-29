@@ -1,8 +1,8 @@
 ---
 layout: default
 title: "Networking Architecture for KVM Deployments"
-parent: Advanced Topics
-nav_order: 1
+parent: Explanation
+nav_order: 2
 ---
 
 # Networking Architecture for KVM Deployments

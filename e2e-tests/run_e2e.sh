@@ -1,6 +1,8 @@
 #!/bin/bash
 
-# This script runs end-to-end tests targeting OpenShift 4.18
+# This script runs end-to-end tests for OpenShift Agent-Based Installer.
+# DNS is managed by dnsmasq (hack/setup-dnsmasq.sh + hack/configure-dnsmasq-entries.sh).
+# FreeIPA is no longer required.
 export PS4='+(${BASH_SOURCE}:${LINENO}): ${FUNCNAME[0]:+${FUNCNAME[0]}(): }'
 set -x
 set -e
@@ -12,11 +14,14 @@ YELLOW='\033[1;33m'
 BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
-if [ -f hack/freeipa_vars.sh ]; then
-  source hack/freeipa_vars.sh
-else 
+# DNS is now managed by dnsmasq — verify it is configured before proceeding.
+if ! systemctl is-active --quiet dnsmasq; then
+  echo "Error: dnsmasq is not running. Run: sudo ./hack/setup-dnsmasq.sh"
   exit 1
 fi
+
+# Source common DNS domain from cluster config (set externally or default)
+DOMAIN="${DOMAIN:-example.com}"
 
 # Print with color
 print_status() {
@@ -37,15 +42,6 @@ print_info() {
     echo -e "${BLUE}$1${NC}"
 }
 
-function check_freeipa() {
-    export vm_name="freeipa"
-    export ip_address=$(sudo kcli info vm "$vm_name" "$vm_name" | grep ip: | awk '{print $2}' | head -1)
-    if [ -z "$ip_address" ]; then
-        echo "Error: FreeIPA VM IP address not found"
-        exit 1
-    fi
-    echo "FreeIPA IP address: $ip_address"
-}
 # --- Core Test Functions ---
 
 create_test_iso() {
@@ -58,28 +54,26 @@ create_test_iso() {
         exit 1
     fi
 
-    # Prepend examples/ if the path doesn't start with it or site-config/
-    if [[ ! "$config_dir" =~ ^(examples|site-config)/ ]]; then
-        config_dir="$config_dir"
-    fi
-
-    # updating dns server in the config
-    check_freeipa
+    # Resolve config path
     if [[ ! "$config_dir" =~ ^(examples|site-config)/ ]]; then
         config_path="examples/${config_dir}/cluster.yml"
     else
         config_path="${config_dir}/cluster.yml"
     fi
+
+    # Update base_domain in the cluster config to match the environment domain
     yq e -i '.base_domain = "'${DOMAIN}'"' "$config_path" || print_status "Failed to update base domain in cluster.yml" 1
-    yq e -i '.dns_servers[0] = "'${ip_address}'"' "$config_path" || print_status "Failed to update dns server in cluster.yml" 1
-    yq e -i 'del(.dns_servers[1])' "$config_path" || print_status "Failed to delete dns server in cluster.yml" 1
+
+    # Configure dnsmasq DNS entries for this cluster
+    sudo ./hack/configure-dnsmasq-entries.sh add "$config_path" || print_status "Failed to configure dnsmasq DNS entries" 1
+
+    # Verify DNS resolves before generating ISO
+    ./hack/verify-dns-resolution.sh "$config_path" || print_status "DNS verification failed — check dnsmasq" 1
 
     ./hack/create-iso.sh "$config_dir" || print_status "Failed to create ISO" 1
 
-print_status "Test ISO created successfully" 0
-echo "Config dir used: $config_dir"
-
-./hack/configure_dns_entries.sh $config_dir || print_status "Failed to configure DNS entries" 1
+    print_status "Test ISO created successfully" 0
+    echo "Config dir used: $config_dir"
 }
 
 deploy_test_vms() {

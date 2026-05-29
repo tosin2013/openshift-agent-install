@@ -2,8 +2,8 @@
 layout: default
 title: End-to-End Testing Guide
 description: Comprehensive guide for running end-to-end tests with the OpenShift Agent Install Helper
-parent: Testing & Validation
-nav_order: 2
+parent: Tutorials
+nav_order: 4
 ---
 
 # End-to-End Testing Guide

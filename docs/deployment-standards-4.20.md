@@ -2,7 +2,7 @@
 layout: default
 title: "Deployment Standards: OpenShift 4.20"
 parent: Reference
-nav_order: 6
+nav_order: 5
 ---
 
 # OpenShift 4.20 Deployment Pattern Standards

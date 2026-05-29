@@ -2,8 +2,8 @@
 layout: default
 title: Environment Validation Guide
 description: Guide for validating the OpenShift Agent Install Helper environment
-parent: Testing & Validation
-nav_order: 3
+parent: How-to Guides
+nav_order: 14
 ---
 
 # Environment Validation Guide

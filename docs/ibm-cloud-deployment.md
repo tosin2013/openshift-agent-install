@@ -1,3 +1,11 @@
+---
+layout: default
+title: IBM Cloud Deployment
+description: Deploy OpenShift on IBM Cloud bare metal with HAProxy forwarder and Route 53 DNS
+parent: Tutorials
+nav_order: 5
+---
+
 # IBM Cloud Deployment with Route 53 DNS Integration
 
 **Author**: OpenShift Agent Install Contributors  

@@ -1,8 +1,8 @@
 ---
 layout: default
-title: Getting Started
-nav_order: 2
-has_children: true
+title: Developer Guide
+parent: Tutorials
+nav_order: 1
 ---
 
 # Developer Guide - KVM Development Environment
@@ -649,18 +649,108 @@ ping -c 3 8.8.8.8
 sudo iptables -t nat -L -v
 ```
 
+## Phase 4B: Moving to Bare Metal Production
+
+Once you have validated a cluster configuration on KVM, use the following guides to migrate that configuration to production physical servers.
+
+### Step 1: Complete the Fork & Adapt Checklist
+
+The [Fork & Adapt Checklist](fork-and-adapt-checklist.md) walks you through every field that must change when moving from KVM to bare metal:
+
+- MAC addresses → real hardware MACs
+- Interface names → real NIC names (`eno1`, `enp97s0f0`)
+- BMC addresses → real iDRAC/iLO/IPMI endpoints
+- DNS servers → corporate DNS (not libvirt `192.168.122.1`)
+- VIPs → real IPs on your production network
+
+```bash
+# Start here — work through every checkbox
+# docs/fork-and-adapt-checklist.md
+```
+
+### Step 2: Register Corporate DNS Records
+
+Unlike the KVM workflow (which uses dnsmasq via `configure-dnsmasq-entries.sh`), production bare metal requires DNS records in your corporate DNS server. See [Corporate DNS Integration](corporate-dns-integration.md) for BIND, Infoblox, and Active Directory DNS instructions.
+
+```bash
+# Required records (replace with your values)
+# api.<cluster>.<domain>     A  <api-vip>
+# api-int.<cluster>.<domain> A  <api-vip>
+# *.apps.<cluster>.<domain>  A  <app-vip>
+```
+
+Verify DNS from the deployment host **before** generating the ISO:
+
+```bash
+DNS_SERVER="10.0.0.53"   # your corporate DNS
+CLUSTER="prod-ocp4.corp.example.com"
+dig +short @${DNS_SERVER} api.${CLUSTER}
+dig +short @${DNS_SERVER} test.apps.${CLUSTER}
+```
+
+### Step 3: Generate ISO with Production Config
+
+```bash
+export SITE_CONFIG_DIR=site-config
+./hack/create-iso.sh <cluster-name>
+```
+
+### Step 4: Deliver ISO and Boot Physical Servers
+
+The [Bare Metal Production Guide](bare-metal-production-guide.md) covers all ISO delivery methods:
+
+- **Virtual media via Redfish** (iDRAC / iLO) — scriptable, no physical access required
+- **IPMI chassis boot** — for hardware without Redfish
+- **USB boot** — fallback for environments without working BMC virtual media
+- **PXE** — for s390x or large-scale automation
+
+```bash
+# Example: mount ISO via iDRAC Redfish and boot
+ISO_URL="http://<deployment-host>:8080/agent.x86_64.iso"
+curl -sk -u "root:${BMC_PASSWORD}" -X POST \
+  "https://<idrac-ip>/redfish/v1/Managers/iDRAC.Embedded.1/VirtualMedia/CD/Actions/VirtualMedia.InsertMedia" \
+  -H "Content-Type: application/json" \
+  -d "{\"Image\": \"${ISO_URL}\", \"Inserted\": true, \"WriteProtected\": true}"
+```
+
+### Step 5: Monitor Installation
+
+```bash
+# Same monitoring commands as KVM — no watch-and-reboot-kvm-vms.sh needed on bare metal
+./bin/openshift-install agent wait-for bootstrap-complete \
+  --dir ~/generated_assets/<cluster-name>/
+
+./bin/openshift-install agent wait-for install-complete \
+  --dir ~/generated_assets/<cluster-name>/
+```
+
+### ACM / BareMetalHost Integration
+
+If managing nodes via Red Hat Advanced Cluster Management after installation, generate `BareMetalHost` resources from your `nodes.yml`:
+
+```bash
+./hack/generate_bmc_acm_hosts.py \
+  site-config/<cluster-name>/nodes.yml \
+  ~/generated_assets/<cluster-name>/bmc-hosts.yaml
+```
+
+---
+
 ## Next Steps
 
 1. **Read**: [Installation Guide](installation-guide.md) - Complete deployment walkthrough
 2. **Reference**: [Configuration Guide](configuration-guide.md) - All configuration parameters
 3. **Understand**: [Network Configuration](network-configuration.md) - Detailed networking guide
 4. **Deploy**: Start with `examples/sno-4.20-standard` on KVM
-5. **Adapt**: Fork repository and create organization-specific configurations
-6. **Validate**: Test on KVM before bare metal deployment
+5. **Adapt**: Follow [Fork & Adapt Checklist](fork-and-adapt-checklist.md) for bare metal
+6. **Validate**: Test on KVM, then proceed to [Bare Metal Production Guide](bare-metal-production-guide.md)
 
 ## Related Documentation
 
+- [Fork & Adapt Checklist](fork-and-adapt-checklist.md) - KVM → Bare Metal migration checklist
+- [Bare Metal Production Guide](bare-metal-production-guide.md) - Physical server deployment runbook
+- [Corporate DNS Integration](corporate-dns-integration.md) - Enterprise DNS registration
+- [BMC Management Guide](bmc-management.md) - Real hardware BMC configuration
 - [VyOS Router Setup (External)](https://github.com/tosin2013/demo-virt/blob/rhpds/demo.redhat.com/docs/step1.md)
 - [OpenShift Forwarder Repository](https://github.com/tosin2013/openshift-forwarder)
 - [Cockpit Documentation](https://cockpit-project.org/documentation.html)
-- [Bare Metal Deployment Guide](deployment-patterns.md#bare-metal)

@@ -278,14 +278,71 @@ dig @localhost console-openshift-console.apps.sno-4-20.example.com
 ```
 This is **required** for Agent-Based Installer - VMs will shut down after writing OS to disk but won't automatically reboot without this script.
 
-#### Option B: Physical/vSphere Deployment
+#### Option B: Physical / Bare Metal Deployment
 
-**Purpose**: Deploy to bare metal or vSphere infrastructure
+**Purpose**: Deploy to physical bare metal servers using real BMC hardware
+
+**ISO Location**: `~/generated_assets/${CLUSTER_NAME}/agent.x86_64.iso`
+
+**ISO Delivery Methods** (choose one):
+
+1. **Virtual Media via Redfish (iDRAC/iLO)** — recommended, scriptable:
+   ```bash
+   # Serve ISO over HTTP
+   python3 -m http.server 8080 --directory ~/generated_assets/${CLUSTER_NAME} &
+   ISO_URL="http://<deploy-host>:8080/agent.x86_64.iso"
+
+   # Mount and boot (iDRAC example — repeat per node)
+   curl -sk -u "root:${BMC_PASSWORD}" -X POST \
+     "https://<idrac-ip>/redfish/v1/Managers/iDRAC.Embedded.1/VirtualMedia/CD/Actions/VirtualMedia.InsertMedia" \
+     -H "Content-Type: application/json" \
+     -d "{\"Image\": \"${ISO_URL}\", \"Inserted\": true, \"WriteProtected\": true}"
+   curl -sk -u "root:${BMC_PASSWORD}" -X PATCH \
+     "https://<idrac-ip>/redfish/v1/Systems/System.Embedded.1" \
+     -H "Content-Type: application/json" \
+     -d '{"Boot": {"BootSourceOverrideTarget": "Cd", "BootSourceOverrideEnabled": "Once"}}'
+   curl -sk -u "root:${BMC_PASSWORD}" -X POST \
+     "https://<idrac-ip>/redfish/v1/Systems/System.Embedded.1/Actions/ComputerSystem.Reset" \
+     -H "Content-Type: application/json" \
+     -d '{"ResetType": "ForceRestart"}'
+   ```
+
+2. **IPMI chassis boot** (fallback):
+   ```bash
+   ipmitool -I lanplus -H <bmc-ip> -U <user> -P "${BMC_PASSWORD}" \
+     chassis bootdev cdrom options=efiboot
+   ipmitool -I lanplus -H <bmc-ip> -U <user> -P "${BMC_PASSWORD}" \
+     chassis power reset
+   ```
+
+3. **USB boot** (manual fallback):
+   ```bash
+   sudo dd if=~/generated_assets/${CLUSTER_NAME}/agent.x86_64.iso \
+           of=/dev/sdX bs=4M status=progress oflag=sync
+   ```
+
+4. **PXE** (advanced, required for s390x):
+   ```bash
+   ./bin/openshift-install agent create pxe-files \
+     --dir ~/generated_assets/${CLUSTER_NAME}
+   ```
+
+**Key differences vs KVM**:
+- No `watch-and-reboot-kvm-vms.sh` needed — `platform_type: baremetal` uses keepalived + BMC
+- DNS must be in corporate DNS, not dnsmasq (see docs/corporate-dns-integration.md)
+- BMC addresses in nodes.yml must use real iDRAC/iLO/IPMI endpoints
+
+**Full runbook**: `docs/bare-metal-production-guide.md`
+**Migration checklist**: `docs/fork-and-adapt-checklist.md`
+
+#### Option C: vSphere Deployment
+
+**Purpose**: Deploy to VMware vSphere infrastructure
 
 **Process**:
 1. Copy generated ISO to accessible location
-2. Attach ISO to physical servers or vSphere VMs
-3. Boot servers from ISO
+2. Attach ISO to vSphere VMs
+3. Boot VMs from ISO
 4. Installation proceeds automatically
 
 **ISO Location**: `~/generated_assets/${CLUSTER_NAME}/agent.x86_64.iso`

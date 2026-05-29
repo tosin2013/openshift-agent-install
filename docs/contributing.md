@@ -2,8 +2,8 @@
 layout: default
 title: Contributing Guide
 description: Guide for contributing to the OpenShift Agent Install Helper project and documentation
-parent: Reference
-nav_order: 2
+parent: How-to Guides
+nav_order: 18
 ---
 
 # Contributing Guide

@@ -10,9 +10,22 @@ node_five_mac: EC:F4:BB:C0:B9:CC
 node_six_mac: EC:F4:BB:C0:B9:CD
 
 # nodes defines the nodes to use for the cluster
+#
+# BMC address schemes for real hardware:
+#   iDRAC 9+ (Dell):  redfish-virtualmedia://10.0.1.10/redfish/v1/Systems/System.Embedded.1
+#   HPE iLO:          redfish-virtualmedia://10.0.1.10/redfish/v1/Systems/1
+#   Generic IPMI:     ipmi://10.0.1.10
+#
+# Remove or comment out the bmc: block when deploying to KVM (use deploy-on-kvm.sh instead).
+# BMC credentials should be stored in Ansible Vault or exported as environment variables.
 nodes:
   - hostname: node-1
     role: master
+    # bmc:
+    #   address: redfish-virtualmedia://192.168.180.10/redfish/v1/Systems/System.Embedded.1
+    #   username: root
+    #   password: "changeme"    # use Ansible Vault in production
+    #   disableCertificateVerification: true
     rootDeviceHints:
       deviceName: /dev/nvme0n1
     interfaces:
@@ -38,6 +51,11 @@ nodes:
             table-id: 254
   - hostname: node-2
     role: master
+    # bmc:
+    #   address: redfish-virtualmedia://192.168.180.11/redfish/v1/Systems/System.Embedded.1
+    #   username: root
+    #   password: "changeme"
+    #   disableCertificateVerification: true
     rootDeviceHints:
       deviceName: /dev/nvme0n1
     interfaces:
@@ -63,6 +81,11 @@ nodes:
             table-id: 254
   - hostname: node-3
     role: master
+    # bmc:
+    #   address: redfish-virtualmedia://192.168.180.12/redfish/v1/Systems/System.Embedded.1
+    #   username: root
+    #   password: "changeme"
+    #   disableCertificateVerification: true
     rootDeviceHints:
       deviceName: /dev/nvme0n1
     interfaces:
@@ -88,6 +111,11 @@ nodes:
             table-id: 254
   - hostname: node-4
     role: worker
+    # bmc:
+    #   address: redfish-virtualmedia://192.168.180.13/redfish/v1/Systems/System.Embedded.1
+    #   username: root
+    #   password: "changeme"
+    #   disableCertificateVerification: true
     rootDeviceHints:
       deviceName: /dev/nvme0n1
     interfaces:
@@ -113,6 +141,11 @@ nodes:
             table-id: 254
   - hostname: node-5
     role: worker
+    # bmc:
+    #   address: redfish-virtualmedia://192.168.180.14/redfish/v1/Systems/System.Embedded.1
+    #   username: root
+    #   password: "changeme"
+    #   disableCertificateVerification: true
     rootDeviceHints:
       deviceName: /dev/nvme0n1
     interfaces:
@@ -138,6 +171,11 @@ nodes:
             table-id: 254
   - hostname: node-6
     role: worker
+    # bmc:
+    #   address: redfish-virtualmedia://192.168.180.15/redfish/v1/Systems/System.Embedded.1
+    #   username: root
+    #   password: "changeme"
+    #   disableCertificateVerification: true
     rootDeviceHints:
       deviceName: /dev/nvme0n1
     interfaces:
