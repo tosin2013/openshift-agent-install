@@ -46,6 +46,49 @@ fi
 
 LIBVIRT_LIKE_OPTIONS="--connect=qemu:///system -v --memballoon none --cpu host-passthrough --autostart --noautoconsole --virt-type kvm --features kvm_hidden=on --controller type=scsi,model=virtio-scsi --cdrom=/var/lib/libvirt/images/agent.x86_64.iso --os-variant=fedora-coreos-stable --events on_reboot=restart --graphics vnc,listen=0.0.0.0,tlsport=,defaultMode='insecure' --console pty,target_type=serial"
 
+# Function to configure DNS forwarders in libvirt network
+configure_dns_forwarders() {
+    echo "============================================================="
+    echo "Configuring DNS forwarders in libvirt network..."
+    echo "============================================================="
+
+    # Check if forwarders already configured
+    if sudo virsh net-dumpxml default | grep -q "<forwarder"; then
+        echo "✓ DNS forwarders already configured"
+        return 0
+    fi
+
+    # Dump current network config
+    sudo virsh net-dumpxml default > /tmp/libvirt-default-net.xml
+
+    # Add DNS forwarders to the <dns> section
+    # Use sed to add forwarders after the <dns> tag
+    if grep -q "<dns>" /tmp/libvirt-default-net.xml; then
+        # DNS section exists, add forwarders
+        sed -i 's|<dns>|<dns forwardPlainNames="yes">\n    <forwarder addr="8.8.8.8"/>\n    <forwarder addr="8.8.4.4"/>|' /tmp/libvirt-default-net.xml
+    else
+        # No DNS section, add it before </network>
+        sed -i 's|</network>|  <dns forwardPlainNames="yes">\n    <forwarder addr="8.8.8.8"/>\n    <forwarder addr="8.8.4.4"/>\n  </dns>\n</network>|' /tmp/libvirt-default-net.xml
+    fi
+
+    # Apply the updated configuration
+    echo "Applying DNS forwarder configuration..."
+    sudo virsh net-destroy default 2>/dev/null || true
+    sudo virsh net-define /tmp/libvirt-default-net.xml
+    sudo virsh net-start default
+    sudo virsh net-autostart default
+
+    # Test external DNS resolution
+    if dig +short @192.168.122.1 quay.io > /dev/null 2>&1; then
+        echo "✓ DNS forwarders configured successfully"
+        echo "  libvirt dnsmasq can now resolve external domains"
+    else
+        echo "⚠ DNS forwarder configuration may need verification"
+    fi
+
+    echo ""
+}
+
 # Function to configure DNS entries in libvirt network
 configure_cluster_dns() {
     local cluster_config=$1
@@ -261,6 +304,9 @@ fi
 
 if [ -f "$CLUSTER_CONFIG_FILE" ]; then
     echo "Using cluster config: $CLUSTER_CONFIG_FILE"
+
+    # Configure DNS forwarders (enables external DNS resolution)
+    configure_dns_forwarders || echo "Warning: DNS forwarder configuration failed but continuing deployment"
 
     # Configure libvirt DNS entries
     configure_cluster_dns "$CLUSTER_CONFIG_FILE" || echo "Warning: DNS configuration failed but continuing deployment"
