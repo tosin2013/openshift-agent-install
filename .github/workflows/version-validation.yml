@@ -155,7 +155,7 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download manifests for ${{ matrix.example }}
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: manifests-${{ matrix.example }}-*
           path: ~/generated_assets/version-compare/
@@ -209,13 +209,13 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Download all validation reports
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: validation-*
           path: validation-reports/
 
       - name: Download all comparison reports
-        uses: actions/download-artifact@v4
+        uses: actions/download-artifact@v8
         with:
           pattern: comparison-*
           path: comparison-reports/
