@@ -192,7 +192,7 @@ function create(){
     # Vyos nightly builds
     # https://github.com/vyos/vyos-rolling-nightly-builds/releases
     # Auto-updated by .github/workflows/update-vyos-version.yml
-    VYOS_VERSION=2026.05.30-0046-rolling
+    VYOS_VERSION=2026.06.24-0045-rolling
     ISO_LOC=https://github.com/vyos/vyos-nightly-build/releases/download/${VYOS_VERSION}/vyos-${VYOS_VERSION}-generic-amd64.iso
     if [ ! -f $HOME/vyos-${VYOS_VERSION}-generic-amd64.iso ];
     then
