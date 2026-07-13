@@ -67,9 +67,12 @@ This documentation follows the [Diataxis framework](https://diataxis.fr/). Choos
 
 | OpenShift Version | Standards |
 |------------------|-----------|
+| 4.22 | [Deployment Standards 4.22](deployment-standards-4.22) — RHCOS 9.8, Gateway API GA, boot image management |
 | 4.21 | [Deployment Standards 4.21](deployment-standards-4.21) — OVNKubernetes mandatory |
 | 4.20 | [Deployment Standards 4.20](deployment-standards-4.20) — ImageDigestMirrorSet required |
 | 4.19 | [Deployment Standards 4.19](deployment-standards-4.19) — ImageContentSourcePolicy |
+
+**Next:** OpenShift 4.23 is in nightly builds (expected GA Q4 2026). See the [4.22 standards forward look](deployment-standards-4.22#forward-look-openshift-423-in-development) for anticipated changes.
 
 See the [Version Compatibility Matrix](version-compatibility-matrix) for full API change history.
 
