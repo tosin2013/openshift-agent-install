@@ -15,10 +15,11 @@ This matrix documents supported OpenShift versions, critical API changes, and mi
 
 | Version | Release Date | End of Life | Support Status | Recommended For |
 |---------|--------------|-------------|----------------|-----------------|
-| **4.19** | Q2 2025 | Jan 2026 | ✅ Fully Supported | Legacy deployments, transitional workloads |
-| **4.20** | Q3 2025 | May 2026 | ✅ Current Stable | Production deployments, new installations |
-| **4.21** | Q4 2025 | Oct 2026 | ✅ Latest Release | Modern deployments, new features |
-| **4.22** | Q1 2026 (preview) | TBD | ⚠️ Preview/RC | Testing, early adoption |
+| **4.19** | Q2 2025 | Jan 2026 | ⚠️ End of Life | Legacy only, migrate to 4.21+ |
+| **4.20** | Q3 2025 | May 2026 | ⚠️ Maintenance | Existing production, plan upgrade |
+| **4.21** | Feb 2026 | Oct 2026 | ✅ Supported | Stable production deployments |
+| **4.22** | Jun 2026 | Feb 2027 | ✅ Latest Stable | New deployments (recommended) |
+| **4.23** | ~Q4 2026 | TBD | 🔮 In Development | Nightly builds only, not for production |
 
 ## Critical API Changes by Version
 
@@ -114,60 +115,112 @@ network_type: OVNKubernetes
 ./hack/create-iso.sh sno-4.20-standard
 ```
 
-### 4.21 → 4.22 (Preview Features)
+### 4.21 → 4.22 (GA - June 2026)
 
-**Upcoming Features**:
-- ✅ **ContainerRuntimeConfig** for AI/ML workloads (GPU, specialized runtimes)
-- ✅ **Enhanced ImageTagMirrorSet** support (tag-based mirroring)
-- ✅ **Improved Metal³ integration** (bare metal provisioning)
+**Key Changes**:
+- ✅ **RHCOS rebased to RHEL 9.8** (updated kernel, drivers, hardware support)
+- ✅ **RHCOS 10.2 Technology Preview** (opt-in via `osImageStream: rhcos-10.2` + TechPreview feature set)
+- ✅ **Boot image management GA** (automatic control plane boot image updates on supported platforms)
+- ✅ **Gateway API CRD unrestricted** (no longer requires TechPreview feature gate)
+- ✅ **Azure user-provisioned DNS GA** (Azure clusters can use existing DNS)
+- ✅ **Observability unified** (logging integrated into Cluster Observability operator)
+- ✅ **Kubernetes 1.35** (API server, controller updates)
 
-**Preview Testing** (when 4.22-rc available):
+**No Breaking Changes for Agent-Based Installer**:
+- `networkType: OVNKubernetes` remains mandatory (same as 4.21)
+- `ImageDigestMirrorSet` still required for disconnected (same as 4.20+)
+- All existing cluster.yml and nodes.yml configurations work unchanged
+- Only update required: set `ocp_version: "4.22"` in cluster.yml
+
+**Migration**:
 ```bash
-# Test pre-release versions
-./hack/generate-version-manifests.sh sno-disconnected "4.21 4.22-rc.1"
-./hack/compare-version-manifests.sh 4.21 4.22-rc.1 sno-disconnected
+# Simply update version in cluster.yml
+sed -i 's/ocp_version: "4.21"/ocp_version: "4.22"/' examples/my-cluster/cluster.yml
+
+# Download matching openshift-install binary
+./hack/download-openshift-cli.sh 4.22
+
+# Regenerate ISO
+./hack/create-iso.sh my-cluster
+```
+
+### 4.22 → 4.23 (In Development - Expected Q4 2026)
+
+**Anticipated Changes** (from nightly/CI builds):
+- 🔮 **MutableTopology** — day-2 control plane topology changes
+- 🔮 **NetworkObservabilityInstall** — built-in network flow monitoring enabled by default
+- 🔮 **MachineAPIMigration (BareMetal)** — Machine API v2 migration for bare metal
+- 🔮 **Boot image auto-updates mandatory** — IPI clusters must allow boot image management
+- 🔮 **TLSGroupPreferences** — fine-grained TLS cipher configuration
+- 🔮 **UserNamespacesSupport** — unconditionally enabled (pod-level isolation)
+- 🔮 **MutatingAdmissionPolicy** — enabled by default
+
+**Potential Impact on Agent-Based Installer**:
+- MachineAPIMigration for BareMetal may change post-install machine management
+- Boot image enforcement may affect upgrade paths from older clusters
+- No breaking install-config changes expected based on current nightlies
+
+**Testing** (nightly builds only):
+```bash
+# Monitor 4.23 nightly status
+# https://openshift-release.apps.ci.l2s4.p1.openshiftapps.com/
+
+# Once RC available:
+./hack/generate-version-manifests.sh sno-disconnected "4.22 4.23-rc.1"
+./hack/compare-version-manifests.sh 4.22 4.23-rc.1 sno-disconnected
 ```
 
 ## Deployment Pattern Compatibility Matrix
 
 ### Disconnected/Air-Gapped Deployments
 
-| Feature | 4.19 | 4.20 | 4.21 | Notes |
-|---------|------|------|------|-------|
-| Mirror Registry | ✅ | ✅ | ✅ | Required for all versions |
-| imageContentSources | ⚠️ Deprecated | ❌ Removed | ❌ Removed | Use ImageDigestMirrorSet |
-| imageDigestSources | ✅ Transitional | ❌ Removed | ❌ Removed | Use standalone manifest |
-| ImageDigestMirrorSet | ✅ Recommended | ✅ Required | ✅ Required | Standalone manifest only |
-| ImageTagMirrorSet | ❌ | ⚠️ Tech Preview | ✅ GA | Tag-based mirroring |
-| Additional Trust Bundle | ✅ | ✅ | ✅ | CA cert for mirror registry |
+| Feature | 4.19 | 4.20 | 4.21 | 4.22 | Notes |
+|---------|------|------|------|------|-------|
+| Mirror Registry | ✅ | ✅ | ✅ | ✅ | Required for all versions |
+| imageContentSources | ⚠️ Deprecated | ❌ Removed | ❌ Removed | ❌ Removed | Use ImageDigestMirrorSet |
+| imageDigestSources | ✅ Transitional | ❌ Removed | ❌ Removed | ❌ Removed | Use standalone manifest |
+| ImageDigestMirrorSet | ✅ Recommended | ✅ Required | ✅ Required | ✅ Required | Standalone manifest only |
+| ImageTagMirrorSet | ❌ | ⚠️ Tech Preview | ✅ GA | ✅ GA | Tag-based mirroring |
+| Additional Trust Bundle | ✅ | ✅ | ✅ | ✅ | CA cert for mirror registry |
 
 ### Network Configuration
 
-| Feature | 4.19 | 4.20 | 4.21 | Notes |
-|---------|------|------|------|-------|
-| OpenShiftSDN | ✅ Default | ⚠️ Deprecated | ❌ Removed | Migrate before 4.21 |
-| OVNKubernetes | ✅ Supported | ✅ Recommended | ✅ Required | Default in 4.21+ |
-| Dual-stack IPv4/IPv6 | ✅ | ✅ | ✅ | OVN-Kubernetes only |
-| IPsec encryption | ❌ | ⚠️ Tech Preview | ✅ GA | OVN-Kubernetes feature |
+| Feature | 4.19 | 4.20 | 4.21 | 4.22 | Notes |
+|---------|------|------|------|------|-------|
+| OpenShiftSDN | ✅ Default | ⚠️ Deprecated | ❌ Removed | ❌ Removed | Migrate before 4.21 |
+| OVNKubernetes | ✅ Supported | ✅ Recommended | ✅ Required | ✅ Required | Mandatory since 4.21 |
+| Dual-stack IPv4/IPv6 | ✅ | ✅ | ✅ | ✅ | OVN-Kubernetes only |
+| IPsec encryption | ❌ | ⚠️ Tech Preview | ✅ GA | ✅ GA | OVN-Kubernetes feature |
+| Gateway API | ❌ | ❌ | ⚠️ Tech Preview | ✅ GA | CRD unrestricted in 4.22 |
 
 ### Platform Support
 
-| Platform | 4.19 | 4.20 | 4.21 | Notes |
-|----------|------|------|------|-------|
-| Bare Metal (platform: baremetal) | ✅ | ✅ | ✅ | VIP management included |
-| Platform None (platform: none) | ✅ | ✅ | ✅ | Manual VIP setup required |
-| vSphere | ✅ | ✅ | ✅ | Full integration |
-| Nutanix | ✅ | ✅ | ✅ | Agent-Based Installer supported |
-| External (platform: external) | ⚠️ Tech Preview | ✅ GA | ✅ | Third-party platform integration |
+| Platform | 4.19 | 4.20 | 4.21 | 4.22 | Notes |
+|----------|------|------|------|------|-------|
+| Bare Metal (platform: baremetal) | ✅ | ✅ | ✅ | ✅ | VIP management included |
+| Platform None (platform: none) | ✅ | ✅ | ✅ | ✅ | Manual VIP setup required |
+| vSphere | ✅ | ✅ | ✅ | ✅ | Full integration |
+| Nutanix | ✅ | ✅ | ✅ | ✅ | Agent-Based Installer supported |
+| External (platform: external) | ⚠️ Tech Preview | ✅ GA | ✅ | ✅ | Third-party platform integration |
+| Azure (user-provisioned DNS) | ❌ | ❌ | ⚠️ Tech Preview | ✅ GA | Use existing Azure DNS |
 
 ### Deployment Topology
 
-| Topology | 4.19 | 4.20 | 4.21 | Resource Requirements |
-|----------|------|------|------|----------------------|
-| **SNO** (Single Node) | ✅ | ✅ | ✅ | 8 vCPU, 32GB RAM minimum |
-| **3-Node Compact** | ✅ | ✅ | ✅ | 8 vCPU, 32GB RAM per node |
-| **HA** (3 masters + workers) | ✅ | ✅ | ✅ | Standard HA requirements |
-| **Edge** (resource-constrained) | ✅ | ✅ | ✅ | SNO or 3-node recommended |
+| Topology | 4.19 | 4.20 | 4.21 | 4.22 | Resource Requirements |
+|----------|------|------|------|------|----------------------|
+| **SNO** (Single Node) | ✅ | ✅ | ✅ | ✅ | 8 vCPU, 32GB RAM minimum |
+| **3-Node Compact** | ✅ | ✅ | ✅ | ✅ | 8 vCPU, 32GB RAM per node |
+| **HA** (3 masters + workers) | ✅ | ✅ | ✅ | ✅ | Standard HA requirements |
+| **Edge** (resource-constrained) | ✅ | ✅ | ✅ | ✅ | SNO or 3-node recommended |
+
+### RHCOS Base OS
+
+| Version | RHCOS Base | Kubernetes | CRI-O |
+|---------|-----------|------------|-------|
+| 4.19 | RHEL 9.4 | 1.32 | 1.32 |
+| 4.20 | RHEL 9.6 | 1.33 | 1.33 |
+| 4.21 | RHEL 9.6 | 1.34 | 1.34 |
+| 4.22 | RHEL 9.8 | 1.35 | 1.35 |
 
 ## Migration Paths
 
@@ -315,22 +368,26 @@ The version validation feature uses **Granite-3-2-8b-instruct** LLM for intellig
 
 ### Version Selection Guide
 
-**Choose 4.19 if**:
-- Existing infrastructure requires OpenShiftSDN
-- Migration to OVN-Kubernetes not yet tested
-- Need transitional period before 4.20 API changes
-
-**Choose 4.20 if**:
-- New production deployments
-- Ready to adopt ImageDigestMirrorSet API
-- Want stable release with latest features
-- Planning 4.21 upgrade path
+**Choose 4.22 if** (recommended):
+- New deployments of any type (SNO, compact, HA)
+- Want latest stable release with Kubernetes 1.35
+- Need Gateway API without TechPreview gates
+- Plan to use boot image management (GA)
+- AI/ML workloads requiring latest runtime features
 
 **Choose 4.21 if**:
-- New deployments (recommended)
-- Already using OVN-Kubernetes
-- Need latest features and security updates
-- Modern network stack requirements (IPsec, hybrid networking)
+- Existing production clusters not ready to upgrade
+- Need proven stable release with longer track record
+- Already deployed and working well
+
+**Choose 4.20 if**:
+- Existing production with upgrade planned
+- Locked to specific certified operator versions
+- Plan upgrade to 4.22 within support window
+
+**Choose 4.19 if**:
+- Legacy only — end of life reached
+- Migrate to 4.21+ as soon as possible
 
 ### Common Issues and Solutions
 
@@ -341,6 +398,9 @@ The version validation feature uses **Granite-3-2-8b-instruct** LLM for intellig
 | "imageDigestSources deprecated" | 4.19 | Working as intended (transitional API) |
 | Disconnected deployment fails | 4.20+ | Ensure image-mirror-config.yaml exists |
 | Network plugin mismatch | 4.21+ | Verify networkType: OVNKubernetes in all configs |
+| openshift-install version mismatch | 4.22 | Download 4.22.x binary: `./hack/download-openshift-cli.sh 4.22` |
+| RHCOS 10.2 boot failure | 4.22 | RHCOS 10.2 is Tech Preview only; use default RHCOS 9.8 |
+| Gateway API CRD not found | 4.21 | Requires TechPreview feature gate; upgrade to 4.22 for GA |
 
 ## Additional Resources
 
@@ -351,6 +411,12 @@ The version validation feature uses **Granite-3-2-8b-instruct** LLM for intellig
 
 ## Release Notes
 
+- **v2.0.0** (2026-07-13): Added OCP 4.22 GA and 4.23 forward look
+  - OpenShift 4.22 fully documented (Kubernetes 1.35, RHCOS 9.8, Gateway API GA)
+  - Forward-looking section for 4.23 based on nightly/CI builds
+  - Updated all compatibility matrices with 4.22 column
+  - Added RHCOS base OS version table
+  - Updated version selection guide (4.22 now recommended)
 - **v1.0.0** (2026-05-27): Initial release with LLM-powered validation
   - Support for OpenShift 4.19, 4.20, 4.21
   - Automated GitHub Actions integration
@@ -359,6 +425,6 @@ The version validation feature uses **Granite-3-2-8b-instruct** LLM for intellig
 
 ---
 
-**Last Updated**: 2026-05-27  
+**Last Updated**: 2026-07-13  
 **Validation Model**: granite-3-2-8b-instruct via LiteLLM API  
 **Maintainer**: OpenShift Agent-Based Installer Team
