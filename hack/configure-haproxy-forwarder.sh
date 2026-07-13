@@ -207,22 +207,39 @@ generate_playbook() {
         name: haproxy
         state: present
 
-    - name: Configure firewall for HAProxy
-      firewalld:
-        port: "{{ item }}"
-        permanent: yes
-        state: enabled
-        immediate: yes
+    - name: Check if firewalld is running
+      command: systemctl is-active firewalld
+      register: firewalld_status
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Configure firewall for HAProxy (firewall-cmd)
+      command: "firewall-cmd --permanent --add-port={{ item }}"
       loop:
         - 6443/tcp
         - 22623/tcp
         - 80/tcp
         - 443/tcp
-      when: ansible_facts.services['firewalld.service'] is defined
+      when: firewalld_status.rc == 0
       ignore_errors: yes
 
+    - name: Reload firewall
+      command: firewall-cmd --reload
+      when: firewalld_status.rc == 0
+      ignore_errors: yes
+
+    - name: Check if EXTERNAL_IP is a local address
+      shell: ip addr show | grep -q "{{ external_ip }}"
+      register: ip_is_local
+      ignore_errors: yes
+      changed_when: false
+
+    - name: Set bind address (use * for NAT/cloud where external IP is not local)
+      set_fact:
+        haproxy_bind_addr: "{{ external_ip if ip_is_local.rc == 0 else '*' }}"
+
     - name: Create HAProxy configuration
-      template:
+      copy:
         dest: /etc/haproxy/haproxy.cfg
         mode: '0644'
         content: |
@@ -237,68 +254,50 @@ generate_playbook() {
               stats socket /var/lib/haproxy/stats
 
           defaults
-              mode                    http
+              mode                    tcp
               log                     global
-              option                  httplog
+              option                  tcplog
               option                  dontlognull
-              option                  http-server-close
-              option forwardfor       except 127.0.0.0/8
-              option                  redispatch
               retries                 3
-              timeout http-request    10s
-              timeout queue           1m
               timeout connect         10s
               timeout client          1m
               timeout server          1m
-              timeout http-keep-alive 10s
               timeout check           10s
               maxconn                 3000
 
           # API Server (6443)
           frontend api-server
-              bind {{ haproxy_frontend_ip }}:6443
-              mode tcp
-              option tcplog
+              bind {{ haproxy_bind_addr }}:6443
               default_backend api-server-backend
 
           backend api-server-backend
-              mode tcp
               balance roundrobin
               server api {{ haproxy_api_backend }}:6443 check
 
           # Machine Config Server (22623)
           frontend machine-config-server
-              bind {{ haproxy_frontend_ip }}:22623
-              mode tcp
-              option tcplog
+              bind {{ haproxy_bind_addr }}:22623
               default_backend machine-config-server-backend
 
           backend machine-config-server-backend
-              mode tcp
               balance roundrobin
               server mcs {{ haproxy_api_backend }}:22623 check
 
           # HTTP Ingress (80)
           frontend http-ingress
-              bind {{ haproxy_frontend_ip }}:80
-              mode tcp
-              option tcplog
+              bind {{ haproxy_bind_addr }}:80
               default_backend http-ingress-backend
 
           backend http-ingress-backend
-              mode tcp
               balance roundrobin
               server ingress-http {{ haproxy_apps_backend }}:80 check
 
           # HTTPS Ingress (443)
           frontend https-ingress
-              bind {{ haproxy_frontend_ip }}:443
-              mode tcp
-              option tcplog
+              bind {{ haproxy_bind_addr }}:443
               default_backend https-ingress-backend
 
           backend https-ingress-backend
-              mode tcp
               balance roundrobin
               server ingress-https {{ haproxy_apps_backend }}:443 check
 

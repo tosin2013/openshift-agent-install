@@ -1,0 +1,257 @@
+# Node Counts the installer will expect
+control_plane_replicas: 3
+app_node_replicas: 3
+
+# nodes defines the nodes to use for the cluster
+nodes:
+  - hostname: master-0
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:42:22:10"
+      - name: enp2s0
+        mac_address: "52:54:00:42:23:10"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:42:22:10"
+          ipv4:
+            enabled: false
+          ipv6:
+            enabled: false
+        - name: enp1s0.1924
+          type: vlan
+          state: up
+          vlan:
+            id: 1924
+            base-iface: enp1s0
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.50.10
+                prefix-length: 24
+            dhcp: false
+      dns-resolver:
+        config:
+          server:
+            - 192.168.122.1
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.50.1
+            next-hop-interface: enp1s0.1924
+            table-id: 254
+
+  - hostname: master-1
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:42:22:11"
+      - name: enp2s0
+        mac_address: "52:54:00:42:23:11"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:42:22:11"
+          ipv4:
+            enabled: false
+          ipv6:
+            enabled: false
+        - name: enp1s0.1924
+          type: vlan
+          state: up
+          vlan:
+            id: 1924
+            base-iface: enp1s0
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.50.11
+                prefix-length: 24
+            dhcp: false
+      dns-resolver:
+        config:
+          server:
+            - 192.168.122.1
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.50.1
+            next-hop-interface: enp1s0.1924
+            table-id: 254
+
+  - hostname: master-2
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:42:22:12"
+      - name: enp2s0
+        mac_address: "52:54:00:42:23:12"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:42:22:12"
+          ipv4:
+            enabled: false
+          ipv6:
+            enabled: false
+        - name: enp1s0.1924
+          type: vlan
+          state: up
+          vlan:
+            id: 1924
+            base-iface: enp1s0
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.50.12
+                prefix-length: 24
+            dhcp: false
+      dns-resolver:
+        config:
+          server:
+            - 192.168.122.1
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.50.1
+            next-hop-interface: enp1s0.1924
+            table-id: 254
+
+  - hostname: worker-0
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:42:22:20"
+      - name: enp2s0
+        mac_address: "52:54:00:42:23:20"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:42:22:20"
+          ipv4:
+            enabled: false
+          ipv6:
+            enabled: false
+        - name: enp1s0.1924
+          type: vlan
+          state: up
+          vlan:
+            id: 1924
+            base-iface: enp1s0
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.50.20
+                prefix-length: 24
+            dhcp: false
+      dns-resolver:
+        config:
+          server:
+            - 192.168.122.1
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.50.1
+            next-hop-interface: enp1s0.1924
+            table-id: 254
+
+  - hostname: worker-1
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:42:22:21"
+      - name: enp2s0
+        mac_address: "52:54:00:42:23:21"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:42:22:21"
+          ipv4:
+            enabled: false
+          ipv6:
+            enabled: false
+        - name: enp1s0.1924
+          type: vlan
+          state: up
+          vlan:
+            id: 1924
+            base-iface: enp1s0
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.50.21
+                prefix-length: 24
+            dhcp: false
+      dns-resolver:
+        config:
+          server:
+            - 192.168.122.1
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.50.1
+            next-hop-interface: enp1s0.1924
+            table-id: 254
+
+  - hostname: worker-2
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:42:22:22"
+      - name: enp2s0
+        mac_address: "52:54:00:42:23:22"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:42:22:22"
+          ipv4:
+            enabled: false
+          ipv6:
+            enabled: false
+        - name: enp1s0.1924
+          type: vlan
+          state: up
+          vlan:
+            id: 1924
+            base-iface: enp1s0
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.50.22
+                prefix-length: 24
+            dhcp: false
+      dns-resolver:
+        config:
+          server:
+            - 192.168.122.1
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.50.1
+            next-hop-interface: enp1s0.1924
+            table-id: 254

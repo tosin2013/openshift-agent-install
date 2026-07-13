@@ -61,3 +61,9 @@ How-to guides are **task-oriented**. They help you accomplish a specific goal an
 |-------|------|
 | [Version Validation Quick Start](version-validation-quick-start) | Run multi-version manifest validation |
 | [Contributing](contributing) | Contribute documentation or code to this repository |
+
+## AI Tooling
+
+| Guide | Goal |
+|-------|------|
+| [AI Task Skills](ai-skills) | Install and use portable AI skills for Cursor, Claude Code, and GitHub Copilot |

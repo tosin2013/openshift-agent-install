@@ -50,7 +50,7 @@ echo "━━━━━━━━━━━━━━━━━━━━━━━━�
 
 # Test 1: API endpoint
 echo -n "1. API endpoint (api.$CLUSTER_DOMAIN): "
-API_RESOLVED=$(dig +short @localhost api.$CLUSTER_DOMAIN)
+API_RESOLVED=$(dig +short @127.0.0.1 api.$CLUSTER_DOMAIN 2>/dev/null | tail -1)
 if [ -n "$API_RESOLVED" ]; then
     if [ "$API_RESOLVED" = "$API_VIP" ]; then
         echo "✅ $API_RESOLVED"
@@ -65,7 +65,7 @@ fi
 
 # Test 2: API-int endpoint
 echo -n "2. Internal API (api-int.$CLUSTER_DOMAIN): "
-API_INT_RESOLVED=$(dig +short @localhost api-int.$CLUSTER_DOMAIN)
+API_INT_RESOLVED=$(dig +short @127.0.0.1 api-int.$CLUSTER_DOMAIN 2>/dev/null | tail -1)
 if [ -n "$API_INT_RESOLVED" ]; then
     if [ "$API_INT_RESOLVED" = "$API_VIP" ]; then
         echo "✅ $API_INT_RESOLVED"
@@ -80,7 +80,7 @@ fi
 
 # Test 3: Apps wildcard (console)
 echo -n "3. Console (console-openshift-console.apps.$CLUSTER_DOMAIN): "
-CONSOLE_RESOLVED=$(dig +short @localhost console-openshift-console.apps.$CLUSTER_DOMAIN)
+CONSOLE_RESOLVED=$(dig +short @127.0.0.1 console-openshift-console.apps.$CLUSTER_DOMAIN 2>/dev/null | tail -1)
 if [ -n "$CONSOLE_RESOLVED" ]; then
     echo "✅ $CONSOLE_RESOLVED"
 else
@@ -90,7 +90,7 @@ fi
 
 # Test 4: Apps wildcard (oauth)
 echo -n "4. OAuth (oauth-openshift.apps.$CLUSTER_DOMAIN): "
-OAUTH_RESOLVED=$(dig +short @localhost oauth-openshift.apps.$CLUSTER_DOMAIN)
+OAUTH_RESOLVED=$(dig +short @127.0.0.1 oauth-openshift.apps.$CLUSTER_DOMAIN 2>/dev/null | tail -1)
 if [ -n "$OAUTH_RESOLVED" ]; then
     echo "✅ $OAUTH_RESOLVED"
 else
@@ -100,7 +100,7 @@ fi
 
 # Test 5: Generic apps wildcard
 echo -n "5. Generic apps (test.apps.$CLUSTER_DOMAIN): "
-TEST_RESOLVED=$(dig +short @localhost test.apps.$CLUSTER_DOMAIN)
+TEST_RESOLVED=$(dig +short @127.0.0.1 test.apps.$CLUSTER_DOMAIN 2>/dev/null | tail -1)
 if [ -n "$TEST_RESOLVED" ]; then
     echo "✅ $TEST_RESOLVED"
 else

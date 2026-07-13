@@ -445,3 +445,98 @@ When working with this repository, Claude should:
 - Maintain awareness of deployment phases and workflow
 
 This ensures accurate, consistent, and helpful responses based on the actual repository content.
+
+
+
+<!-- SKILLS-AUTO-START -->
+
+## Skills Reference
+
+The following task-specific skills are available in `hack/skills/`. Read the full SKILL.md file when a user's request matches the trigger conditions.
+
+### Configure External Access
+
+- **File:** `hack/skills/configure-external-access/SKILL.md`
+- **Description:** Set up HAProxy forwarding, Route53 public DNS, and Let's Encrypt TLS certificates for external cluster access
+- **Triggers:**
+  - external access
+  - configure HAProxy
+  - Route53 DNS
+  - Let's Encrypt certificates
+  - public access to cluster
+  - expose cluster externally
+  - configure-external-access
+  - TLS certificates
+
+### Create Cluster Configuration
+
+- **File:** `hack/skills/create-cluster-config/SKILL.md`
+- **Description:** Author cluster.yml and nodes.yml for SNO, 3-node compact, or HA OpenShift deployments
+- **Triggers:**
+  - create cluster configuration
+  - new cluster config
+  - write cluster.yml
+  - write nodes.yml
+  - configure new cluster
+  - add a cluster
+  - SNO configuration
+  - HA cluster setup
+
+### Deploy Cluster on Bare Metal
+
+- **File:** `hack/skills/deploy-cluster-baremetal/SKILL.md`
+- **Description:** Deliver agent ISO to physical servers via Redfish virtual media or IPMI and monitor installation
+- **Triggers:**
+  - deploy bare metal
+  - deploy to physical servers
+  - redfish deploy
+  - IPMI deploy
+  - bare metal installation
+  - production deployment
+  - deploy-iso-baremetal
+
+### Deploy Cluster on KVM
+
+- **File:** `hack/skills/deploy-cluster-kvm/SKILL.md`
+- **Description:** Full lifecycle KVM deployment from DNS setup through VM creation to installation monitoring (7 phases)
+- **Triggers:**
+  - deploy cluster
+  - deploy on KVM
+  - create VMs
+  - run deployment
+  - deploy OpenShift
+  - install cluster
+  - deploy SNO
+  - deploy HA cluster
+
+### Deploy VyOS Router
+
+- **File:** `hack/skills/deploy-vyos-router/SKILL.md`
+- **Description:** Deploy VyOS virtual router for VLAN networking in KVM lab (requires manual Cockpit console configuration)
+- **Triggers:**
+  - deploy VyOS
+  - VyOS router
+  - vyos-router
+  - VLAN networking setup
+  - lab router
+  - network infrastructure
+  - inter-VLAN routing
+
+### Troubleshoot DNS Resolution
+
+- **File:** `hack/skills/troubleshoot-dns/SKILL.md`
+- **Description:** Diagnose and fix DNS issues that block OpenShift cluster deployment or access
+- **Triggers:**
+  - DNS not resolving
+  - DNS troubleshooting
+  - can't resolve cluster
+  - NXDOMAIN
+  - dig fails
+  - dnsmasq not working
+  - verify-dns-resolution fails
+  - cluster unreachable
+  - API connection refused
+  - name resolution error
+
+<!-- SKILLS-AUTO-END -->
+

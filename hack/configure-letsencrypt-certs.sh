@@ -210,11 +210,11 @@ obtain_certificates() {
     print_info "  - *.${APPS_DOMAIN}"
 
     # Run certbot in container
-    sudo ${CONTAINER_RUNTIME} run -it --rm \
+    sudo ${CONTAINER_RUNTIME} run --rm \
         -v "${LETSENCRYPT_DIR}:/etc/letsencrypt:Z" \
         -e AWS_ACCESS_KEY_ID="${AWS_ACCESS_KEY_ID}" \
         -e AWS_SECRET_ACCESS_KEY="${AWS_SECRET_ACCESS_KEY}" \
-        certbot/dns-route53 certonly \
+        docker.io/certbot/dns-route53 certonly \
             --dns-route53 \
             --non-interactive \
             --agree-tos \
@@ -333,7 +333,7 @@ display_certificate_info() {
     echo "Certificate details:"
     sudo ${CONTAINER_RUNTIME} run --rm \
         -v "${LETSENCRYPT_DIR}:/etc/letsencrypt:Z" \
-        certbot/dns-route53 certificates | grep -A 10 "api.${CLUSTER_NAME}.${BASE_DOMAIN}" || true
+        docker.io/certbot/dns-route53 certificates | grep -A 10 "api.${CLUSTER_NAME}.${BASE_DOMAIN}" || true
     echo ""
     echo "Next steps:"
     echo "  1. Access the cluster console with HTTPS:"
