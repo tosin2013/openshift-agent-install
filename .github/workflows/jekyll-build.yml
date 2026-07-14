@@ -28,13 +28,9 @@ permissions:
 jobs:
   build:
     runs-on: ubuntu-latest
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
     steps:
     - name: Checkout repository
-      uses: actions/checkout@v6
+      uses: actions/checkout@v7
 
     - name: Setup Ruby
       uses: ruby/setup-ruby@v1
@@ -76,23 +72,25 @@ jobs:
       run: |
         test -d _site
         test -f _site/index.html
-        
+
     - name: Upload artifact
-      uses: actions/upload-pages-artifact@v3
+      uses: actions/upload-pages-artifact@v5
       with:
         path: docs/_site/
 
+  deploy:
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
     - name: Deploy to GitHub Pages
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       id: deployment
-      uses: actions/deploy-pages@v4
-      with:
-        token: ${{ secrets.GITHUB_TOKEN }}
+      uses: actions/deploy-pages@v5
 
     - name: Verify deployment
-      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: |
-        # Wait for deployment to complete
         sleep 30
-        # Verify the site is accessible
         curl -sSf ${{ steps.deployment.outputs.page_url }} || exit 1
