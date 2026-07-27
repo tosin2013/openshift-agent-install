@@ -33,6 +33,23 @@ This repository supports two distinct deployment contexts. Choose based on your 
 
 ---
 
+## Prerequisites
+
+### Core Requirements (both paths)
+
+- **RHEL 9.x** — deployment host for KVM development or bare metal control
+- **OpenShift CLI tools** — `./download-openshift-cli.sh` then `sudo cp ./bin/* /usr/local/bin/`
+- **NMState CLI** — `sudo dnf install -y nmstate`
+- **Ansible Core** — `sudo dnf install -y ansible-core`
+- **Ansible Collections** — `ansible-galaxy install -r execution-environment/collections/requirements.yml`
+- **Red Hat Pull Secret** — download from [console.redhat.com](https://console.redhat.com/openshift/downloads#tool-pull-secret), save to `~/pull-secret.json`
+
+> **Containerized alternative**: Skip host-level Ansible/NMState installation by using the pre-built
+> Execution Environment image with `ansible-navigator`. See the
+> [Ansible Navigator Guide](docs/ansible-navigator-guide.md) for details.
+
+---
+
 ## Common Installation Flow
 
 After environment setup, the ISO generation and monitoring steps are **identical for both KVM and bare metal**. Only ISO delivery differs.
@@ -86,23 +103,6 @@ export KUBECONFIG=~/generated_assets/my-cluster/auth/kubeconfig
 oc get nodes
 oc get co
 ```
-
----
-
-## Prerequisites
-
-### Core Requirements (both paths)
-
-- **RHEL 9.x** — deployment host for KVM development or bare metal control
-- **OpenShift CLI tools** — `./download-openshift-cli.sh` then `sudo cp ./bin/* /usr/local/bin/`
-- **NMState CLI** — `sudo dnf install -y nmstate`
-- **Ansible Core** — `sudo dnf install -y ansible-core`
-- **Ansible Collections** — `ansible-galaxy install -r execution-environment/collections/requirements.yml`
-- **Red Hat Pull Secret** — download from [console.redhat.com](https://console.redhat.com/openshift/downloads#tool-pull-secret), save to `~/pull-secret.json`
-
-> **Containerized alternative**: Skip host-level Ansible/NMState installation by using the pre-built
-> Execution Environment image with `ansible-navigator`. See the
-> [Ansible Navigator Guide](docs/ansible-navigator-guide.md) for details.
 
 ---
 
