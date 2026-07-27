@@ -1587,7 +1587,7 @@ sudo ls -lh /var/lib/libvirt/images/
 
 **Location**: `/home/vpcuser/openshift-agent-install/download-openshift-cli.sh`
 
-**Description**: Downloads OpenShift CLI tools (oc, kubectl, openshift-install) with automatic OS detection and explicit version support.
+**Description**: Downloads OpenShift CLI tools (oc, kubectl, openshift-install). Defaults to the latest stable release; pass a version argument to pin a specific release.
 
 **Usage**:
 ```bash
@@ -1595,9 +1595,9 @@ sudo ls -lh /var/lib/libvirt/images/
 ```
 
 **Arguments**:
-- `version` (optional) - Specific OpenShift version (e.g., "4.19", "4.20", "4.21", "stable-4.20")
+- `version` (optional) - Specific OpenShift version (e.g., "4.20", "4.22", "stable-4.21"). Defaults to `latest` if omitted.
 
-**Environment Variables**: None (auto-detects OS from /etc/os-release)
+**Environment Variables**: None
 
 **Dependencies**:
 - wget
@@ -1606,16 +1606,11 @@ sudo ls -lh /var/lib/libvirt/images/
 
 **Workflow Phase**: Phase 0 (Environment Bootstrap), Phase 8 (Version Validation)
 
-**Version Selection** (when no argument provided):
-- **RHEL 8**: Downloads stable-4.15
-- **RHEL 9**: Downloads stable-4.17
-- **Ubuntu/Debian**: Downloads stable-4.21
-- **Unknown OS**: Defaults to stable-4.21
-
-**Version Format Support**:
-- `4.20` - Auto-converts to `stable-4.20`
-- `stable-4.20` - Direct stable channel
-- Version validation for correct format
+**Version Selection**:
+- No argument: Downloads the latest stable release from the mirror
+- `4.22` - Auto-converts to `stable-4.22`
+- `stable-4.22` - Direct stable channel
+- `latest` - Explicitly requests latest (same as no argument)
 
 **Output Location**: `./bin/` directory
 
@@ -1626,13 +1621,12 @@ sudo ls -lh /var/lib/libvirt/images/
 
 **Example**:
 ```bash
-# Auto-detect OS and download appropriate version
+# Download latest stable release (recommended)
 ./download-openshift-cli.sh
 
-# Download specific version (for version validation testing)
-./download-openshift-cli.sh 4.19
+# Download specific version to match your cluster
+./download-openshift-cli.sh 4.22
 ./download-openshift-cli.sh 4.20
-./download-openshift-cli.sh stable-4.21
 
 # Install system-wide
 sudo cp ./bin/* /usr/local/bin/
