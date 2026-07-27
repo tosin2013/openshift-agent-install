@@ -38,34 +38,51 @@ This repository supports two distinct deployment contexts. Choose based on your 
 After environment setup, the ISO generation and monitoring steps are **identical for both KVM and bare metal**. Only ISO delivery differs.
 
 ```bash
+# ── Step 0: Create your cluster configuration ────────────────────────────────
+
+# Pick a template that matches your deployment pattern
+ls examples/
+
+# Copy it as your cluster name
+cp -r examples/sno-4.20-standard site-config/my-cluster
+
+# Edit cluster.yml — set cluster_name, base_domain, api_vips, app_vips, etc.
+vi site-config/my-cluster/cluster.yml
+
+# Edit nodes.yml — set MAC addresses, IPs, disk devices for your hardware
+vi site-config/my-cluster/nodes.yml
+
+# Point scripts at your config directory
+export SITE_CONFIG_DIR=site-config
+
 # ── Step 1: Generate the agent ISO (same for both paths) ─────────────────────
-./hack/create-iso.sh <cluster-name>
-# ISO lands at: ~/generated_assets/<cluster-name>/agent.x86_64.iso
+./hack/create-iso.sh my-cluster
+# ISO lands at: ~/generated_assets/my-cluster/agent.x86_64.iso
 
 # ── Step 2: Deliver ISO to nodes ─────────────────────────────────────────────
 
 # KVM path:
-./hack/deploy-on-kvm.sh examples/<cluster-name>/nodes.yml
+./hack/deploy-on-kvm.sh site-config/my-cluster/nodes.yml
 
 # Bare metal — Redfish virtual media (iDRAC 9+ / iLO 5+):
-./hack/deploy-iso-baremetal.sh site-config/<cluster-name>/nodes.yml \
+./hack/deploy-iso-baremetal.sh site-config/my-cluster/nodes.yml \
     --method redfish \
-    --iso ~/generated_assets/<cluster-name>/agent.x86_64.iso
+    --iso ~/generated_assets/my-cluster/agent.x86_64.iso
 
 # Bare metal — IPMI chassis boot:
-./hack/deploy-iso-baremetal.sh site-config/<cluster-name>/nodes.yml \
+./hack/deploy-iso-baremetal.sh site-config/my-cluster/nodes.yml \
     --method ipmi \
-    --iso ~/generated_assets/<cluster-name>/agent.x86_64.iso
+    --iso ~/generated_assets/my-cluster/agent.x86_64.iso
 
 # ── Step 3: Monitor installation (identical for both paths) ──────────────────
 ./bin/openshift-install agent wait-for bootstrap-complete \
-    --dir ~/generated_assets/<cluster-name>/ --log-level=info
+    --dir ~/generated_assets/my-cluster/ --log-level=info
 
 ./bin/openshift-install agent wait-for install-complete \
-    --dir ~/generated_assets/<cluster-name>/ --log-level=info
+    --dir ~/generated_assets/my-cluster/ --log-level=info
 
 # ── Step 4: Access the cluster ───────────────────────────────────────────────
-export KUBECONFIG=~/generated_assets/<cluster-name>/auth/kubeconfig
+export KUBECONFIG=~/generated_assets/my-cluster/auth/kubeconfig
 oc get nodes
 oc get co
 ```
