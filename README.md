@@ -83,6 +83,10 @@ oc get co
 - **Ansible Collections** — `ansible-galaxy install -r execution-environment/collections/requirements.yml`
 - **Red Hat Pull Secret** — download from [console.redhat.com](https://console.redhat.com/openshift/downloads#tool-pull-secret), save to `~/pull-secret.json`
 
+> **Containerized alternative**: Skip host-level Ansible/NMState installation by using the pre-built
+> Execution Environment image with `ansible-navigator`. See the
+> [Ansible Navigator Guide](docs/ansible-navigator-guide.md) for details.
+
 ---
 
 ## KVM Development Path
