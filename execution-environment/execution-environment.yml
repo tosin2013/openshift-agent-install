@@ -15,7 +15,7 @@ build_arg_defaults:
 
 dependencies:
   ansible_core:
-    package_pip: ansible-core==2.14.4
+    package_pip: ansible-core>=2.19,<2.22
   ansible_runner:
     package_pip: ansible-runner
   galaxy: collections/requirements.yml
