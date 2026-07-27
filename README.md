@@ -38,7 +38,7 @@ This repository supports two distinct deployment contexts. Choose based on your 
 ### Core Requirements (both paths)
 
 - **RHEL 9.x** — deployment host for KVM development or bare metal control
-- **OpenShift CLI tools** — `./download-openshift-cli.sh` then `sudo cp ./bin/* /usr/local/bin/`
+- **OpenShift CLI tools** — `./download-openshift-cli.sh` (downloads latest; pass a version like `4.22` to pin) then `sudo cp ./bin/* /usr/local/bin/`
 - **NMState CLI** — `sudo dnf install -y nmstate`
 - **Ansible Core** — `sudo dnf install -y ansible-core`
 - **Ansible Collections** — `ansible-galaxy install -r execution-environment/collections/requirements.yml`
