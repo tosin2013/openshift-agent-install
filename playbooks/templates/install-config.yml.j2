@@ -99,6 +99,9 @@ platform:
     clusterOSImage: {{ nutanix_cluster_os_image }}
 {% endif %}
 {% endif %}
+{% if ocp_version is defined and ocp_version is version('5.0', '>=') and os_image_stream is defined %}
+osImageStream: {{ os_image_stream }}
+{% endif %}
 fips: false
 pullSecret: '{{ lookup('file', pull_secret_path) }}'
 sshKey: {{ lookup('file', ssh_public_key_path) }}

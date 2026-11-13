@@ -1,0 +1,61 @@
+# Use Site Config
+use_site_configs: false
+
+# pull_secret path is the path to the pull-secret for the cluster
+pull_secret_path: /home/vpcuser/pull-secret.json
+
+# ssh_public_key_path is the path to the SSH public key to use for the cluster
+# ssh_public_key_path: ~/.ssh/id_rsa.pub
+
+# Cluster metadata
+base_domain: example.com
+cluster_name: sno-5-0
+
+# OpenShift version - required for version-specific validation
+# OCP 5.x downloads CLI from openshift-v5 mirror automatically
+ocp_version: "5.0"
+
+# platform_type is the type of platform to use for the cluster
+# must be none for SNO
+platform_type: none
+
+# OCP 5.x: Optional RHCOS version selection.
+# Default for OCP 5 fresh installs: rhel-10 (RHCOS 10, based on RHEL 10).
+# Set to rhel-9 to stay on RHCOS 9 during transition (deprecated in 5.0, removed in 5.3).
+# Omit this field entirely to accept the default for the installed OCP version.
+# os_image_stream: rhel-10
+
+# VIPs - for SNO, VIPs must match the node IP
+# Using VLAN 1924 (192.168.50.0/24) - standard VyOS VLAN for KVM deployments
+api_vips:
+  - 192.168.50.60
+
+app_vips:
+  - 192.168.50.60
+
+# Optional NTP Servers
+ntp_servers:
+  - 0.rhel.pool.ntp.org
+  - 1.rhel.pool.ntp.org
+
+# DNS servers
+# For KVM with VyOS: use libvirt dnsmasq (192.168.122.1)
+dns_servers:
+  - 192.168.122.1
+
+# Networking
+cluster_network_cidr: 10.128.0.0/14
+cluster_network_host_prefix: 23
+
+service_network_cidrs:
+  - 172.30.0.0/16
+
+# VLAN 1924 (192.168.50.0/24) - standard VyOS VLAN for KVM deployments
+machine_network_cidrs:
+  - 192.168.50.0/24
+
+# OVNKubernetes is the only supported CNI in OCP 4.21+ and all OCP 5.x
+network_type: OVNKubernetes
+
+# rendezvous_ip must match the node IP for SNO
+rendezvous_ip: 192.168.50.60

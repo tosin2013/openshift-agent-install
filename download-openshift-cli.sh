@@ -7,7 +7,7 @@
 # Usage:
 #   ./download-openshift-cli.sh          # Downloads latest stable
 #   ./download-openshift-cli.sh 4.22     # Downloads stable-4.22
-#   ./download-openshift-cli.sh 4.20     # Downloads stable-4.20
+#   ./download-openshift-cli.sh 5.0      # Downloads stable-5.0 (uses openshift-v5 mirror)
 #   ./download-openshift-cli.sh latest   # Explicitly downloads latest
 
 set -e
@@ -26,11 +26,18 @@ elif [[ "$REQUESTED_VERSION" =~ ^[0-9]+\.[0-9]+$ ]]; then
 else
     echo "Error: Invalid version format '$REQUESTED_VERSION'"
     echo "Usage: $0 [version]"
-    echo "  version: '4.20', '4.21', '4.22', 'stable-4.21', or 'latest' (default)"
+    echo "  version: '4.21', '4.22', '5.0', '5.1', 'stable-4.22', or 'latest' (default)"
     exit 1
 fi
 
-BASE_URL="https://mirror.openshift.com/pub/openshift-v4/x86_64/clients/ocp/$oc_version"
+# Select mirror based on major version (OCP 5+ uses openshift-v5 mirror path)
+OCP_MAJOR=$(echo "$oc_version" | sed 's/^stable-//' | cut -d'.' -f1)
+if [ "$oc_version" != "latest" ] && [ "$OCP_MAJOR" -ge 5 ] 2>/dev/null; then
+    MIRROR_MAJOR="openshift-v5"
+else
+    MIRROR_MAJOR="openshift-v4"
+fi
+BASE_URL="https://mirror.openshift.com/pub/${MIRROR_MAJOR}/x86_64/clients/ocp/$oc_version"
 
 echo "Downloading OpenShift CLI ($oc_version) from: $BASE_URL/"
 
