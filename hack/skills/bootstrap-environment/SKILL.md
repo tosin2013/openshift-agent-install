@@ -46,11 +46,14 @@ cat /etc/redhat-release
 free -h
 df -h / /var/lib/libvirt 2>/dev/null || df -h /
 
+# Block devices — identify unallocated disks for libvirt VM storage
+lsblk -o NAME,SIZE,TYPE,MOUNTPOINT,FSTYPE
+
 # What's already configured?
 ./e2e-tests/validate_env.sh 2>&1 | head -60
 
 # libvirt state
-systemctl is-active libvirtd 2>/dev/null && echo "libvirtd: running" || echo "libvirtd: not running"
+systemctl is-active libvirtd 2>/dev/null || systemctl is-active virtqemud 2>/dev/null || echo "libvirt: not running"
 virsh --version 2>/dev/null && echo "virsh: OK" || echo "virsh: not installed"
 
 # OCP CLI tools
