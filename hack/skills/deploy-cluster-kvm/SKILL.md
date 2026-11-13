@@ -169,6 +169,14 @@ Deployment is successful when:
 | Install | Insufficient resources | Not enough RAM/CPU for nodes | Reduce node count or increase host resources |
 | Post | `oc get nodes` - connection refused | KUBECONFIG not set or API VIP unreachable | `export KUBECONFIG=...`; check DNS resolves api.<cluster> |
 
+## Related Skills
+
+- **Before this skill**: `bootstrap-environment` and `create-cluster-config` must be complete; `validate_env.sh` must pass
+- **If DNS fails**: Use `troubleshoot-dns` — DNS verification is a hard gate before proceeding to VM deployment
+- **For VLAN networking**: `deploy-vyos-router` must be complete if using the 192.168.50.x VLAN network
+- **Post-install**: Optionally run `configure-external-access` to expose the cluster publicly
+- **Teardown**: Use `destroy-cluster` to remove VMs, disks, and DNS entries
+
 ## Cleanup
 
 To destroy a deployed cluster and start over:

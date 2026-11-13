@@ -5,10 +5,30 @@ See CLAUDE.md and AGENTS.md for comprehensive project guidance.
 
 
 
+
+
+
+
 <!-- SKILLS-AUTO-START -->
 ## Task Skills
 
 This repository includes task-specific skills in `hack/skills/`. When a user's request matches these patterns, read the full skill file for detailed procedures.
+
+### Bootstrap Environment (`hack/skills/bootstrap-environment/SKILL.md`)
+
+Install packages, configure libvirt/KVM, set up dnsmasq, and validate a fresh RHEL host is ready for OpenShift ABI deployments
+
+**Trigger patterns:**
+- bootstrap environment
+- set up host
+- fresh install setup
+- install prerequisites
+- prepare KVM host
+- environment setup
+- first time setup
+- bootstrap_env
+- validate_env fails
+- setup new machine
 
 ### Configure External Access (`hack/skills/configure-external-access/SKILL.md`)
 
@@ -78,6 +98,84 @@ Deploy VyOS virtual router for VLAN networking in KVM lab (requires manual Cockp
 - network infrastructure
 - inter-VLAN routing
 
+### Destroy Cluster (`hack/skills/destroy-cluster/SKILL.md`)
+
+Tear down a KVM cluster — removes VMs, disk images, DNS entries, and generated assets to free resources or prepare for redeployment
+
+**Trigger patterns:**
+- destroy cluster
+- tear down cluster
+- delete cluster
+- remove cluster
+- clean up cluster
+- destroy on KVM
+- delete VMs
+- cluster cleanup
+- start over
+- redeploy cluster
+
+### Generate ACM BareMetalHost Resources (`hack/skills/generate-acm-hosts/SKILL.md`)
+
+Convert nodes.yml BMC credentials into Kubernetes Secret and BareMetalHost manifests for RHACM/Metal3 hub-based cluster deployment
+
+**Trigger patterns:**
+- generate ACM hosts
+- BareMetalHost manifest
+- generate BMC hosts
+- ACM deployment
+- metal3 hosts
+- generate_bmc_acm_hosts
+- RHACM bare metal
+- hub cluster deployment
+- spoke cluster via ACM
+
+### Pre-Release Validation (`hack/skills/pre-release-validation/SKILL.md`)
+
+Orchestrate the full pre-release test suite across all phases (version tests, platform manifests, disconnected workflow, E2E deployment) and generate a markdown report
+
+**Trigger patterns:**
+- pre-release validation
+- release validation
+- pre-release-validation
+- prepare release
+- validate for release
+- release testing
+- cut a release
+- release checklist
+- v4.x validation
+
+### Run End-to-End Tests (`hack/skills/run-e2e-tests/SKILL.md`)
+
+Execute the full E2E test suite (ISO creation, VM deployment, installation monitoring) or version validation tests against configured cluster examples
+
+**Trigger patterns:**
+- run e2e tests
+- end-to-end tests
+- e2e testing
+- run tests
+- run_e2e
+- test version validation
+- full deployment test
+- automated testing
+- CI testing
+- test deployment
+
+### Setup Sushy Emulator (`hack/skills/setup-sushy-emulator/SKILL.md`)
+
+Configure sushy-emulator as a Redfish BMC emulator for KVM VMs, enabling bare-metal-style ISO delivery workflows on a KVM lab host
+
+**Trigger patterns:**
+- sushy emulator
+- setup sushy
+- redfish emulator
+- virtual BMC
+- sushy-emulator
+- configure BMC emulation
+- test libvirt ssh
+- redfish for KVM
+- BMC testing
+- virtual redfish
+
 ### Troubleshoot DNS Resolution (`hack/skills/troubleshoot-dns/SKILL.md`)
 
 Diagnose and fix DNS issues that block OpenShift cluster deployment or access
@@ -93,6 +191,22 @@ Diagnose and fix DNS issues that block OpenShift cluster deployment or access
 - cluster unreachable
 - API connection refused
 - name resolution error
+
+### Validate and Compare Version Manifests (`hack/skills/validate-and-compare-manifests/SKILL.md`)
+
+Generate ABI manifests for multiple OCP versions, diff them to surface breaking changes, and validate against version-specific deployment standards using LLM analysis
+
+**Trigger patterns:**
+- validate manifests
+- compare manifests
+- version manifests
+- generate version manifests
+- deployment standards validation
+- version comparison
+- compare version manifests
+- manifest validation
+- LLM manifest analysis
+- OCP version upgrade check
 
 <!-- SKILLS-AUTO-END -->
 

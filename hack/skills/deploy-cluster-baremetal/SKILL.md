@@ -209,6 +209,13 @@ Deployment is successful when:
 | Root device | `/dev/vda` | `/dev/sda`, `/dev/nvme0n1`, multipath WWN |
 | Config location | `examples/` | `site-config/` (gitignored) |
 
+## Related Skills
+
+- **For KVM Redfish testing**: Run `setup-sushy-emulator` first to emulate physical BMC behavior on KVM VMs
+- **Before this skill**: `create-cluster-config` must be complete with BMC credentials in nodes.yml
+- **If DNS fails**: Corporate DNS records must be in place — use `troubleshoot-dns` for diagnostics
+- **For RHACM hub deployment**: Use `generate-acm-hosts` to generate BareMetalHost resources instead of running this skill directly
+
 ## Key Files
 
 - `hack/deploy-iso-baremetal.sh` - ISO delivery via Redfish/IPMI
