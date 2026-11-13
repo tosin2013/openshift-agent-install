@@ -1,0 +1,1 @@
+../../../../hack/deploy-on-kvm.sh

@@ -1,0 +1,1 @@
+../../../../hack/compare-version-manifests.sh

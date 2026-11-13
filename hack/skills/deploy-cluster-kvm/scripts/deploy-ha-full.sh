@@ -1,0 +1,1 @@
+../../../../hack/deploy-ha-full.sh

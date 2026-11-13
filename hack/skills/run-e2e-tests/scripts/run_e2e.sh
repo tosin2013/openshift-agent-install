@@ -1,0 +1,1 @@
+../../../../e2e-tests/run_e2e.sh

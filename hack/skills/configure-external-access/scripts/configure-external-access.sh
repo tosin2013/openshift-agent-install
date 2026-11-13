@@ -1,0 +1,1 @@
+../../../../hack/configure-external-access.sh

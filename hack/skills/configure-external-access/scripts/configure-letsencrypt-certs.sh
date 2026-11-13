@@ -1,0 +1,1 @@
+../../../../hack/configure-letsencrypt-certs.sh

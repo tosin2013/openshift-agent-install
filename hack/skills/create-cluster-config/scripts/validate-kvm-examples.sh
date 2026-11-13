@@ -1,0 +1,1 @@
+../../../../hack/validate-kvm-examples.sh

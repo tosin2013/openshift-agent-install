@@ -1,0 +1,1 @@
+../../../../e2e-tests/delete_e2e.sh

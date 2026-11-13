@@ -1,0 +1,1 @@
+../../../../download-openshift-cli.sh

@@ -1,0 +1,1 @@
+../../../../hack/configure-route53-dns.sh

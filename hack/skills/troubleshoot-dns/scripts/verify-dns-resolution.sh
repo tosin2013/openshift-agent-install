@@ -1,0 +1,1 @@
+../../../../hack/verify-dns-resolution.sh

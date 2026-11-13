@@ -1,0 +1,1 @@
+../../../../e2e-tests/test_version_validation.sh

@@ -1,0 +1,1 @@
+../../../../hack/configure-dnsmasq-entries.sh

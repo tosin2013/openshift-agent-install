@@ -1,0 +1,1 @@
+../../../../hack/generate_bmc_acm_hosts.py

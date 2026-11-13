@@ -1,0 +1,1 @@
+../../../../e2e-tests/validate_env.sh

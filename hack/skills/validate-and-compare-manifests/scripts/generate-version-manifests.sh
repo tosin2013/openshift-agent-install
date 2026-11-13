@@ -1,0 +1,1 @@
+../../../../hack/generate-version-manifests.sh

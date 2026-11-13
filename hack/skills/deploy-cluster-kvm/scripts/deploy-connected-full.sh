@@ -1,0 +1,1 @@
+../../../../hack/deploy-connected-full.sh

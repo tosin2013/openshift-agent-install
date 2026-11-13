@@ -1,0 +1,1 @@
+../../../../hack/validate-baremetal-env.sh

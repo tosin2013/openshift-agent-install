@@ -1,0 +1,1 @@
+../../../../hack/deploy-iso-baremetal.sh

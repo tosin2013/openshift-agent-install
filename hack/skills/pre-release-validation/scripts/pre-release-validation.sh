@@ -1,0 +1,1 @@
+../../../../hack/pre-release-validation.sh

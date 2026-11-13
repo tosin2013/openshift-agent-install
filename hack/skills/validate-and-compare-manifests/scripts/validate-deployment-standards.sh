@@ -1,0 +1,1 @@
+../../../../hack/validate-deployment-standards.sh
