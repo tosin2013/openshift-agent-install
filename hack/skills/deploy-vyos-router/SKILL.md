@@ -1,6 +1,7 @@
 ---
-name: Deploy VyOS Router
+name: deploy-vyos-router
 description: Deploy VyOS virtual router for VLAN networking in KVM lab (requires manual Cockpit console configuration)
+compatibility: "RHEL 9.x or 10.x host. OpenShift 4.15-4.22 and 5.x. Requires: libvirt, ansible-core, yq, openshift-install CLI."
 triggers:
   - deploy VyOS
   - VyOS router
@@ -45,6 +46,22 @@ cat ~/cockpit-credentials.txt
 - sudo/root access
 
 ## Procedure
+
+### Quick Diagnostics (run first)
+
+```bash
+# Check if VyOS router is already deployed
+virsh list --all 2>/dev/null | grep -i vyos || echo "No vyos VM found"
+
+# Check if VLAN networks exist
+virsh net-list --all 2>/dev/null | grep -E "1924|1925|1926|1927|1928" || echo "VLAN networks not found"
+
+# Check Cockpit credentials
+cat ~/cockpit-credentials.txt 2>/dev/null || echo "cockpit-credentials.txt not found"
+
+# Host IP for Cockpit access
+ip -4 addr show | grep -v "127.0.0.1" | grep "inet " | awk '{print $2}' | head -3
+```
 
 ### Step 1: Start the VyOS Deployment Script
 

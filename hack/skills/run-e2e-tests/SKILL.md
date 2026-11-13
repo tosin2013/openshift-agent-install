@@ -1,6 +1,7 @@
 ---
-name: Run End-to-End Tests
+name: run-e2e-tests
 description: Execute the full E2E test suite (ISO creation, VM deployment, installation monitoring) or version validation tests against configured cluster examples
+compatibility: "RHEL 9.x or 10.x host. OpenShift 4.15-4.22 and 5.x. Full E2E requires DOMAIN env var. Version validation tests require LITELLM_API_KEY (optional --skip-llm)."
 triggers:
   - run e2e tests
   - end-to-end tests
@@ -40,6 +41,24 @@ For **version validation tests** (Option B — no VMs):
 - Example configs in `examples/` with correct `cluster.yml` and `nodes.yml`
 
 ## Procedure
+
+### Quick Diagnostics (run first)
+
+```bash
+# Check LLM key
+[ -n "$LITELLM_API_KEY" ] && echo "LITELLM_API_KEY: set" || echo "LITELLM_API_KEY: not set"
+
+# Check environment
+./e2e-tests/validate_env.sh 2>&1 | tail -15
+
+# Check dnsmasq
+sudo systemctl is-active dnsmasq 2>/dev/null && echo "dnsmasq: running" || echo "dnsmasq: not running"
+
+# Available example configs
+ls "${SITE_CONFIG_DIR:-examples}/"
+```
+
+Determine if this is a full E2E (needs DOMAIN env var and resources) or a version validation test (lighter weight, --skip-llm if no API key).
 
 ### Option A: Full E2E Test (ISO + VMs + Install)
 

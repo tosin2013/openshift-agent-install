@@ -1,6 +1,7 @@
 ---
-name: Pre-Release Validation
+name: pre-release-validation
 description: Orchestrate the full pre-release test suite across all phases (version tests, platform manifests, disconnected workflow, E2E deployment) and generate a markdown report
+compatibility: "RHEL 9.x or 10.x host. OpenShift 4.15-4.22 and 5.x. Requires: LITELLM_API_KEY, example configs for all tested platforms."
 triggers:
   - pre-release validation
   - release validation
@@ -36,6 +37,21 @@ Activate when a user wants to:
 - Network access to `litellm-prod.apps.maas.redhatworkshops.io`
 
 ## Procedure
+
+### Quick Diagnostics (run first)
+
+```bash
+# Check LLM API key
+[ -n "$LITELLM_API_KEY" ] && echo "LITELLM_API_KEY: set" || { [ -f ~/env ] && echo "source ~/env to set it" || echo "LITELLM_API_KEY: NOT SET and ~/env not found"; }
+
+# Check required example configs exist
+for example in sno-4.20-standard ha-4.21-disconnected; do
+  ls "examples/${example}/cluster.yml" 2>/dev/null && echo "${example}: OK" || echo "${example}: MISSING"
+done
+
+# Check environment
+./e2e-tests/validate_env.sh 2>&1 | tail -10
+```
 
 ### Step 1: Set Required Environment Variables
 

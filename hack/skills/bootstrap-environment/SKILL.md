@@ -1,6 +1,7 @@
 ---
-name: Bootstrap Environment
+name: bootstrap-environment
 description: Install packages, configure libvirt/KVM, set up dnsmasq, and validate a fresh RHEL host is ready for OpenShift ABI deployments
+compatibility: "RHEL 9.x or 10.x host. OpenShift 4.15-4.22 and 5.x. Requires: libvirt, ansible-core, yq, openshift-install CLI."
 triggers:
   - bootstrap environment
   - set up host
@@ -34,6 +35,29 @@ Activate when a user wants to:
 - Cockpit accessible at `https://<host-ip>:9090` (for VyOS router steps, later)
 
 ## Procedure
+
+### Quick Diagnostics (run first)
+
+Run these before proceeding to understand the current state:
+
+```bash
+# OS and resources
+cat /etc/redhat-release
+free -h
+df -h / /var/lib/libvirt 2>/dev/null || df -h /
+
+# What's already configured?
+./e2e-tests/validate_env.sh 2>&1 | head -60
+
+# libvirt state
+systemctl is-active libvirtd 2>/dev/null && echo "libvirtd: running" || echo "libvirtd: not running"
+virsh --version 2>/dev/null && echo "virsh: OK" || echo "virsh: not installed"
+
+# OCP CLI tools
+ls -la ./bin/oc ./bin/openshift-install 2>/dev/null || echo "OCP CLI: not downloaded yet"
+```
+
+Interpret the output: skip steps that already pass and proceed directly to the first failing check.
 
 ### Step 1: Run the Bootstrap Script
 

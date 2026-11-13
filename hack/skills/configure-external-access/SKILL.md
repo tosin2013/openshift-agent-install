@@ -1,6 +1,7 @@
 ---
-name: Configure External Access
+name: configure-external-access
 description: Set up HAProxy forwarding, Route53 public DNS, and Let's Encrypt TLS certificates for external cluster access
+compatibility: "RHEL 9.x or 10.x host. OpenShift 4.15-4.22 and 5.x. Requires: libvirt, ansible-core, yq, openshift-install CLI."
 triggers:
   - external access
   - configure HAProxy
@@ -36,6 +37,23 @@ Activate when a user wants to:
 - Container runtime (podman or docker) for certbot
 
 ## Procedure
+
+### Quick Diagnostics (run first)
+
+```bash
+# Check cluster is reachable
+KUBECONFIG=$(ls ~/generated_assets/*/auth/kubeconfig 2>/dev/null | head -1)
+[ -n "$KUBECONFIG" ] && KUBECONFIG="$KUBECONFIG" oc get nodes 2>&1 | head -10 || echo "No kubeconfig found"
+
+# Check if HAProxy already running
+systemctl is-active haproxy 2>/dev/null && echo "haproxy: running" || echo "haproxy: not running"
+
+# Check AWS CLI for Route53
+aws sts get-caller-identity 2>/dev/null | head -5 || echo "AWS CLI: not configured"
+
+# Check certbot
+certbot --version 2>/dev/null || echo "certbot: not installed"
+```
 
 ### Option A: One-Command Setup (Recommended)
 

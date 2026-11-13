@@ -1,6 +1,7 @@
 ---
-name: Destroy Cluster
+name: destroy-cluster
 description: Tear down a KVM cluster — removes VMs, disk images, DNS entries, and generated assets to free resources or prepare for redeployment
+compatibility: "RHEL 9.x or 10.x host. OpenShift 4.15-4.22 and 5.x. Requires: libvirt, ansible-core, yq, openshift-install CLI."
 triggers:
   - destroy cluster
   - tear down cluster
@@ -33,6 +34,24 @@ Activate when a user wants to:
 - Cluster name known (or derivable from cluster.yml)
 
 ## Procedure
+
+### Quick Diagnostics (run first)
+
+```bash
+# Show what's currently running
+virsh list --all 2>/dev/null
+
+# Show disk images
+ls -lh /var/lib/libvirt/images/*.qcow2 2>/dev/null || echo "No qcow2 disk images found"
+
+# Show current DNS entries
+sudo ./hack/configure-dnsmasq-entries.sh list 2>/dev/null | head -30
+
+# Show generated assets
+ls ~/generated_assets/ 2>/dev/null
+```
+
+Present this information to the user before confirming what will be destroyed.
 
 ### Option A: Destroy KVM Cluster (Recommended)
 

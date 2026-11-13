@@ -1,6 +1,7 @@
 ---
-name: Create Cluster Configuration
+name: create-cluster-config
 description: Author cluster.yml and nodes.yml for SNO, 3-node compact, or HA OpenShift deployments
+compatibility: "RHEL 9.x or 10.x host. OpenShift 4.15-4.22 and 5.x."
 triggers:
   - create cluster configuration
   - new cluster config
@@ -31,6 +32,21 @@ Activate when a user wants to:
 - Have a pull secret downloaded from https://console.redhat.com/openshift/downloads
 
 ## Procedure
+
+### Quick Diagnostics (run first)
+
+```bash
+# List existing cluster configs
+ls examples/ site-config/ 2>/dev/null
+
+# Validate any existing KVM examples
+./hack/validate-kvm-examples.sh 2>&1 | tail -20
+
+# Check environment is ready
+./e2e-tests/validate_env.sh 2>&1 | tail -10
+```
+
+Determine if the user is creating a brand new config or modifying an existing one.
 
 ### Step 1: Choose a Base Example
 
@@ -243,6 +259,15 @@ The configuration is correct when:
 | create-iso.sh rejects config | OpenShiftSDN with 4.21+ | Change network_type to OVNKubernetes |
 | DNS resolution fails | Wrong dns_servers value | Use 192.168.122.1 for KVM, corporate DNS for bare metal |
 | NMState validation error | Wrong interface name or VLAN syntax | Check `nmstatectl gc` output |
+
+## Version Notes
+
+| OCP Version | Key Requirements |
+|-------------|-----------------|
+| 4.15–4.19 | `imageContentSources` for disconnected; OpenShiftSDN allowed |
+| 4.20–4.21 | `imageDigestSources` required; OVNKubernetes required |
+| 4.22 | Same as 4.20–4.21; last OCP 4.x release |
+| 5.0+ | RHCOS 10 default (opt: `os_image_stream: rhel-9` to pin RHCOS 9); CLI from `openshift-v5` mirror; upgrade from 4.22 is in-place standard update |
 
 ## Key Files
 

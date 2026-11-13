@@ -1,6 +1,7 @@
 ---
-name: Generate ACM BareMetalHost Resources
+name: generate-acm-hosts
 description: Convert nodes.yml BMC credentials into Kubernetes Secret and BareMetalHost manifests for RHACM/Metal3 hub-based cluster deployment
+compatibility: "RHEL 9.x or 10.x host. OpenShift 4.15-4.22 and 5.x. Requires: running RHACM hub cluster with Metal3 and agent-install operators, python3-pyyaml."
 triggers:
   - generate ACM hosts
   - BareMetalHost manifest
@@ -39,6 +40,19 @@ This skill generates the BareMetalHost manifests for one spoke cluster. It does 
 - `oc` CLI configured with the hub cluster's kubeconfig
 
 ## Procedure
+
+### Quick Diagnostics (run first)
+
+```bash
+# Check hub cluster access
+oc get nodes 2>/dev/null | head -5 || echo "KUBECONFIG not set or hub unreachable"
+
+# Check python3-pyyaml
+python3 -c "import yaml; print('pyyaml: OK')" 2>/dev/null || echo "pyyaml: not installed (pip3 install pyyaml)"
+
+# Check Metal3 / agent-install operators on hub
+oc get pods -n metal3 2>/dev/null | head -10 || echo "metal3 namespace not found"
+```
 
 ### Step 1: Confirm nodes.yml Has BMC Credentials
 

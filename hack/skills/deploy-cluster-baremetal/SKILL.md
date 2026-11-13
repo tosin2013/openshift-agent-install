@@ -1,6 +1,7 @@
 ---
-name: Deploy Cluster on Bare Metal
+name: deploy-cluster-baremetal
 description: Deliver agent ISO to physical servers via Redfish virtual media or IPMI and monitor installation
+compatibility: "RHEL 9.x or 10.x host. OpenShift 4.15-4.22 and 5.x. Requires: libvirt, ansible-core, yq, openshift-install CLI."
 triggers:
   - deploy bare metal
   - deploy to physical servers
@@ -32,6 +33,21 @@ Activate when a user wants to:
 - Physical servers have UEFI boot mode enabled (recommended)
 
 ## Procedure
+
+### Quick Diagnostics (run first)
+
+```bash
+# Check ISO exists
+ls ~/generated_assets/*/agent.x86_64.iso 2>/dev/null || echo "No ISOs found — generate one first"
+
+# Check DNS
+./hack/verify-dns-resolution.sh "${SITE_CONFIG_DIR:-examples}/"*/cluster.yml 2>/dev/null | head -20
+
+# Check environment
+./hack/validate-baremetal-env.sh 2>&1 | tail -20
+```
+
+If no ISO exists, generate it first using the `create-iso.sh` script. If DNS fails, resolve that before proceeding.
 
 ### Step 1: Validate the Bare Metal Environment
 
@@ -208,6 +224,15 @@ Deployment is successful when:
 | Interface names | `enp1s0`, `enp2s0` | `eno1`, `ens192`, `ens1f0` (hardware-dependent) |
 | Root device | `/dev/vda` | `/dev/sda`, `/dev/nvme0n1`, multipath WWN |
 | Config location | `examples/` | `site-config/` (gitignored) |
+
+## Version Notes
+
+| OCP Version | Key Requirements |
+|-------------|-----------------|
+| 4.15–4.19 | `imageContentSources` for disconnected; OpenShiftSDN allowed |
+| 4.20–4.21 | `imageDigestSources` required; OVNKubernetes required |
+| 4.22 | Same as 4.20–4.21; last OCP 4.x release |
+| 5.0+ | RHCOS 10 default (opt: `os_image_stream: rhel-9` to pin RHCOS 9); CLI from `openshift-v5` mirror; upgrade from 4.22 is in-place standard update |
 
 ## Related Skills
 

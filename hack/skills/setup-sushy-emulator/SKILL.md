@@ -1,6 +1,7 @@
 ---
-name: Setup Sushy Emulator
+name: setup-sushy-emulator
 description: Configure sushy-emulator as a Redfish BMC emulator for KVM VMs, enabling bare-metal-style ISO delivery workflows on a KVM lab host
+compatibility: "RHEL 9.x or 10.x host. OpenShift 4.15-4.22 and 5.x. Requires: libvirt, ansible-core, yq, openshift-install CLI."
 triggers:
   - sushy emulator
   - setup sushy
@@ -40,6 +41,23 @@ It does NOT replace a real BMC for production — it is a development and testin
 - At least one KVM VM defined (even if stopped) to verify the Systems endpoint
 
 ## Procedure
+
+### Quick Diagnostics (run first)
+
+```bash
+# Is sushy already running?
+systemctl is-active sushy-emulator 2>/dev/null && echo "sushy: running" || echo "sushy: not running"
+sudo podman ps 2>/dev/null | grep sushy || echo "No sushy container running"
+
+# Is virbr0 active?
+ip link show virbr0 2>/dev/null | head -3 || echo "virbr0: not found"
+
+# Test libvirt connection methods
+./hack/test-libvirt-ssh.sh 2>&1 | head -20
+
+# Check if sushy-bmc interface exists
+ip link show sushy-bmc 2>/dev/null | head -3 || echo "sushy-bmc interface: not configured"
+```
 
 ### Step 1: Determine the Best Libvirt Connection Method
 

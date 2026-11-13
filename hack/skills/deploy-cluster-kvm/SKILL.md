@@ -1,6 +1,7 @@
 ---
-name: Deploy Cluster on KVM
+name: deploy-cluster-kvm
 description: Full lifecycle KVM deployment from DNS setup through VM creation to installation monitoring (7 phases)
+compatibility: "RHEL 9.x or 10.x host. OpenShift 4.15-4.22 and 5.x. Requires: libvirt, ansible-core, yq, openshift-install CLI."
 triggers:
   - deploy cluster
   - deploy on KVM
@@ -33,6 +34,27 @@ Activate when a user wants to:
 - sudo access for libvirt/DNS operations
 
 ## Procedure
+
+### Quick Diagnostics (run first)
+
+```bash
+# DNS state
+sudo systemctl is-active dnsmasq 2>/dev/null && echo "dnsmasq: running" || echo "dnsmasq: not running"
+
+# Available cluster configs
+ls "${SITE_CONFIG_DIR:-examples}/"
+
+# VMs already running
+virsh list --all 2>/dev/null | head -20
+
+# Existing ISOs
+ls ~/generated_assets/*/agent.x86_64.iso 2>/dev/null || echo "No ISOs found"
+
+# Environment check
+./e2e-tests/validate_env.sh 2>&1 | tail -10
+```
+
+If a cluster config name was mentioned, check if DNS entries exist and if an ISO already exists for that cluster.
 
 ### Option A: One-Shot Deployment (Recommended)
 
@@ -168,6 +190,15 @@ Deployment is successful when:
 | Install | Bootstrap hangs >45 min | DNS from node can't resolve | Check node's dns-resolver in networkConfig points to 192.168.122.1 |
 | Install | Insufficient resources | Not enough RAM/CPU for nodes | Reduce node count or increase host resources |
 | Post | `oc get nodes` - connection refused | KUBECONFIG not set or API VIP unreachable | `export KUBECONFIG=...`; check DNS resolves api.<cluster> |
+
+## Version Notes
+
+| OCP Version | Key Requirements |
+|-------------|-----------------|
+| 4.15–4.19 | `imageContentSources` for disconnected; OpenShiftSDN allowed |
+| 4.20–4.21 | `imageDigestSources` required; OVNKubernetes required |
+| 4.22 | Same as 4.20–4.21; last OCP 4.x release |
+| 5.0+ | RHCOS 10 default (opt: `os_image_stream: rhel-9` to pin RHCOS 9); CLI from `openshift-v5` mirror; upgrade from 4.22 is in-place standard update |
 
 ## Related Skills
 

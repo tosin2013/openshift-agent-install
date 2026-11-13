@@ -1,6 +1,7 @@
 ---
-name: Troubleshoot DNS Resolution
+name: troubleshoot-dns
 description: Diagnose and fix DNS issues that block OpenShift cluster deployment or access
+compatibility: "RHEL 9.x or 10.x host. OpenShift 4.15-4.22 and 5.x."
 triggers:
   - DNS not resolving
   - DNS troubleshooting
@@ -25,6 +26,26 @@ Activate when:
 - Cluster was working but is now unreachable by name
 - Nodes report "unable to resolve host" during installation
 - User reports "connection refused" when accessing the cluster
+
+## Quick Diagnostics (run first)
+
+Run these immediately to identify the DNS problem:
+
+```bash
+# Is dnsmasq running?
+sudo systemctl status dnsmasq 2>&1 | head -5
+
+# What DNS entries are configured?
+sudo ./hack/configure-dnsmasq-entries.sh list 2>/dev/null | head -30
+
+# What cluster configs exist?
+ls "${SITE_CONFIG_DIR:-examples}/"
+
+# If a specific cluster is known, run the DNS verifier:
+# ./hack/verify-dns-resolution.sh examples/<cluster>/cluster.yml
+```
+
+After running, identify the specific cluster and run verify-dns-resolution.sh against it. The output will pinpoint which records are missing.
 
 ## Diagnostic Decision Tree
 

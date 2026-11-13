@@ -1,6 +1,7 @@
 ---
-name: Validate and Compare Version Manifests
+name: validate-and-compare-manifests
 description: Generate ABI manifests for multiple OCP versions, diff them to surface breaking changes, and validate against version-specific deployment standards using LLM analysis
+compatibility: "RHEL 9.x or 10.x host. OpenShift 4.15-4.22 and 5.x. OCP 5.x uses openshift-v5 mirror. Requires: LITELLM_API_KEY for LLM steps (optional --skip-llm mode available)."
 triggers:
   - validate manifests
   - compare manifests
@@ -36,6 +37,21 @@ Activate when a user wants to:
 require `LITELLM_API_KEY` for the AI analysis. Use `--skip-llm` flag to run without it.
 
 ## Procedure
+
+### Quick Diagnostics (run first)
+
+```bash
+# Check LLM API key (required for compare/validate steps)
+[ -n "$LITELLM_API_KEY" ] && echo "LITELLM_API_KEY: set" || echo "LITELLM_API_KEY: NOT SET (source ~/env or export it)"
+
+# List available example configs
+ls "${SITE_CONFIG_DIR:-examples}/"
+
+# Check for previously generated version manifests
+ls ~/generated_assets/version-compare/ 2>/dev/null | head -20 || echo "No version manifests generated yet"
+```
+
+Determine the target example name and which versions to compare before proceeding. Use `--skip-llm` if LITELLM_API_KEY is not available.
 
 ### Step 1: Generate Manifests for Each Target Version
 
@@ -132,6 +148,15 @@ The validation workflow is complete when:
 4. Known version boundary changes are correctly flagged:
    - 4.19→4.20: `imageContentSources` → standalone `ImageDigestMirrorSet` manifest
    - 4.20→4.21: `networkType: OpenShiftSDN` → `OVNKubernetes`
+
+## Version Notes
+
+| OCP Version | Key Requirements |
+|-------------|-----------------|
+| 4.15–4.19 | `imageContentSources` for disconnected; OpenShiftSDN allowed |
+| 4.20–4.21 | `imageDigestSources` required; OVNKubernetes required |
+| 4.22 | Same as 4.20–4.21; last OCP 4.x release |
+| 5.0+ | RHCOS 10 default; CLI downloads from `openshift-v5` mirror; `os_image_stream` field available |
 
 ## Related Skills
 
