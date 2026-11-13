@@ -1,0 +1,1 @@
+/home/vpcuser/openshift-agent-install/hack/skills/create-cluster-config/SKILL.md

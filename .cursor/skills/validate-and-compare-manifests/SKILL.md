@@ -1,0 +1,1 @@
+/home/vpcuser/openshift-agent-install/hack/skills/validate-and-compare-manifests/SKILL.md

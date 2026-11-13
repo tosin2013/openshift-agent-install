@@ -1,0 +1,1 @@
+/home/vpcuser/openshift-agent-install/hack/skills/troubleshoot-dns/SKILL.md

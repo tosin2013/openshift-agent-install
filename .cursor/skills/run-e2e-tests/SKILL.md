@@ -1,0 +1,1 @@
+/home/vpcuser/openshift-agent-install/hack/skills/run-e2e-tests/SKILL.md

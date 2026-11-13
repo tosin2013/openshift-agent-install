@@ -39,3 +39,4 @@ docs/.sass-cache/**
 
 # Auto-generated MCP server context (added automatically)
 .mcp-server-context.md
+.rh-skills/

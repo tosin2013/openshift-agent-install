@@ -1,0 +1,1 @@
+/home/vpcuser/openshift-agent-install/hack/skills/deploy-vyos-router/SKILL.md

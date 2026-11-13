@@ -9,12 +9,14 @@ See CLAUDE.md and AGENTS.md for comprehensive project guidance.
 
 
 
+
+
 <!-- SKILLS-AUTO-START -->
 ## Task Skills
 
 This repository includes task-specific skills in `hack/skills/`. When a user's request matches these patterns, read the full skill file for detailed procedures.
 
-### Bootstrap Environment (`hack/skills/bootstrap-environment/SKILL.md`)
+### bootstrap-environment (`hack/skills/bootstrap-environment/SKILL.md`)
 
 Install packages, configure libvirt/KVM, set up dnsmasq, and validate a fresh RHEL host is ready for OpenShift ABI deployments
 
@@ -30,7 +32,7 @@ Install packages, configure libvirt/KVM, set up dnsmasq, and validate a fresh RH
 - validate_env fails
 - setup new machine
 
-### Configure External Access (`hack/skills/configure-external-access/SKILL.md`)
+### configure-external-access (`hack/skills/configure-external-access/SKILL.md`)
 
 Set up HAProxy forwarding, Route53 public DNS, and Let's Encrypt TLS certificates for external cluster access
 
@@ -44,7 +46,7 @@ Set up HAProxy forwarding, Route53 public DNS, and Let's Encrypt TLS certificate
 - configure-external-access
 - TLS certificates
 
-### Create Cluster Configuration (`hack/skills/create-cluster-config/SKILL.md`)
+### create-cluster-config (`hack/skills/create-cluster-config/SKILL.md`)
 
 Author cluster.yml and nodes.yml for SNO, 3-node compact, or HA OpenShift deployments
 
@@ -58,7 +60,7 @@ Author cluster.yml and nodes.yml for SNO, 3-node compact, or HA OpenShift deploy
 - SNO configuration
 - HA cluster setup
 
-### Deploy Cluster on Bare Metal (`hack/skills/deploy-cluster-baremetal/SKILL.md`)
+### deploy-cluster-baremetal (`hack/skills/deploy-cluster-baremetal/SKILL.md`)
 
 Deliver agent ISO to physical servers via Redfish virtual media or IPMI and monitor installation
 
@@ -71,7 +73,7 @@ Deliver agent ISO to physical servers via Redfish virtual media or IPMI and moni
 - production deployment
 - deploy-iso-baremetal
 
-### Deploy Cluster on KVM (`hack/skills/deploy-cluster-kvm/SKILL.md`)
+### deploy-cluster-kvm (`hack/skills/deploy-cluster-kvm/SKILL.md`)
 
 Full lifecycle KVM deployment from DNS setup through VM creation to installation monitoring (7 phases)
 
@@ -85,7 +87,7 @@ Full lifecycle KVM deployment from DNS setup through VM creation to installation
 - deploy SNO
 - deploy HA cluster
 
-### Deploy VyOS Router (`hack/skills/deploy-vyos-router/SKILL.md`)
+### deploy-vyos-router (`hack/skills/deploy-vyos-router/SKILL.md`)
 
 Deploy VyOS virtual router for VLAN networking in KVM lab (requires manual Cockpit console configuration)
 
@@ -98,7 +100,7 @@ Deploy VyOS virtual router for VLAN networking in KVM lab (requires manual Cockp
 - network infrastructure
 - inter-VLAN routing
 
-### Destroy Cluster (`hack/skills/destroy-cluster/SKILL.md`)
+### destroy-cluster (`hack/skills/destroy-cluster/SKILL.md`)
 
 Tear down a KVM cluster — removes VMs, disk images, DNS entries, and generated assets to free resources or prepare for redeployment
 
@@ -114,7 +116,7 @@ Tear down a KVM cluster — removes VMs, disk images, DNS entries, and generated
 - start over
 - redeploy cluster
 
-### Generate ACM BareMetalHost Resources (`hack/skills/generate-acm-hosts/SKILL.md`)
+### generate-acm-hosts (`hack/skills/generate-acm-hosts/SKILL.md`)
 
 Convert nodes.yml BMC credentials into Kubernetes Secret and BareMetalHost manifests for RHACM/Metal3 hub-based cluster deployment
 
@@ -129,7 +131,7 @@ Convert nodes.yml BMC credentials into Kubernetes Secret and BareMetalHost manif
 - hub cluster deployment
 - spoke cluster via ACM
 
-### Pre-Release Validation (`hack/skills/pre-release-validation/SKILL.md`)
+### pre-release-validation (`hack/skills/pre-release-validation/SKILL.md`)
 
 Orchestrate the full pre-release test suite across all phases (version tests, platform manifests, disconnected workflow, E2E deployment) and generate a markdown report
 
@@ -144,7 +146,7 @@ Orchestrate the full pre-release test suite across all phases (version tests, pl
 - release checklist
 - v4.x validation
 
-### Run End-to-End Tests (`hack/skills/run-e2e-tests/SKILL.md`)
+### run-e2e-tests (`hack/skills/run-e2e-tests/SKILL.md`)
 
 Execute the full E2E test suite (ISO creation, VM deployment, installation monitoring) or version validation tests against configured cluster examples
 
@@ -160,7 +162,7 @@ Execute the full E2E test suite (ISO creation, VM deployment, installation monit
 - CI testing
 - test deployment
 
-### Setup Sushy Emulator (`hack/skills/setup-sushy-emulator/SKILL.md`)
+### setup-sushy-emulator (`hack/skills/setup-sushy-emulator/SKILL.md`)
 
 Configure sushy-emulator as a Redfish BMC emulator for KVM VMs, enabling bare-metal-style ISO delivery workflows on a KVM lab host
 
@@ -176,7 +178,7 @@ Configure sushy-emulator as a Redfish BMC emulator for KVM VMs, enabling bare-me
 - BMC testing
 - virtual redfish
 
-### Troubleshoot DNS Resolution (`hack/skills/troubleshoot-dns/SKILL.md`)
+### troubleshoot-dns (`hack/skills/troubleshoot-dns/SKILL.md`)
 
 Diagnose and fix DNS issues that block OpenShift cluster deployment or access
 
@@ -192,7 +194,7 @@ Diagnose and fix DNS issues that block OpenShift cluster deployment or access
 - API connection refused
 - name resolution error
 
-### Validate and Compare Version Manifests (`hack/skills/validate-and-compare-manifests/SKILL.md`)
+### validate-and-compare-manifests (`hack/skills/validate-and-compare-manifests/SKILL.md`)
 
 Generate ABI manifests for multiple OCP versions, diff them to surface breaking changes, and validate against version-specific deployment standards using LLM analysis
 

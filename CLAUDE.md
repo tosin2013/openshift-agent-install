@@ -452,13 +452,17 @@ This ensures accurate, consistent, and helpful responses based on the actual rep
 
 
 
+
+
+
+
 <!-- SKILLS-AUTO-START -->
 
 ## Skills Reference
 
 The following task-specific skills are available in `hack/skills/`. Read the full SKILL.md file when a user's request matches the trigger conditions.
 
-### Bootstrap Environment
+### bootstrap-environment
 
 - **File:** `hack/skills/bootstrap-environment/SKILL.md`
 - **Description:** Install packages, configure libvirt/KVM, set up dnsmasq, and validate a fresh RHEL host is ready for OpenShift ABI deployments
@@ -474,7 +478,7 @@ The following task-specific skills are available in `hack/skills/`. Read the ful
   - validate_env fails
   - setup new machine
 
-### Configure External Access
+### configure-external-access
 
 - **File:** `hack/skills/configure-external-access/SKILL.md`
 - **Description:** Set up HAProxy forwarding, Route53 public DNS, and Let's Encrypt TLS certificates for external cluster access
@@ -488,7 +492,7 @@ The following task-specific skills are available in `hack/skills/`. Read the ful
   - configure-external-access
   - TLS certificates
 
-### Create Cluster Configuration
+### create-cluster-config
 
 - **File:** `hack/skills/create-cluster-config/SKILL.md`
 - **Description:** Author cluster.yml and nodes.yml for SNO, 3-node compact, or HA OpenShift deployments
@@ -502,7 +506,7 @@ The following task-specific skills are available in `hack/skills/`. Read the ful
   - SNO configuration
   - HA cluster setup
 
-### Deploy Cluster on Bare Metal
+### deploy-cluster-baremetal
 
 - **File:** `hack/skills/deploy-cluster-baremetal/SKILL.md`
 - **Description:** Deliver agent ISO to physical servers via Redfish virtual media or IPMI and monitor installation
@@ -515,7 +519,7 @@ The following task-specific skills are available in `hack/skills/`. Read the ful
   - production deployment
   - deploy-iso-baremetal
 
-### Deploy Cluster on KVM
+### deploy-cluster-kvm
 
 - **File:** `hack/skills/deploy-cluster-kvm/SKILL.md`
 - **Description:** Full lifecycle KVM deployment from DNS setup through VM creation to installation monitoring (7 phases)
@@ -529,7 +533,7 @@ The following task-specific skills are available in `hack/skills/`. Read the ful
   - deploy SNO
   - deploy HA cluster
 
-### Deploy VyOS Router
+### deploy-vyos-router
 
 - **File:** `hack/skills/deploy-vyos-router/SKILL.md`
 - **Description:** Deploy VyOS virtual router for VLAN networking in KVM lab (requires manual Cockpit console configuration)
@@ -542,7 +546,7 @@ The following task-specific skills are available in `hack/skills/`. Read the ful
   - network infrastructure
   - inter-VLAN routing
 
-### Destroy Cluster
+### destroy-cluster
 
 - **File:** `hack/skills/destroy-cluster/SKILL.md`
 - **Description:** Tear down a KVM cluster — removes VMs, disk images, DNS entries, and generated assets to free resources or prepare for redeployment
@@ -558,7 +562,7 @@ The following task-specific skills are available in `hack/skills/`. Read the ful
   - start over
   - redeploy cluster
 
-### Generate ACM BareMetalHost Resources
+### generate-acm-hosts
 
 - **File:** `hack/skills/generate-acm-hosts/SKILL.md`
 - **Description:** Convert nodes.yml BMC credentials into Kubernetes Secret and BareMetalHost manifests for RHACM/Metal3 hub-based cluster deployment
@@ -573,7 +577,7 @@ The following task-specific skills are available in `hack/skills/`. Read the ful
   - hub cluster deployment
   - spoke cluster via ACM
 
-### Pre-Release Validation
+### pre-release-validation
 
 - **File:** `hack/skills/pre-release-validation/SKILL.md`
 - **Description:** Orchestrate the full pre-release test suite across all phases (version tests, platform manifests, disconnected workflow, E2E deployment) and generate a markdown report
@@ -588,7 +592,7 @@ The following task-specific skills are available in `hack/skills/`. Read the ful
   - release checklist
   - v4.x validation
 
-### Run End-to-End Tests
+### run-e2e-tests
 
 - **File:** `hack/skills/run-e2e-tests/SKILL.md`
 - **Description:** Execute the full E2E test suite (ISO creation, VM deployment, installation monitoring) or version validation tests against configured cluster examples
@@ -604,7 +608,7 @@ The following task-specific skills are available in `hack/skills/`. Read the ful
   - CI testing
   - test deployment
 
-### Setup Sushy Emulator
+### setup-sushy-emulator
 
 - **File:** `hack/skills/setup-sushy-emulator/SKILL.md`
 - **Description:** Configure sushy-emulator as a Redfish BMC emulator for KVM VMs, enabling bare-metal-style ISO delivery workflows on a KVM lab host
@@ -620,7 +624,7 @@ The following task-specific skills are available in `hack/skills/`. Read the ful
   - BMC testing
   - virtual redfish
 
-### Troubleshoot DNS Resolution
+### troubleshoot-dns
 
 - **File:** `hack/skills/troubleshoot-dns/SKILL.md`
 - **Description:** Diagnose and fix DNS issues that block OpenShift cluster deployment or access
@@ -636,7 +640,7 @@ The following task-specific skills are available in `hack/skills/`. Read the ful
   - API connection refused
   - name resolution error
 
-### Validate and Compare Version Manifests
+### validate-and-compare-manifests
 
 - **File:** `hack/skills/validate-and-compare-manifests/SKILL.md`
 - **Description:** Generate ABI manifests for multiple OCP versions, diff them to surface breaking changes, and validate against version-specific deployment standards using LLM analysis

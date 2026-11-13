@@ -1,0 +1,1 @@
+/home/vpcuser/openshift-agent-install/hack/skills/pre-release-validation/SKILL.md

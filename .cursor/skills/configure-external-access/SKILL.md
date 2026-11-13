@@ -1,0 +1,1 @@
+/home/vpcuser/openshift-agent-install/hack/skills/configure-external-access/SKILL.md

@@ -1,0 +1,1 @@
+/home/vpcuser/openshift-agent-install/hack/skills/deploy-cluster-baremetal/SKILL.md
