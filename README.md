@@ -328,6 +328,30 @@ sudo ./e2e-tests/bootstrap_env.sh
 
 ---
 
+## AI Skills (Claude Code, Cursor, GitHub Copilot)
+
+This repository includes a skills system that gives AI coding assistants step-by-step procedures for every major deployment task. Skills work with Claude Code, Cursor, and GitHub Copilot.
+
+```bash
+# Install skills into your IDE
+./hack/skills/install-skills.sh --all
+
+# Then ask your AI assistant things like:
+# "bootstrap environment"       → environment setup skill
+# "deploy on KVM"               → KVM deployment skill
+# "DNS not resolving"           → troubleshoot DNS skill
+# "create a new cluster config" → cluster config authoring skill
+```
+
+For users who prefer a guided shell workflow without an AI tool:
+```bash
+./hack/harness.sh   # Interactive menu covering all deployment tasks
+```
+
+See [SKILLS.md](SKILLS.md) for the full skill list, trigger phrases, and Red Hat AI Skills Catalog integration. See [hack/skills/README.md](hack/skills/README.md) for a step-by-step walkthrough.
+
+---
+
 ## Execution Environment (Ansible)
 
 For offline use or Ansible Automation Platform, use the pre-built containerized Execution Environment:
@@ -362,3 +386,5 @@ Image tags: `latest` (most recent), `vX.Y.Z` (pinned, e.g., `v4.21.0`).
 | Platform Guides | [/platform-guides](https://tosin2013.github.io/openshift-agent-install/platform-guides) |
 | BMC Management | [/bmc-management](https://tosin2013.github.io/openshift-agent-install/bmc-management) |
 | Troubleshooting | [/troubleshooting](https://tosin2013.github.io/openshift-agent-install/troubleshooting) |
+| AI Skills (Claude Code / Cursor / Copilot) | [hack/skills/README.md](hack/skills/README.md) |
+| AI Skills Catalog + Red Hat Integration | [SKILLS.md](SKILLS.md) |

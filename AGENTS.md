@@ -122,12 +122,19 @@ Install skills into your IDE:
 ```
 
 Available skills:
+- `bootstrap-environment` - Install packages, configure KVM/libvirt, validate fresh RHEL host
 - `create-cluster-config` - Author cluster.yml + nodes.yml
 - `deploy-cluster-kvm` - Full KVM deployment lifecycle
-- `deploy-cluster-baremetal` - Bare metal ISO delivery
+- `deploy-cluster-baremetal` - Bare metal ISO delivery via Redfish/IPMI
+- `destroy-cluster` - Tear down KVM VMs, disks, DNS entries, generated assets
 - `configure-external-access` - HAProxy + Route53 + Let's Encrypt
 - `deploy-vyos-router` - VyOS router with manual steps
 - `troubleshoot-dns` - DNS diagnostic and repair
+- `setup-sushy-emulator` - Redfish BMC emulation for KVM VMs via sushy-tools
+- `validate-and-compare-manifests` - Multi-version manifest diff and LLM-powered validation
+- `generate-acm-hosts` - Convert nodes.yml to BareMetalHost + Secret for RHACM/Metal3
+- `run-e2e-tests` - Full E2E test suite or version validation tests
+- `pre-release-validation` - Full validation suite with release evidence report
 
 ## Quick Reference
 

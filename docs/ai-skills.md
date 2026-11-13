@@ -23,12 +23,19 @@ Skills are structured markdown documents that teach AI assistants how to perform
 
 | Skill | Description | Typical Trigger |
 |-------|-------------|-----------------|
+| `bootstrap-environment` | Install packages, configure KVM/libvirt, validate fresh RHEL host | "bootstrap environment" |
 | `create-cluster-config` | Author cluster.yml and nodes.yml for SNO/3-node/HA deployments | "Create a new cluster config" |
 | `deploy-cluster-kvm` | Full lifecycle KVM deployment (7 phases) | "Deploy a cluster on KVM" |
 | `deploy-cluster-baremetal` | Bare metal ISO delivery via Redfish/IPMI | "Deploy to bare metal servers" |
+| `destroy-cluster` | Remove VMs, disks, DNS entries, and generated assets | "destroy cluster" |
 | `configure-external-access` | HAProxy + Route53 + Let's Encrypt | "Set up external access" |
 | `deploy-vyos-router` | VyOS virtual router with manual steps | "Deploy VyOS router" |
 | `troubleshoot-dns` | DNS diagnostic and repair procedures | "DNS isn't resolving" |
+| `setup-sushy-emulator` | Redfish BMC emulation for KVM VMs via sushy-tools | "sushy emulator" |
+| `validate-and-compare-manifests` | Multi-version manifest diff and LLM-powered validation | "compare manifests" |
+| `generate-acm-hosts` | Convert nodes.yml to BareMetalHost + Secret for RHACM/Metal3 | "generate ACM hosts" |
+| `run-e2e-tests` | Full E2E test suite or version validation tests | "run e2e tests" |
+| `pre-release-validation` | Full validation suite with release evidence report | "pre-release validation" |
 
 ## Installation
 
@@ -64,12 +71,19 @@ Skills are stored in `hack/skills/` and must be installed into your IDE to be di
 hack/skills/                          ← Source of truth (tracked in git)
   ├── install-skills.sh               ← Installer script
   ├── README.md
-  ├── create-cluster-config/SKILL.md
-  ├── deploy-cluster-kvm/SKILL.md
-  ├── deploy-cluster-baremetal/SKILL.md
+  ├── bootstrap-environment/SKILL.md
   ├── configure-external-access/SKILL.md
+  ├── create-cluster-config/SKILL.md
+  ├── deploy-cluster-baremetal/SKILL.md
+  ├── deploy-cluster-kvm/SKILL.md
   ├── deploy-vyos-router/SKILL.md
-  └── troubleshoot-dns/SKILL.md
+  ├── destroy-cluster/SKILL.md
+  ├── generate-acm-hosts/SKILL.md
+  ├── pre-release-validation/SKILL.md
+  ├── run-e2e-tests/SKILL.md
+  ├── setup-sushy-emulator/SKILL.md
+  ├── troubleshoot-dns/SKILL.md
+  └── validate-and-compare-manifests/SKILL.md
 
 .cursor/skills/                       ← Generated (symlinks, can be gitignored)
 CLAUDE.md                             ← Appended with skill references
@@ -165,3 +179,35 @@ Activate when a user wants to:
 | `docs/` | Human-readable documentation site |
 
 Skills complement -- but do not replace -- the existing documentation. They provide AI assistants with actionable procedures, while docs provide humans with understanding.
+
+## Red Hat AI Skills Catalog
+
+Red Hat maintains an official AI Skills Catalog at **https://catalog.redhat.com/en/ai/skills** that includes skill packs for Claude Code and Cursor.
+
+### The Official OpenShift Skill vs. This Repository
+
+The official **"Plugin for Red Hat OpenShift"** skill covers OpenShift Cluster Manager (OCM), ROSA, and ARO provisioning — managed-cloud operations. It does not cover on-premises Agent-Based Installer deployments, which is the gap this repository fills.
+
+These two skill sources are **complementary**, not competing:
+
+| Task | Skill Source |
+|------|-------------|
+| Provision ROSA or ARO clusters | Official catalog "Plugin for Red Hat OpenShift" |
+| Deploy self-managed OpenShift via ABI on bare metal | This repository |
+| Deploy OpenShift on KVM for development/lab | This repository |
+| RHACM hub-managed spoke clusters via agent-install | This repository (`generate-acm-hosts` skill) |
+
+### Fetching Public Red Hat Skills
+
+Skills from related public Red Hat repositories can be downloaded locally:
+
+```bash
+./hack/skills/pull-rh-skills.sh --list    # See what's available
+./hack/skills/pull-rh-skills.sh           # Download to .rh-skills/
+```
+
+Fetches from: `openshift/agentic-skills`, `RHEcosystemAppEng/agentic-plugins`, `redhat-developer/agentic-skills`.
+
+### Contributing Upstream
+
+No official Red Hat ABI provisioning skill exists in any of the three public repos. Skills from this repository are strong candidates for upstream contribution when the submission pathway opens. See [SKILLS.md](../SKILLS.md) for details on the contribution process and which skills are most likely to qualify.
