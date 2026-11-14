@@ -152,14 +152,16 @@ After reboot, log in again via console (login: `vyos` / password you set):
 ```
 configure
 
-# Set eth0 (management interface on default network)
+# Set eth0 and default route — commit FIRST so the interface is active
 set interfaces ethernet eth0 address 192.168.122.2/24
 set interfaces ethernet eth0 description 'Internet-Facing'
 set protocols static route 0.0.0.0/0 next-hop 192.168.122.1
+commit
 
-# Verify internet connectivity BEFORE configuring SSH
-# (run from within configure mode — must pass before proceeding)
+# Verify internet connectivity AFTER commit (interface must be up first)
 run ping 1.1.1.1 interface 192.168.122.2 count 3
+
+# If ping passes, continue. If not, check the route and eth0 config above.
 
 # Set DNS forwarding for VLAN VMs
 set service dns forwarding listen-address 192.168.122.2
