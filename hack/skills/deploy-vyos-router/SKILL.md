@@ -61,7 +61,23 @@ cat ~/cockpit-credentials.txt 2>/dev/null || echo "cockpit-credentials.txt not f
 
 # Host IP for Cockpit access
 ip -4 addr show | grep -v "127.0.0.1" | grep "inet " | awk '{print $2}' | head -3
+
+# Check host routes to VLAN subnets (must exist for host to reach VMs)
+# These are added automatically by vyos-router.sh after VyOS comes up
+# but may need to be added manually if the script timed out
+ip route show | grep "192.168.5[0-8]\|192.168.49" || echo "VLAN routes missing — add them:"
+echo "  for net in 192.168.{49..58}.0/24; do sudo ip route add \$net via 192.168.122.2; done"
 ```
+
+> **Host VLAN routes** are required for the host to reach VMs on VLAN subnets and are normally added by `vyos-router.sh` automatically. If the script timed out before VyOS came up, add them manually:
+> ```bash
+> for net in 192.168.49.0/24 192.168.50.0/24 192.168.51.0/24 192.168.52.0/24 \
+>            192.168.53.0/24 192.168.54.0/24 192.168.55.0/24 192.168.56.0/24 \
+>            192.168.57.0/24 192.168.58.0/24; do
+>     sudo ip route add $net via 192.168.122.2 2>/dev/null || true
+> done
+> ```
+> These routes are **not persistent** across host reboots — add them to `/etc/sysconfig/network-scripts/` or use NetworkManager static routes if needed.
 
 **DNS check — must resolve before proceeding:**
 

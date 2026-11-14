@@ -386,6 +386,28 @@ function configure_router(){
     else
       echo "Router is accessible."
     fi
+
+    # Configure DNS forwarding on VyOS so VLAN VMs can resolve cluster names
+    # VMs use their VLAN gateway (e.g. 192.168.50.1) as DNS; VyOS forwards to libvirt dnsmasq
+    echo "Configuring VyOS DNS forwarding..."
+    sshpass -p 'vyos' ssh -o StrictHostKeyChecking=no vyos@192.168.122.2 "vbash -s" << 'VYOS_DNS'
+source /opt/vyatta/etc/functions/script-template
+configure
+set service dns forwarding listen-address 192.168.122.2
+set service dns forwarding listen-address 192.168.49.1
+set service dns forwarding listen-address 192.168.50.1
+set service dns forwarding listen-address 192.168.51.1
+set service dns forwarding listen-address 192.168.52.1
+set service dns forwarding listen-address 192.168.53.1
+set service dns forwarding listen-address 192.168.54.1
+set service dns forwarding allow-from 192.168.0.0/16
+set service dns forwarding name-server 192.168.122.1
+set service dns forwarding cache-size 1000
+commit
+save
+exit
+VYOS_DNS
+    echo "✓ VyOS DNS forwarding configured"
 }
 
 function destroy(){
