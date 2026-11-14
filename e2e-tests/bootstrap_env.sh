@@ -376,6 +376,7 @@ install_container_tools
 setup_virtualization
 setup_cockpit_access  # Create Cockpit user for SSH key-only setups
 setup_dns_server  # Setup lightweight dnsmasq DNS instead of FreeIPA
+setup_cockpit_user
 configure_infrastructure
 setup_registry_auth
 handle_selinux_policies

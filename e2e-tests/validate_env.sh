@@ -43,13 +43,23 @@ command_exists() {
 # --- System Package Validation ---
 validate_system_packages() {
     print_section "Validating System Packages"
-    packages=(nmstate ansible-core bind-utils cloud-init virt-install qemu-img virt-manager selinux-policy-targeted python3-pip)
-    
+    packages=(nmstate ansible-core bind-utils cloud-init virt-install qemu-img selinux-policy-targeted python3-pip)
+    # virt-manager is a GUI tool — not available on RHEL 10 (use Cockpit instead); optional on RHEL 9
+    optional_packages=(virt-manager)
+
     for package in "${packages[@]}"; do
         if rpm -q "$package" &>/dev/null; then
             print_status "$package is installed" 0
         else
             print_status "$package is not installed" 1
+        fi
+    done
+
+    for package in "${optional_packages[@]}"; do
+        if rpm -q "$package" &>/dev/null; then
+            print_status "$package is installed (optional)" 0
+        else
+            print_info "$package not installed (optional — use Cockpit for VM management on RHEL 10)"
         fi
     done
 

@@ -58,6 +58,9 @@ virsh --version 2>/dev/null && echo "virsh: OK" || echo "virsh: not installed"
 
 # OCP CLI tools
 ls -la ./bin/oc ./bin/openshift-install 2>/dev/null || echo "OCP CLI: not downloaded yet"
+
+# Cockpit credentials (required before VyOS configuration)
+cat ~/cockpit-credentials.txt 2>/dev/null || echo "Cockpit credentials: not yet generated (run bootstrap first, or create cockpit-admin user manually)"
 ```
 
 Interpret the output: skip steps that already pass and proceed directly to the first failing check.
