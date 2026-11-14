@@ -71,6 +71,15 @@ echo "IBM Cloud guide: https://tosin2013.github.io/openshift-agent-install/ibm-c
 
 Interpret the output: skip steps that already pass and proceed directly to the first failing check.
 
+> **Cloud instances (IBM Cloud, AWS):** The host's `/etc/resolv.conf` defaults to the cloud provider's DNS (e.g., `161.26.0.10`). The `openshift-install` process uses this DNS to reach the cluster API during install monitoring — if the cluster DNS is only in local dnsmasq, `wait-for bootstrap-complete` will fail with "no such host". Fix before starting install monitoring:
+> ```bash
+> PRIMARY_CONN=$(nmcli -t -f NAME conn show --active | head -1)
+> sudo nmcli conn mod "$PRIMARY_CONN" ipv4.dns "127.0.0.1 161.26.0.10"
+> sudo nmcli conn up "$PRIMARY_CONN"
+> # Verify cluster DNS now resolves
+> dig api.<cluster-name>.<base-domain> +short
+> ```
+
 ### Step 1: Pre-flight — install wget (RHEL 10 only)
 
 On RHEL 10, `wget` is not installed by default and the bootstrap script requires it:
