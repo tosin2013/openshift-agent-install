@@ -183,6 +183,18 @@ node_names=$(yq e '.nodes[].hostname' "$yaml_file")
 
 num_nodes=$(echo "$node_names" | wc -l)
 
+# Environment variable overrides for custom sizing (useful for lab deployments):
+#   MASTER_CPU_CORES   - vCPU cores for control plane nodes (default: auto)
+#   MASTER_RAM_GB      - RAM in GB for control plane nodes (default: auto)
+#   MASTER_DISK_SIZE   - Boot disk GB for control plane nodes (default: 130)
+#   WORKER_CPU_CORES   - vCPU cores for worker nodes (default: same as masters)
+#   WORKER_RAM_GB      - RAM in GB for worker nodes (default: same as masters)
+#   WORKER_DISK_SIZE   - Boot disk GB for worker nodes (default: same as masters)
+#   ODF_DISK_SIZE      - ODF extra disk GB on masters when extra_storage=true (default: 400)
+#   ENABLE_ODF         - Force ODF disks on masters regardless of node count (true/false)
+ODF_DISK_SIZE="${ODF_DISK_SIZE:-400}"
+ENABLE_ODF="${ENABLE_ODF:-}"
+
 # Function to calculate vCPU, memory, and storage based on node count
 calculate_resources() {
     local num=$1
@@ -199,9 +211,17 @@ calculate_resources() {
         extra_storage="true"
         DISK_SIZE=130
     elif [ "$num" -eq 5 ]; then
+        # 3 masters + 2 workers: differentiate by counter
+        if [ "$counter" -lt 3 ]; then
             CP_CPU_CORES=6
             CP_RAM_GB=24
+            extra_storage="true"   # ODF on masters
             DISK_SIZE=130
+        else
+            CP_CPU_CORES=6
+            CP_RAM_GB=16
+            DISK_SIZE=100
+        fi
     elif [ "$num" -eq 6 ]; then
         if [ "$counter" -lt 3 ] && [ "$num" -gt 3 ]; then
             CP_CPU_CORES=6
@@ -328,9 +348,26 @@ for node_name in $node_names; do
     # Calculate resources for each node
     calculate_resources "$num_nodes"
 
+    # Apply env var overrides: master nodes (counter < control_plane_replicas)
+    local cp_replicas
+    cp_replicas=$(yq e '.control_plane_replicas // 3' "$yaml_file" 2>/dev/null || echo 3)
+    if [ "$counter" -lt "$cp_replicas" ]; then
+        [ -n "${MASTER_CPU_CORES:-}" ] && CP_CPU_CORES="$MASTER_CPU_CORES"
+        [ -n "${MASTER_RAM_GB:-}" ]    && CP_RAM_GB="$MASTER_RAM_GB"
+        [ -n "${MASTER_DISK_SIZE:-}" ] && DISK_SIZE="$MASTER_DISK_SIZE"
+    else
+        [ -n "${WORKER_CPU_CORES:-}" ] && CP_CPU_CORES="$WORKER_CPU_CORES"
+        [ -n "${WORKER_RAM_GB:-}" ]    && CP_RAM_GB="$WORKER_RAM_GB"
+        [ -n "${WORKER_DISK_SIZE:-}" ] && DISK_SIZE="$WORKER_DISK_SIZE"
+    fi
+    # Force ODF on masters if ENABLE_ODF=true
+    if [ "${ENABLE_ODF}" == "true" ] && [ "$counter" -lt "$cp_replicas" ]; then
+        extra_storage="true"
+    fi
+
     echo "CP_CPU_CORES: $CP_CPU_CORES"
     echo "Memory: $CP_RAM_GB GB"
-    echo "Extra Storage: $extra_storage"
+    echo "Extra Storage: $extra_storage (ODF disk: ${ODF_DISK_SIZE}GB)"
     echo "Disk Size: $DISK_SIZE GB"
     echo "---------------------"
 
@@ -338,8 +375,8 @@ for node_name in $node_names; do
         if [ -f /var/lib/libvirt/images/${CLUSTER_NAME}-${node_name}-odf.qcow2 ]; then
             sudo rm /var/lib/libvirt/images/${CLUSTER_NAME}-${node_name}-odf.qcow2
         fi
-        sudo qemu-img create -f qcow2 /var/lib/libvirt/images/${CLUSTER_NAME}-${node_name}-odf.qcow2 400G
-        EXTRA_STORAGE_VAL="--disk size=400,path=/var/lib/libvirt/images/${CLUSTER_NAME}-${node_name}-odf.qcow2,cache=none,format=qcow2"
+        sudo qemu-img create -f qcow2 /var/lib/libvirt/images/${CLUSTER_NAME}-${node_name}-odf.qcow2 "${ODF_DISK_SIZE}G"
+        EXTRA_STORAGE_VAL="--disk size=${ODF_DISK_SIZE},path=/var/lib/libvirt/images/${CLUSTER_NAME}-${node_name}-odf.qcow2,cache=none,format=qcow2"
     else
         EXTRA_STORAGE_VAL=""
     fi
