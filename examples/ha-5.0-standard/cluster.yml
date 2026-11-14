@@ -1,0 +1,66 @@
+# Use Site Config
+use_site_configs: false
+
+# pull_secret path
+pull_secret_path: ~/pull-secret.json
+
+# SSH public key — will auto-generate if not set
+# ssh_public_key_path: ~/.ssh/id_rsa.pub
+
+# Cluster metadata
+base_domain: example.com
+cluster_name: ha-5-0
+
+# OpenShift 5.0 — uses openshift-v5 mirror for CLI downloads
+ocp_version: "5.0"
+
+# platform_type: baremetal required for HA (enables VIP management)
+platform_type: baremetal
+
+# VIPs on VLAN 1924 (192.168.50.0/24)
+# External access via HAProxy → IBM Cloud floating IP 169.59.190.167
+# Route53: api.ha-5-0.example.com → 169.59.190.167
+# Route53: *.apps.ha-5-0.example.com → 169.59.190.167
+api_vips:
+  - 192.168.50.100
+
+app_vips:
+  - 192.168.50.101
+
+# NTP
+ntp_servers:
+  - 0.rhel.pool.ntp.org
+  - 1.rhel.pool.ntp.org
+
+# DNS — libvirt dnsmasq (knows about cluster names via configure-dnsmasq-entries.sh)
+dns_servers:
+  - 192.168.122.1
+
+# Pod network
+cluster_network_cidr: 10.128.0.0/14
+cluster_network_host_prefix: 23
+
+# Service network
+service_network_cidrs:
+  - 172.30.0.0/16
+
+# Machine network — VLAN 1924
+machine_network_cidrs:
+  - 192.168.50.0/24
+
+# OVNKubernetes required for OCP 4.21+ and all OCP 5.x
+network_type: OVNKubernetes
+
+# rendezvous_ip: bootstrap node — must match master-0 IP in nodes.yml
+rendezvous_ip: 192.168.50.10
+
+# HA cluster: 3 control plane (with ODF) + 2 workers
+# VM sizing — deploy with:
+#   MASTER_CPU_CORES=10 MASTER_RAM_GB=24 MASTER_DISK_SIZE=130 \
+#   WORKER_CPU_CORES=6  WORKER_RAM_GB=16 WORKER_DISK_SIZE=100 \
+#   ODF_DISK_SIZE=150 \
+#   SITE_CONFIG_DIR=site-config MULTI_NETWORK=true \
+#   ./hack/deploy-on-kvm.sh site-config/ha-5.0-standard/nodes.yml
+# Total RAM: 3×24 + 2×16 = 104GB (host has 125GB)
+control_plane_replicas: 3
+app_node_replicas: 2

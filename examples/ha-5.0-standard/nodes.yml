@@ -1,0 +1,297 @@
+# HA cluster: 3 control plane (ODF) + 2 workers
+control_plane_replicas: 3
+app_node_replicas: 2
+
+# Network: bond0 (active-backup) over enp1s0 + enp2s0 → bond0.1924 (VLAN 1924)
+# ODF: masters each get /dev/vdb (100GB) added at KVM deploy time
+
+nodes:
+  - hostname: master-0
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:50:00:10"
+      - name: enp2s0
+        mac_address: "52:54:00:50:01:10"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:50:00:10"
+          ipv4:
+            enabled: false
+        - name: enp2s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:50:01:10"
+          ipv4:
+            enabled: false
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            enabled: false
+          link-aggregation:
+            mode: active-backup
+            options:
+              miimon: '100'
+            port:
+              - enp1s0
+              - enp2s0
+        - name: bond0.1924
+          type: vlan
+          state: up
+          vlan:
+            id: 1924
+            base-iface: bond0
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.50.10
+                prefix-length: 24
+            dhcp: false
+      dns-resolver:
+        config:
+          server:
+            - 192.168.122.1
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.50.1
+            next-hop-interface: bond0.1924
+            table-id: 254
+
+  - hostname: master-1
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:50:00:11"
+      - name: enp2s0
+        mac_address: "52:54:00:50:01:11"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:50:00:11"
+          ipv4:
+            enabled: false
+        - name: enp2s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:50:01:11"
+          ipv4:
+            enabled: false
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            enabled: false
+          link-aggregation:
+            mode: active-backup
+            options:
+              miimon: '100'
+            port:
+              - enp1s0
+              - enp2s0
+        - name: bond0.1924
+          type: vlan
+          state: up
+          vlan:
+            id: 1924
+            base-iface: bond0
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.50.11
+                prefix-length: 24
+            dhcp: false
+      dns-resolver:
+        config:
+          server:
+            - 192.168.122.1
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.50.1
+            next-hop-interface: bond0.1924
+            table-id: 254
+
+  - hostname: master-2
+    role: master
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:50:00:12"
+      - name: enp2s0
+        mac_address: "52:54:00:50:01:12"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:50:00:12"
+          ipv4:
+            enabled: false
+        - name: enp2s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:50:01:12"
+          ipv4:
+            enabled: false
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            enabled: false
+          link-aggregation:
+            mode: active-backup
+            options:
+              miimon: '100'
+            port:
+              - enp1s0
+              - enp2s0
+        - name: bond0.1924
+          type: vlan
+          state: up
+          vlan:
+            id: 1924
+            base-iface: bond0
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.50.12
+                prefix-length: 24
+            dhcp: false
+      dns-resolver:
+        config:
+          server:
+            - 192.168.122.1
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.50.1
+            next-hop-interface: bond0.1924
+            table-id: 254
+
+  - hostname: worker-0
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:50:00:20"
+      - name: enp2s0
+        mac_address: "52:54:00:50:01:20"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:50:00:20"
+          ipv4:
+            enabled: false
+        - name: enp2s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:50:01:20"
+          ipv4:
+            enabled: false
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            enabled: false
+          link-aggregation:
+            mode: active-backup
+            options:
+              miimon: '100'
+            port:
+              - enp1s0
+              - enp2s0
+        - name: bond0.1924
+          type: vlan
+          state: up
+          vlan:
+            id: 1924
+            base-iface: bond0
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.50.20
+                prefix-length: 24
+            dhcp: false
+      dns-resolver:
+        config:
+          server:
+            - 192.168.122.1
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.50.1
+            next-hop-interface: bond0.1924
+            table-id: 254
+
+  - hostname: worker-1
+    role: worker
+    rootDeviceHints:
+      deviceName: /dev/vda
+    interfaces:
+      - name: enp1s0
+        mac_address: "52:54:00:50:00:21"
+      - name: enp2s0
+        mac_address: "52:54:00:50:01:21"
+    networkConfig:
+      interfaces:
+        - name: enp1s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:50:00:21"
+          ipv4:
+            enabled: false
+        - name: enp2s0
+          type: ethernet
+          state: up
+          mac-address: "52:54:00:50:01:21"
+          ipv4:
+            enabled: false
+        - name: bond0
+          type: bond
+          state: up
+          ipv4:
+            enabled: false
+          link-aggregation:
+            mode: active-backup
+            options:
+              miimon: '100'
+            port:
+              - enp1s0
+              - enp2s0
+        - name: bond0.1924
+          type: vlan
+          state: up
+          vlan:
+            id: 1924
+            base-iface: bond0
+          ipv4:
+            enabled: true
+            address:
+              - ip: 192.168.50.21
+                prefix-length: 24
+            dhcp: false
+      dns-resolver:
+        config:
+          server:
+            - 192.168.122.1
+      routes:
+        config:
+          - destination: 0.0.0.0/0
+            next-hop-address: 192.168.50.1
+            next-hop-interface: bond0.1924
+            table-id: 254
