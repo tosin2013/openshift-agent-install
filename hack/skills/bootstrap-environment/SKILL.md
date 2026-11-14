@@ -65,19 +65,32 @@ cat ~/cockpit-credentials.txt 2>/dev/null || echo "Cockpit credentials: not yet 
 
 Interpret the output: skip steps that already pass and proceed directly to the first failing check.
 
-### Step 1: Run the Bootstrap Script
+### Step 1: Pre-flight — install wget (RHEL 10 only)
+
+On RHEL 10, `wget` is not installed by default and the bootstrap script requires it:
+
+```bash
+# Check first — skip if already installed
+rpm -q wget || sudo dnf install -y wget
+```
+
+### Step 2: Run the Bootstrap Script
 
 ```bash
 sudo ./e2e-tests/bootstrap_env.sh
 ```
 
-This script installs and configures everything needed:
-- **System packages**: nmstate, ansible-core, bind-utils, libguestfs, cloud-init,
-  virt-install, qemu-img, selinux-policy-targeted, python3-pip
-- **Optional packages**: virt-manager (GUI, non-fatal if unavailable)
-- **Ansible collections**: installs from `playbooks/collections/requirements.yml`
-- **libvirtd**: enables and starts the service
-- **yq**: validates it is installed (required for YAML parsing)
+This script installs and configures everything in the correct order:
+1. **System packages**: nmstate, ansible-core, bind-utils, libguestfs, cloud-init,
+   virt-install, qemu-img, selinux-policy-targeted, python3-pip
+2. **OpenShift CLI tools**: oc, kubectl, openshift-install
+3. **libvirtd / KVM**: enables and starts virtualization
+4. **Cockpit credentials**: generates `~/cockpit-credentials.txt` BEFORE VyOS
+5. **LVM storage**: formats the largest unformatted disk as `/var/lib/libvirt/images`
+6. **dnsmasq**: installs DNS server
+7. **VyOS router**: deploys VM (requires manual Cockpit console steps — see below)
+
+> **Note**: virt-manager is not available on RHEL 10 — Cockpit handles VM console access instead.
 
 The script detects the real user even when run with sudo (`$SUDO_USER`) and sets
 ownership accordingly.
