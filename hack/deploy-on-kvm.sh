@@ -223,11 +223,12 @@ calculate_resources() {
         if [ "$counter" -lt 3 ]; then
             CP_CPU_CORES=6
             CP_RAM_GB=24
-            extra_storage="true"   # ODF on masters
+            extra_storage="true"   # ODF on masters only
             DISK_SIZE=130
         else
             CP_CPU_CORES=6
             CP_RAM_GB=16
+            extra_storage=""       # No ODF on workers
             DISK_SIZE=100
         fi
     elif [ "$num" -eq 6 ]; then
