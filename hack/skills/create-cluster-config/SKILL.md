@@ -48,6 +48,37 @@ ls examples/ site-config/ 2>/dev/null
 
 Determine if the user is creating a brand new config or modifying an existing one.
 
+### DNS and Domain Decision — Ask Before Writing Any Config
+
+**This must be resolved before setting `base_domain` or `cluster_name`** because they determine every DNS record name in both internal (dnsmasq) and external (Route53) DNS.
+
+Ask the user:
+
+1. **Do you have an external domain and Route53 hosted zone?**
+   - If YES → `base_domain` must match the Route53 zone (e.g. `mycompany.com`, `lab.mycompany.com`)
+   - The cluster will be reachable externally at `api.<cluster-name>.<base-domain>` and `*.apps.<cluster-name>.<base-domain>`
+   - On IBM Cloud: HAProxy forwards to cluster VIPs; Route53 points to the IBM Cloud public floating IP
+   - If NO → use `example.com` or any placeholder; external access via Let's Encrypt/Route53 won't work without a real domain
+
+2. **What cluster name do you want?**
+   - Becomes part of every DNS name: `api.<cluster-name>.<base-domain>`
+   - Short, lowercase, no dots: e.g. `ha-prod`, `ocp5`, `lab`
+
+3. **On IBM Cloud?** (floating IP separate from private interface IP)
+   - If YES → note the public floating IP now — it goes into Route53 records later
+   - HAProxy must bind `0.0.0.0` not the private IP
+   - See: https://tosin2013.github.io/openshift-agent-install/ibm-cloud-deployment.html
+
+```bash
+# Check Route53 access (for HA clusters with external access)
+aws sts get-caller-identity 2>/dev/null | grep Account || echo "AWS CLI not configured — Route53 won't be available"
+
+# Get the public IP for Route53 records (IBM Cloud: use floating IP from console)
+curl -s --max-time 3 ifconfig.me 2>/dev/null || echo "Check IBM Cloud console for floating IP"
+```
+
+Only after these are confirmed should you set `base_domain`, `cluster_name`, `api_vips`, and `app_vips`.
+
 ### Step 1: Choose a Base Example
 
 Select the closest match from `examples/`:
