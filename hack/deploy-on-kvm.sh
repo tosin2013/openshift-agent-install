@@ -13,8 +13,16 @@ LIBVIRT_NETWORK="network=1924,model=e1000e"
 LIBVIRT_NETWORK_TWO="network=1924,model=e1000e"
 LIBVIRT_VM_PATH="/var/lib/libvirt/images"
 MULTI_NETWORK=true
-if [  -z $CLUSTER_NAME ]; then
-    CLUSTER_NAME="ocp4"
+if [ -z "${CLUSTER_NAME}" ]; then
+    # Auto-detect from sibling cluster.yml if present
+    _cluster_yml="$(dirname "$yaml_file")/cluster.yml"
+    if [ -f "$_cluster_yml" ]; then
+        CLUSTER_NAME=$(grep "^cluster_name:" "$_cluster_yml" | awk '{print $2}' | tr -d '"')
+    fi
+    if [ -z "${CLUSTER_NAME}" ]; then
+        CLUSTER_NAME="ocp4"
+    fi
+    echo "CLUSTER_NAME: ${CLUSTER_NAME}"
 fi
 
 USE_REDFISH=true
