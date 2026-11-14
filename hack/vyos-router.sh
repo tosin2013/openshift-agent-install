@@ -192,18 +192,42 @@ function create(){
     # Vyos nightly builds
     # https://github.com/vyos/vyos-rolling-nightly-builds/releases
     # Auto-updated by .github/workflows/update-vyos-version.yml
-    VYOS_VERSION=2026.07.30-0032-rolling
+    VYOS_VERSION=2026.11.13-0016-rolling
     ISO_LOC=https://github.com/vyos/vyos-nightly-build/releases/download/${VYOS_VERSION}/vyos-${VYOS_VERSION}-generic-amd64.iso
-    if [ ! -f $HOME/vyos-${VYOS_VERSION}-generic-amd64.iso ];
-    then
+    ISO_PATH="$HOME/vyos-${VYOS_VERSION}-generic-amd64.iso"
+    ISO_MIN_SIZE_MB=400
+
+    # Download ISO if not already present
+    if [ ! -f "$ISO_PATH" ]; then
+        echo "Downloading VyOS ${VYOS_VERSION}..."
         cd $HOME
-        curl -OL $ISO_LOC
+        curl -OL $ISO_LOC || { echo "ERROR: Failed to download VyOS ISO from $ISO_LOC"; exit 1; }
     fi
-  
+
+    # ISO health check — verify file exists, is large enough, and is a valid ISO image
+    echo "Verifying VyOS ISO integrity..."
+    if [ ! -f "$ISO_PATH" ]; then
+        echo "ERROR: VyOS ISO not found at $ISO_PATH"
+        exit 1
+    fi
+    ISO_SIZE_MB=$(du -m "$ISO_PATH" | cut -f1)
+    if [ "${ISO_SIZE_MB}" -lt "${ISO_MIN_SIZE_MB}" ]; then
+        echo "ERROR: VyOS ISO appears corrupt or incomplete (${ISO_SIZE_MB}MB < ${ISO_MIN_SIZE_MB}MB minimum)"
+        echo "Remove the file and retry: rm -f $ISO_PATH"
+        exit 1
+    fi
+    ISO_TYPE=$(file "$ISO_PATH" 2>/dev/null | grep -i "ISO 9660\|boot sector\|CD-ROM" || echo "")
+    if [ -z "$ISO_TYPE" ]; then
+        echo "WARNING: ISO file type check inconclusive (file: $(file "$ISO_PATH" | cut -d: -f2-))"
+        echo "Proceeding — if VyOS fails to boot, delete $ISO_PATH and re-run."
+    else
+        echo "✓ VyOS ISO verified: ${ISO_SIZE_MB}MB, type OK"
+    fi
+
     VM_NAME=vyos-router
-    
+
     # Copy ISO for seed
-    sudo cp $HOME/vyos-${VYOS_VERSION}-generic-amd64.iso $HOME/seed.iso
+    sudo cp "$ISO_PATH" $HOME/seed.iso
     sudo mv $HOME/seed.iso /var/lib/libvirt/images/seed.iso
 
     # Generate qcow2 blank image
