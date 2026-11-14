@@ -63,6 +63,34 @@ cat ~/cockpit-credentials.txt 2>/dev/null || echo "cockpit-credentials.txt not f
 ip -4 addr show | grep -v "127.0.0.1" | grep "inet " | awk '{print $2}' | head -3
 ```
 
+**DNS check — must resolve before proceeding:**
+
+Ask the user which DNS approach they are using:
+
+> **Option A: dnsmasq (recommended for new deployments)**
+> ```bash
+> sudo systemctl is-active dnsmasq && echo "dnsmasq: OK" || echo "dnsmasq: NOT RUNNING — run: sudo ./hack/setup-dnsmasq.sh"
+> # Verify DNS_FORWARDER will be set correctly
+> # dnsmasq must listen on 192.168.122.1 for cluster name resolution
+> sudo ss -ulnp | grep :53
+> grep "^nameserver" /etc/resolv.conf
+> ```
+> The `DNS_FORWARDER` is read from `/etc/resolv.conf`. On cloud instances (IBM Cloud, AWS),
+> this may be a public cloud DNS IP — **not** `192.168.122.1`. If so, fix it before deploying:
+> ```bash
+> # Verify NetworkManager is routing DNS through the local dnsmasq
+> nmcli conn show $(nmcli -t -f NAME conn show --active | head -1) | grep ipv4.dns
+> # If DNS is not 127.0.0.1 or 192.168.122.1, reconfigure:
+> sudo nmcli conn mod <connection-name> ipv4.dns "192.168.122.1"
+> sudo nmcli conn up <connection-name>
+> ```
+
+> **Option B: FreeIPA (legacy, deprecated)**
+> ```bash
+> ls ~/hack/freeipa_vars.sh 2>/dev/null && echo "FreeIPA vars found" || echo "FreeIPA not configured"
+> ```
+> Not recommended for new deployments. Use dnsmasq (Option A) instead.
+
 ### Step 1: Start the VyOS Deployment Script
 
 ```bash

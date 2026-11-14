@@ -12,8 +12,14 @@ USE_DNS="dnsmasq"  # Default to modern DNS approach
 if systemctl is-active --quiet dnsmasq; then
     echo "✓ Using dnsmasq for DNS (modern setup per ADR-019)"
     USE_DNS="dnsmasq"
-    # Get DNS forwarder from system DNS or use common defaults
-    DNS_FORWARDER=$(grep -m1 "^nameserver" /etc/resolv.conf | awk '{print $2}' || echo "8.8.8.8")
+    # Use libvirt dnsmasq (192.168.122.1) so VyOS can resolve OpenShift cluster
+    # names (api.*, *.apps.*) added via configure-dnsmasq-entries.sh.
+    # Fallback to resolv.conf if libvirt default network is not available.
+    if sudo virsh net-info default &>/dev/null 2>&1; then
+        DNS_FORWARDER="192.168.122.1"
+    else
+        DNS_FORWARDER=$(grep -m1 "^nameserver" /etc/resolv.conf | awk '{print $2}' || echo "8.8.8.8")
+    fi
     echo "  DNS Forwarder: ${DNS_FORWARDER}"
 else
     echo "⚠ dnsmasq not running, checking for FreeIPA configuration..."
