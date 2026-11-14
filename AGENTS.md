@@ -161,3 +161,23 @@ sudo ./hack/configure-dnsmasq-entries.sh list
 # External access
 ./hack/configure-external-access.sh <cluster.yml>
 ```
+
+## Skill Self-Improvement
+
+When executing a skill procedure and you encounter new information, update the skill immediately — do not wait for the next session.
+
+**A failure not in the Common Failure Modes table:**
+→ Fix the issue, then ADD a new row to that skill's Common Failure Modes table
+→ Commit: `fix: add <symptom> to <skill-name> failure modes`
+
+**A step that must run in a different order than documented:**
+→ Reorder the procedure in SKILL.md and explain why
+→ Example: "commit must run before ping in VyOS configure mode"
+
+**A platform-specific nuance (RHEL 10, IBM Cloud, cloud DNS, etc.):**
+→ Add a callout block or Version Notes entry to the relevant skill
+
+**A missing prerequisite that blocked execution:**
+→ Add it to the Prerequisites section of the skill
+
+Only add entries that would have saved time. Skills improve through real use.
