@@ -375,9 +375,10 @@ configure_selinux
 install_container_tools
 setup_virtualization
 setup_cockpit_access  # Create Cockpit user for SSH key-only setups
-setup_dns_server  # Setup lightweight dnsmasq DNS instead of FreeIPA
-setup_cockpit_user
-configure_infrastructure
+setup_cockpit_user    # Generate Cockpit credentials BEFORE VyOS (needed for console access)
+source "${SCRIPT_DIR}/../hack/configure-lvm.sh" && configure_vg  # LVM storage BEFORE VyOS VM creation
+setup_dns_server      # Setup lightweight dnsmasq DNS
+configure_infrastructure  # VyOS router (requires Cockpit credentials + LVM storage)
 setup_registry_auth
 handle_selinux_policies
 
