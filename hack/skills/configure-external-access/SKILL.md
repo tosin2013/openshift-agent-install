@@ -53,7 +53,15 @@ aws sts get-caller-identity 2>/dev/null | head -5 || echo "AWS CLI: not configur
 
 # Check certbot
 certbot --version 2>/dev/null || echo "certbot: not installed"
+
+# Detect IBM Cloud (NAT environment — requires special HAProxy binding)
+PRIVATE_IP=$(ip -4 addr show | grep "inet " | grep -v "127.0.0" | awk '{print $2}' | cut -d/ -f1 | head -1)
+echo "Private IP: ${PRIVATE_IP}"
+echo "If on IBM Cloud, your public floating IP is different — check IBM Cloud console"
+echo "IBM Cloud deployment guide: https://tosin2013.github.io/openshift-agent-install/ibm-cloud-deployment.html"
 ```
+
+> **IBM Cloud users:** IBM Cloud uses NAT — your public IP is NOT on any network interface. HAProxy MUST bind to `0.0.0.0` (not the private IP) or external traffic will be dropped. See the IBM Cloud guide for the full setup including two-layer firewall configuration.
 
 ### Option A: One-Command Setup (Recommended)
 

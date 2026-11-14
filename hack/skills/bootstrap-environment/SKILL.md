@@ -61,6 +61,12 @@ ls -la ./bin/oc ./bin/openshift-install 2>/dev/null || echo "OCP CLI: not downlo
 
 # Cockpit credentials (required before VyOS configuration)
 cat ~/cockpit-credentials.txt 2>/dev/null || echo "Cockpit credentials: not yet generated (run bootstrap first, or create cockpit-admin user manually)"
+
+# Detect cloud environment (affects HAProxy binding and DNS)
+PRIVATE_IP=$(ip -4 addr show | grep "inet " | grep -v "127.0.0" | awk '{print $2}' | cut -d/ -f1 | head -1)
+echo "Host private IP: ${PRIVATE_IP}"
+echo "If IBM Cloud: floating public IP differs — note it for HAProxy and Route53 config"
+echo "IBM Cloud guide: https://tosin2013.github.io/openshift-agent-install/ibm-cloud-deployment.html"
 ```
 
 Interpret the output: skip steps that already pass and proceed directly to the first failing check.

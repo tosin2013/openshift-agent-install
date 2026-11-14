@@ -249,9 +249,29 @@ for net in 1924 1925 1926 1927 1928; do
 done
 ```
 
+## IBM Cloud Notes
+
+If deploying on **IBM Cloud bare metal**, the VyOS router setup is the same, but after cluster deployment you will need IBM Cloud-specific steps for external access:
+
+- HAProxy must bind to `0.0.0.0` (not the private IP) due to IBM Cloud NAT
+- Route 53 DNS records must point to the **public floating IP**, not the private IP
+- Two firewall layers: `firewalld` (local) AND IBM Cloud firewall (console)
+
+Full IBM Cloud deployment guide: **https://tosin2013.github.io/openshift-agent-install/ibm-cloud-deployment.html**
+
+Detect if running on IBM Cloud:
+```bash
+# IBM Cloud instances have a public floating IP separate from the private interface
+# Private IP on eth0 / ens3
+ip -4 addr show | grep "inet " | grep -v "127.0.0.1"
+# Public floating IP (check IBM Cloud console or metadata)
+curl -s --max-time 3 http://169.254.169.254/metadata/v1/instance 2>/dev/null | python3 -m json.tool 2>/dev/null | grep "public_ip" || echo "Not IBM Cloud metadata or not reachable"
+```
+
 ## Key Files
 
 - `hack/vyos-router.sh` - Main deployment script (creates VM + networks)
 - `docs/vyos-manual-configuration.md` - Detailed step-by-step guide with screenshots
 - `e2e-tests/bootstrap_env.sh` - Calls vyos-router.sh during full bootstrap
 - `e2e-tests/validate_env.sh` - Validates VyOS networks are active
+- IBM Cloud guide: https://tosin2013.github.io/openshift-agent-install/ibm-cloud-deployment.html
