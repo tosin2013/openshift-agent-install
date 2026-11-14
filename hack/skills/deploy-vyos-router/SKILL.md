@@ -96,15 +96,13 @@ vyos@vyos:~$ install image
 #   - Root password: vyos (or custom)
 # Wait for installation to complete
 
-vyos@vyos:~$ poweroff
+vyos@vyos:~$ reboot
 ```
 
-**Restart the VM** (remove ISO):
-- In Cockpit: Virtual Machines -> vyos-router -> Start
-- Or via CLI: `sudo virsh start vyos-router`
+> **`reboot` not `poweroff`** — VyOS must restart to boot from the installed disk. The deployment script is still waiting and will detect VyOS once SSH becomes available after reboot.
 
 **Configure networking:**
-After VM restarts, log in again via console:
+After reboot, log in again via console (login: `vyos` / password you set):
 ```
 configure
 
@@ -131,13 +129,22 @@ ssh vyos@192.168.122.2
 
 ### Step 3: Apply VLAN Configuration
 
-Once SSH is working, the script (or you manually) applies the full VLAN config:
+Once SSH is working, **the deployment script auto-detects VyOS and applies the config automatically** via SCP + `vbash` (VyOS's shell). You do not need to do anything — just wait.
+
+If the script already timed out (30 min wait expired), apply manually:
 
 ```bash
-# If the script is still waiting, press Enter to let it continue
-# Otherwise, apply manually:
-ssh vyos@192.168.122.2 < ~/vyos-config.sh
+# 1. Copy the config script to VyOS
+scp ~/vyos-config.sh vyos@192.168.122.2:/tmp/
+
+# 2. SSH in and run it with vbash (NOT bash — VyOS requires its own shell)
+ssh vyos@192.168.122.2
+chmod +x /tmp/vyos-config.sh
+vbash /tmp/vyos-config.sh
+exit
 ```
+
+> **Must use `vbash`** — running `vyos-config.sh` with standard `bash` or `sh` will silently fail because `set`, `commit`, `save` are VyOS built-ins only available in `vbash`.
 
 The VLAN configuration creates interfaces for networks 1924-1928:
 - eth1 (VLAN 1924): 192.168.50.1/24
