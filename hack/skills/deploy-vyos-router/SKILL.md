@@ -147,18 +147,34 @@ vyos@vyos:~$ reboot
 
 **Configure networking:**
 After reboot, log in again via console (login: `vyos` / password you set):
+
+> **Note**: VyOS boots from the installed disk after `install image` + `reboot`. You will need to log in again and re-enter all configuration commands.
 ```
 configure
 
 # Set eth0 (management interface on default network)
 set interfaces ethernet eth0 address 192.168.122.2/24
+set interfaces ethernet eth0 description 'Internet-Facing'
 set protocols static route 0.0.0.0/0 next-hop 192.168.122.1
 
-# Set DNS
-set system name-server 8.8.8.8
+# Verify internet connectivity BEFORE configuring SSH
+# (run from within configure mode — must pass before proceeding)
+run ping 1.1.1.1 interface 192.168.122.2 count 3
+
+# Set DNS forwarding for VLAN VMs
+set service dns forwarding listen-address 192.168.122.2
+set service dns forwarding listen-address 192.168.50.1
+set service dns forwarding listen-address 192.168.51.1
+set service dns forwarding listen-address 192.168.52.1
+set service dns forwarding listen-address 192.168.53.1
+set service dns forwarding listen-address 192.168.54.1
+set service dns forwarding allow-from 192.168.0.0/16
+set service dns forwarding name-server 192.168.122.1
+set service dns forwarding cache-size 1000
 
 # Enable SSH
 set service ssh port 22
+set service ssh listen-address 192.168.122.2
 
 commit
 save
