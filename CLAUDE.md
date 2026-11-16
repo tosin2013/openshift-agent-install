@@ -446,16 +446,6 @@ When working with this repository, Claude should:
 
 This ensures accurate, consistent, and helpful responses based on the actual repository content.
 
-
-
-
-
-
-
-
-
-
-
 <!-- SKILLS-AUTO-START -->
 
 ## Skills Reference
