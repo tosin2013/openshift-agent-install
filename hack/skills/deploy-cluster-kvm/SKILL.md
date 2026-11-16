@@ -56,6 +56,66 @@ ls ~/generated_assets/*/agent.x86_64.iso 2>/dev/null || echo "No ISOs found"
 
 If a cluster config name was mentioned, check if DNS entries exist and if an ISO already exists for that cluster.
 
+### Hardware Validation — Run Before Sizing Any Cluster
+
+**Always run this before recommending or deploying a cluster topology.** Calculate whether the host can support the requested number of VMs, and explicitly gate OpenShift Virtualization deployments.
+
+```bash
+# Host resources
+HOST_RAM_GB=$(free -g | awk '/^Mem:/{print $2}')
+HOST_CPUS=$(nproc)
+HOST_STORAGE_GB=$(df -BG /var/lib/libvirt/images | awk 'NR==2{gsub("G",""); print $4}')
+
+echo "Host RAM:     ${HOST_RAM_GB}GB"
+echo "Host CPUs:    ${HOST_CPUS}"
+echo "VM storage:   ${HOST_STORAGE_GB}GB free in /var/lib/libvirt/images"
+
+# Already-allocated RAM from running VMs
+ALLOCATED_RAM_GB=$(sudo virsh list --name 2>/dev/null | while read vm; do
+  [ -n "$vm" ] && sudo virsh dominfo "$vm" 2>/dev/null | awk '/Max memory/{printf "%d\n", $3/1024/1024}'
+done | paste -sd+ | bc 2>/dev/null || echo 0)
+AVAILABLE_RAM_GB=$((HOST_RAM_GB - ALLOCATED_RAM_GB - 5))  # reserve 5GB for host OS
+
+echo "Already used: ${ALLOCATED_RAM_GB}GB by running VMs"
+echo "Available:    ${AVAILABLE_RAM_GB}GB for new VMs"
+```
+
+**Decision table** — before proceeding, verify the topology fits:
+
+| Topology | RAM needed | Fits if available > |
+|----------|-----------|---------------------|
+| SNO | 32GB | 35GB |
+| 3-node compact | 3 × 32GB = 96GB | 100GB |
+| HA (3M + 2W) minimal | 3×24 + 2×16 = 104GB | 108GB |
+| HA with ODF (workers) | 3×24 + 3×16 = 120GB | 125GB |
+| CNV lab (3M + 6W minimal) | 3×16 + 6×12 = 120GB | 125GB |
+| CNV lab (3M + 6W full) | 3×32 + 6×48 = 384GB | 390GB |
+
+**OpenShift Virtualization gate** — if the user asks to deploy OpenShift Virtualization, run this check and ask before proceeding:
+
+```bash
+# Count worker nodes that will be available for VM workloads
+WORKER_COUNT=$(grep "role: worker" "${SITE_CONFIG_DIR:-examples}/${1}/nodes.yml" 2>/dev/null | wc -l)
+WORKER_RAM_GB="${WORKER_RAM_GB:-16}"  # from deploy env var or default
+WORKER_HEADROOM=$((WORKER_RAM_GB - 4))  # ~4GB for OS + kubelet overhead
+
+if [ "$WORKER_COUNT" -lt 2 ]; then
+    echo "⚠️  WARNING: OpenShift Virtualization needs at least 2 worker nodes for live migration."
+    echo "   Current topology has ${WORKER_COUNT} workers."
+    echo "   Proceed anyway? (y/N)"
+fi
+
+if [ "$WORKER_RAM_GB" -lt 12 ]; then
+    echo "❌ BLOCKED: Worker nodes have only ${WORKER_RAM_GB}GB RAM."
+    echo "   OpenShift Virtualization VMs need headroom beyond the OS (~4GB)."
+    echo "   With ${WORKER_RAM_GB}GB workers, only $((WORKER_RAM_GB - 4))GB is available for VMs."
+    echo "   Minimum recommended: 16GB per worker. For meaningful demos: 32GB+"
+    echo "   Change WORKER_RAM_GB or use a larger host."
+fi
+```
+
+Do not proceed with a CNV deployment if workers have < 12GB RAM — tell the user to use a larger host or choose a different topology.
+
 ### Option A: One-Shot Deployment (Recommended)
 
 For connected clusters with full automation:
