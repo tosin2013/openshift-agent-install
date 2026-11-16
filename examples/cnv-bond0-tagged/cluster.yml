@@ -1,3 +1,9 @@
+# KVM CNV Reference Template for OpenShift Virtualization + ODF
+# Requires 256GB+ RAM host: 3M×32GB + 6W×48GB = 384GB recommended
+# For OCP 5.0: change ocp_version to "5.0" and use the openshift-v5 mirror
+# Apply kvm-ocp-virt profile from agent-gitops-quickstarts post-install
+# ODF disks: workers 0-2 get extra disk; masters stay NoSchedule (pure control-plane)
+
 # Use Site Config
 use_site_configs: false
 
