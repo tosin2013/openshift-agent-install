@@ -266,8 +266,8 @@ function configure_router(){
       curl -OL https://raw.githubusercontent.com/tosin2013/demo-virt/rhpds/demo.redhat.com/vyos-config-1.5.sh
       mv vyos-config-1.5.sh vyos-config.sh
       chmod +x vyos-config.sh
-      sed -i "s/1.1.1.1/${ip_address}/g" vyos-config.sh
-      sed -i "s/example.com/${DOMAIN}/g" vyos-config.sh
+      [ -n "${ip_address}" ] && sed -i "s/1.1.1.1/${ip_address}/g" vyos-config.sh
+      [ -n "${DOMAIN}" ] && sed -i "s/example.com/${DOMAIN}/g" vyos-config.sh
     fi
 
     # Instructions already shown by show_manual_config_instructions()
@@ -408,6 +408,50 @@ save
 exit
 VYOS_DNS
     echo "✓ VyOS DNS forwarding configured"
+
+    # Smoke test: verify VyOS can reach the internet and resolve external DNS
+    echo ""
+    echo "============================================================="
+    echo "Running VyOS smoke test..."
+    echo "============================================================="
+
+    smoke_pass=true
+
+    echo "  [1/3] Internet connectivity from VyOS eth0 (ping 8.8.8.8)..."
+    if sshpass -p 'vyos' ssh -o StrictHostKeyChecking=no vyos@192.168.122.2 \
+        "ping -c 3 8.8.8.8 count 3 interface eth0" &>/dev/null; then
+        echo "  ✓ Internet reachable via eth0"
+    else
+        echo "  ✗ Cannot reach internet via eth0"
+        smoke_pass=false
+    fi
+
+    echo "  [2/3] External DNS resolution via VyOS forwarder (dig @192.168.50.1 quay.io)..."
+    if dig @192.168.50.1 quay.io +short +timeout=5 | grep -q '[0-9]'; then
+        echo "  ✓ DNS resolves quay.io via VyOS (192.168.50.1)"
+    else
+        echo "  ✗ DNS resolution via 192.168.50.1 failed"
+        smoke_pass=false
+    fi
+
+    echo "  [3/3] VLAN 1924 NAT to internet (ping quay.io from 192.168.50.1)..."
+    if sshpass -p 'vyos' ssh -o StrictHostKeyChecking=no vyos@192.168.122.2 \
+        "ping -c 3 quay.io interface 192.168.50.1" &>/dev/null; then
+        echo "  ✓ VLAN 1924 can reach quay.io via NAT"
+    else
+        echo "  ✗ VLAN 1924 NAT to internet failed"
+        smoke_pass=false
+    fi
+
+    echo ""
+    if [ "$smoke_pass" = "true" ]; then
+        echo "✅ VyOS smoke test PASSED — safe to deploy OpenShift"
+    else
+        echo "❌ VyOS smoke test FAILED — fix VyOS before deploying OpenShift"
+        echo "   Check: show interfaces / show nat source / show service dns forwarding"
+        exit 1
+    fi
+    echo "============================================================="
 }
 
 function destroy(){
