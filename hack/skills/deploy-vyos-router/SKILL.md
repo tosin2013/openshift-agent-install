@@ -245,12 +245,16 @@ ssh vyos@192.168.122.2 "show interfaces"
 
 ## Validation Criteria
 
-VyOS is fully operational when:
+VyOS is fully operational when **all** of these pass:
 1. `ping 192.168.122.2` succeeds (management interface)
 2. `ssh vyos@192.168.122.2` connects successfully
 3. `sudo virsh net-list --all` shows networks 1924-1928 as active
-4. `ping 192.168.50.1` succeeds from VyOS (VLAN gateway)
-5. `./e2e-tests/validate_env.sh` passes the VyOS checks
+4. `ping 192.168.50.1` succeeds (VLAN 1924 gateway from host)
+5. `dig @192.168.50.1 quay.io +short` returns IPs (DNS forwarding working)
+6. `sshpass -p 'vyos' ssh vyos@192.168.122.2 "/bin/ping -c 3 8.8.8.8"` succeeds (NAT to internet)
+7. `./e2e-tests/validate_env.sh` passes the VyOS checks
+
+> Items 4-6 are the minimum smoke test for confirming OpenShift VMs will be able to pull images from quay.io. Do NOT deploy OpenShift until all three pass.
 
 ## Common Failure Modes
 
@@ -266,6 +270,12 @@ VyOS is fully operational when:
 | Networks 1924-1928 not active | virsh net-define/start failed | `sudo virsh net-start 1924`; check existing conflicts |
 | VLAN gateway unreachable | VyOS config not applied | SSH in and run the config commands manually |
 | VyOS not pingable at 192.168.122.2 | Wrong network or IP conflict | Check `virsh domiflist vyos-router`; verify on 'default' network |
+| eth0 loses IP after reboot | DHCP lease from live ISO is not saved to disk | After `install image` + reboot, re-enter configure mode and set static: `set interfaces ethernet eth0 address 192.168.122.2/24` + `set protocols static route 0.0.0.0/0 next-hop 192.168.122.1` + `commit; save` |
+| "Invalid domain name" errors in vyos-config.sh | Empty `DOMAIN` variable caused `sed` to strip `example.com` from DHCP config | Delete `/root/vyos-config.sh` and re-run the script to get a fresh download (fixed in vyos-router.sh; only affects old cached copies) |
+| SSH fails with "REMOTE HOST IDENTIFICATION HAS CHANGED" | VyOS was destroyed and recreated with a new host key | `sudo ssh-keygen -R 192.168.122.2` then retry |
+| `sshpass: command not found` | sshpass missing on fresh host | `sudo dnf install -y sshpass` (now added to bootstrap_env.sh package list) |
+| Smoke test fails on internet/NAT even though ping works | VyOS operational `ping` syntax differs from `/bin/ping` | Use `sshpass ... ssh vyos@ "/bin/ping -c 3 8.8.8.8"` — the VyOS shell's `ping` command uses different flags |
+| VMs cannot reach quay.io during install | VyOS eth0 or DNS forwarding not configured | Verify: `ping 192.168.122.2`, `ping 192.168.50.1`, `dig @192.168.50.1 quay.io +short` — all three must pass before deploying OpenShift |
 
 ## Destroying VyOS
 
