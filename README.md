@@ -37,8 +37,8 @@ This repository supports two distinct deployment contexts. Choose based on your 
 
 ### Core Requirements (both paths)
 
-- **RHEL 9.x** — deployment host for KVM development or bare metal control
-- **OpenShift CLI tools** — `./download-openshift-cli.sh` (downloads latest; pass a version like `4.22` to pin) then `sudo cp ./bin/* /usr/local/bin/`
+- **RHEL 9.x or 10.x** — deployment host for KVM development or bare metal control
+- **OpenShift CLI tools** — `./download-openshift-cli.sh` (downloads latest; pass a version like `4.22` or `5.0` to pin) then `sudo cp ./bin/* /usr/local/bin/`
 - **NMState CLI** — `sudo dnf install -y nmstate`
 - **Ansible Core** — `sudo dnf install -y ansible-core`
 - **Ansible Collections** — `ansible-galaxy install -r execution-environment/collections/requirements.yml`
@@ -195,15 +195,19 @@ Register DNS records in your corporate DNS server (BIND, Infoblox, or Active Dir
 
 ### OpenShift Versions
 
-Supports OpenShift 4.15+. Tested and validated with:
+Supports OpenShift 4.15+ and 5.x. Tested and validated with:
 - OpenShift 4.20.x
 - OpenShift 4.21.x
+- OpenShift 4.22.x
+- OpenShift 5.0.x
 
 ### Critical version boundaries
 
 **4.19 → 4.20**: Disconnected deployments must migrate from `imageDigestSources` in `install-config.yaml` to standalone `ImageDigestMirrorSet` manifests.
 
 **4.20 → 4.21**: `networkType: OpenShiftSDN` removed — all deployments must use `OVNKubernetes`.
+
+**4.22 → 5.0**: RHCOS 10 (RHEL 10 based) is the default OS. Requires x86-64-v3 or newer CPU. CLI downloads from the `openshift-v5` mirror automatically (`./download-openshift-cli.sh 5.0`). Upgrade from 4.22 follows the standard in-place update path.
 
 See the [Version Compatibility Matrix](https://tosin2013.github.io/openshift-agent-install/version-compatibility-matrix) for full API change history.
 
@@ -226,6 +230,9 @@ Example configs:
 - `examples/ha-4.21-disconnected/` — HA air-gapped deployment
 - `examples/nutanix-sno/` — SNO on Nutanix AHV
 - `examples/baremetal-example/` — Bare metal HA with BMC blocks
+- `examples/sno-5.0-standard/` — SNO on OpenShift 5.0 (RHCOS 10)
+- `examples/ha-5.0-standard/` — HA on OpenShift 5.0 (RHCOS 10)
+- `examples/cnv-5.0-single-bond0-vlan/` — OpenShift Virtualization on OCP 5.0, bond0 + VLAN 1924
 
 For all configuration parameters, see the [Configuration Reference](https://tosin2013.github.io/openshift-agent-install/configuration-guide).
 
