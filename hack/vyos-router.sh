@@ -417,29 +417,29 @@ VYOS_DNS
 
     smoke_pass=true
 
-    echo "  [1/3] Internet connectivity from VyOS eth0 (ping 8.8.8.8)..."
+    echo "  [1/3] Internet connectivity from VyOS (ping 8.8.8.8)..."
     if sshpass -p 'vyos' ssh -o StrictHostKeyChecking=no vyos@192.168.122.2 \
-        "ping -c 3 8.8.8.8 count 3 interface eth0" &>/dev/null; then
-        echo "  ✓ Internet reachable via eth0"
+        "/bin/ping -c 3 8.8.8.8" &>/dev/null; then
+        echo "  ✓ Internet reachable from VyOS"
     else
-        echo "  ✗ Cannot reach internet via eth0"
+        echo "  ✗ Cannot reach internet from VyOS — check NAT and default route"
         smoke_pass=false
     fi
 
-    echo "  [2/3] External DNS resolution via VyOS forwarder (dig @192.168.50.1 quay.io)..."
-    if dig @192.168.50.1 quay.io +short +timeout=5 | grep -q '[0-9]'; then
+    echo "  [2/3] External DNS resolution via VyOS VLAN forwarder (dig @192.168.50.1 quay.io)..."
+    if dig @192.168.50.1 quay.io +short +timeout=5 | grep -qE '^[0-9]'; then
         echo "  ✓ DNS resolves quay.io via VyOS (192.168.50.1)"
     else
-        echo "  ✗ DNS resolution via 192.168.50.1 failed"
+        echo "  ✗ DNS resolution via 192.168.50.1 failed — check dns forwarding config"
         smoke_pass=false
     fi
 
-    echo "  [3/3] VLAN 1924 NAT to internet (ping quay.io from 192.168.50.1)..."
+    echo "  [3/3] VLAN 1924 NAT to internet (ping 8.8.8.8 sourced from 192.168.50.1)..."
     if sshpass -p 'vyos' ssh -o StrictHostKeyChecking=no vyos@192.168.122.2 \
-        "ping -c 3 quay.io interface 192.168.50.1" &>/dev/null; then
-        echo "  ✓ VLAN 1924 can reach quay.io via NAT"
+        "/bin/ping -c 3 -I 192.168.50.1 8.8.8.8" &>/dev/null; then
+        echo "  ✓ VLAN 1924 can reach internet via NAT"
     else
-        echo "  ✗ VLAN 1924 NAT to internet failed"
+        echo "  ✗ VLAN 1924 NAT to internet failed — check nat source rules"
         smoke_pass=false
     fi
 
