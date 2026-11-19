@@ -18,7 +18,8 @@ This matrix documents supported OpenShift versions, critical API changes, and mi
 | **4.19** | Q2 2025 | Jan 2026 | ⚠️ End of Life | Legacy only, migrate to 4.21+ |
 | **4.20** | Q3 2025 | May 2026 | ⚠️ Maintenance | Existing production, plan upgrade |
 | **4.21** | Feb 2026 | Oct 2026 | ✅ Supported | Stable production deployments |
-| **4.22** | Jun 2026 | Feb 2027 | ✅ Latest Stable | New deployments (recommended) |
+| **4.22** | Jun 2026 | Feb 2027 | ✅ Supported | Last OCP 4.x release |
+| **5.0** | Oct 2026 | TBD | ✅ Latest Stable | New deployments; RHCOS 10; x86-64-v3 required |
 | **4.23** | ~Q4 2026 | TBD | 🔮 In Development | Nightly builds only, not for production |
 
 ## Critical API Changes by Version
@@ -368,12 +369,16 @@ The version validation feature uses **Granite-3-2-8b-instruct** LLM for intellig
 
 ### Version Selection Guide
 
-**Choose 4.22 if** (recommended):
-- New deployments of any type (SNO, compact, HA)
-- Want latest stable release with Kubernetes 1.35
-- Need Gateway API without TechPreview gates
-- Plan to use boot image management (GA)
-- AI/ML workloads requiring latest runtime features
+**Choose 5.0 if** (recommended for new deployments):
+- New deployments on hardware with x86-64-v3 or newer CPUs (Cascadelake+, Zen 3+)
+- Want RHCOS 10 (RHEL 10 based, crun container runtime)
+- Upgrading from 4.22 via standard in-place update path
+- Download CLI: `./download-openshift-cli.sh 5.0`
+
+**Choose 4.22 if**:
+- Hardware does not meet x86-64-v3 requirement for RHCOS 10
+- Need the last OCP 4.x release before the major version jump
+- Want latest stable 4.x with Kubernetes 1.35 and Gateway API GA
 
 **Choose 4.21 if**:
 - Existing production clusters not ready to upgrade
@@ -401,6 +406,9 @@ The version validation feature uses **Granite-3-2-8b-instruct** LLM for intellig
 | openshift-install version mismatch | 4.22 | Download 4.22.x binary: `./hack/download-openshift-cli.sh 4.22` |
 | RHCOS 10.2 boot failure | 4.22 | RHCOS 10.2 is Tech Preview only; use default RHCOS 9.8 |
 | Gateway API CRD not found | 4.21 | Requires TechPreview feature gate; upgrade to 4.22 for GA |
+| CPU not supported by RHCOS 10 | 5.0 | Requires x86-64-v3 (Cascadelake, Zen 3+); use `os_image_stream: rhel-9` to pin RHCOS 9 during transition |
+| openshift-install binary is 4.x | 5.0 | Run `rm -rf ./bin && ./download-openshift-cli.sh 5.0` to get the openshift-v5 mirror binary |
+| VMs cannot pull quay.io images | 5.0 on KVM | Verify VyOS smoke test passes before deploying: `dig @192.168.50.1 quay.io +short` must return IPs |
 
 ## Additional Resources
 
@@ -411,6 +419,11 @@ The version validation feature uses **Granite-3-2-8b-instruct** LLM for intellig
 
 ## Release Notes
 
+- **v3.0.0** (2026-11-19): Added OCP 5.0 (RHCOS 10, openshift-v5 mirror)
+  - OpenShift 5.0.1 validated on RHEL 10 / IBM Cloud KVM (CNV 3M+6W deployment)
+  - x86-64-v3 CPU requirement documented (Cascadelake confirmed working)
+  - Version selection guide updated — 5.0 now recommended for new deployments
+  - Common issues table updated with 5.0-specific entries
 - **v2.0.0** (2026-07-13): Added OCP 4.22 GA and 4.23 forward look
   - OpenShift 4.22 fully documented (Kubernetes 1.35, RHCOS 9.8, Gateway API GA)
   - Forward-looking section for 4.23 based on nightly/CI builds

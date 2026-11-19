@@ -1,9 +1,52 @@
 # VyOS Router DNS and VLAN Connectivity Issues
 
 **Date**: 2026-05-29
+**Resolved**: 2026-11-19
 **Category**: infrastructure
-**Status**: In Progress
+**Status**: Resolved
 **Priority**: Critical - Blocking OpenShift deployment
+
+## Resolution Summary (2026-11-19)
+
+Validated on IBM Cloud KVM host (RHEL 10, 377GB RAM) deploying OCP 5.0 with `cnv-5.0-single-bond0-vlan` (3M+6W, bond0.1924).
+
+### Answers to Research Questions
+
+**DNS Architecture (chosen: Option B — VyOS gateway as DNS)**
+- OpenShift VMs use `192.168.50.1` (VyOS VLAN gateway) as their DNS server
+- VyOS DNS forwarder on `192.168.50.1` → libvirt dnsmasq `192.168.122.1` → IBM Cloud DNS
+- This keeps all DNS inside the VLAN network — VMs never need to reach `192.168.122.x` directly
+
+**VLAN Interface Accessibility**
+- VyOS VLAN interfaces (eth1.1924 at 192.168.50.1) become reachable from the hypervisor once host routes are added via `ip route add 192.168.50.0/24 via 192.168.122.2` (done automatically by `vyos-router.sh`)
+- VyOS's `vyos-config.sh` applies VLAN VIFs on eth1-eth5, not separate ethX per VLAN
+
+**Root Causes Found and Fixed**
+
+| Root Cause | Fix |
+|---|---|
+| `vyos-config.sh` mangled by empty `DOMAIN` sed — DHCP `option domain-name ''` rejected by VyOS | Guard sed calls: `[ -n "$DOMAIN" ] && sed ...` (committed to `vyos-router.sh`) |
+| VyOS eth0 static IP lost after `install image` + reboot | Must `commit; save` eth0 static config BEFORE rebooting; added explicit note to SKILL.md |
+| SSH host key conflict after VyOS destroy/recreate | `sudo ssh-keygen -R 192.168.122.2` before reconnecting |
+| `sshpass` missing on fresh RHEL 10 bootstrap | Added to `bootstrap_env.sh` required packages list |
+| VyOS operational `ping` syntax differs from `/bin/ping` in SSH sessions | Smoke test uses `/bin/ping` directly |
+| No smoke test blocked OpenShift deploy when VyOS was broken | Added 3-step smoke test to `vyos-router.sh` (internet, DNS, NAT) |
+
+**Smoke Test (now automated in vyos-router.sh)**
+```bash
+# Run manually to verify VyOS before deploying OpenShift:
+ping -c 3 192.168.122.2                              # VyOS management
+ping -c 3 192.168.50.1                               # VLAN 1924 gateway
+dig @192.168.50.1 quay.io +short +timeout=5          # DNS forwarding
+sshpass -p 'vyos' ssh vyos@192.168.122.2 "/bin/ping -c 3 8.8.8.8"  # NAT
+```
+
+**IBM Cloud specific**: Host DNS must include `127.0.0.1` to let `openshift-install wait-for` resolve cluster API names via local dnsmasq:
+```bash
+sudo nmcli conn mod <connection> ipv4.dns "127.0.0.1 161.26.0.10"
+```
+
+---
 
 ## Research Questions
 
