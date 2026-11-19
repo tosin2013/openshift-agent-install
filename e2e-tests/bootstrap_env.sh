@@ -47,7 +47,7 @@ check_sudo() {
 # --- Package Management ---
 install_system_packages() {
     print_section "Installing System Packages"
-    packages=(nmstate ansible-core bind-utils libguestfs cloud-init virt-install qemu-img selinux-policy-targeted python3-pip)
+    packages=(nmstate ansible-core bind-utils libguestfs cloud-init virt-install qemu-img selinux-policy-targeted python3-pip sshpass)
     optional_packages=(virt-manager)
 
     for package in "${packages[@]}"; do
