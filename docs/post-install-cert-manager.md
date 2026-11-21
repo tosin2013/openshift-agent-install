@@ -21,6 +21,30 @@ Install the cert-manager Operator for Red Hat OpenShift after the cluster is ful
 
 ---
 
+## ⚠️ Prerequisite: Add Let's Encrypt CA to Cluster Trust Bundle
+
+**Run this BEFORE installing cert-manager or rotating any certificate.** Skipping this step causes all nodes to go NotReady when the kube-apiserver rolls out the new cert.
+
+The OpenShift MCO distributes a trust bundle to every RHCOS node via `proxy/cluster trustedCA`. Without the Let's Encrypt CA in that bundle, kubelets cannot verify the new API server cert.
+
+**Reference**: [OCP 5.0 Security and Compliance — Certificate types: Proxy certificates](https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html/security_and_compliance/certificate-types-and-descriptions)
+
+```bash
+# From the openshift-5-deployment-notes repo:
+git clone https://github.com/tosin2013/openshift-5-deployment-notes.git
+chmod +x openshift-5-deployment-notes/cert-manager/instances/add-trusted-ca.sh
+./openshift-5-deployment-notes/cert-manager/instances/add-trusted-ca.sh
+```
+
+The script automatically:
+1. Discovers the Let's Encrypt intermediate in use from the API cert AIA URL
+2. Downloads the intermediate (`yr2.i.lencr.org`) and cross-signed root (`yr.i.lencr.org`)
+3. Creates `letsencrypt-ca` ConfigMap in `openshift-config`
+4. Patches `proxy/cluster` with `spec.trustedCA.name: letsencrypt-ca`
+5. Waits for MCO to finish rolling out to all nodes (~5–15 min)
+
+---
+
 ## Install cert-manager Operator
 
 The manifests use kustomize overlays baked into the `oc` CLI — no separate `kustomize` binary needed.
