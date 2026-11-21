@@ -412,6 +412,15 @@ for node_name in $node_names; do
             --graphics vnc,listen=0.0.0.0 --noautoconsole -v --vcpus "sockets=1,cores=${CP_CPU_CORES},threads=1" --os-variant=rhel8.6 || exit $?
     fi
 
+    # Patch on_poweroff=restart so VMs auto-reboot after ABI writes to disk.
+    # virt-install --events on_poweroff=restart is not reliably applied by all
+    # virt-install versions; patching the libvirt XML directly is deterministic.
+    sudo virsh dumpxml "$node_name" 2>/dev/null \
+      | sed 's|<on_poweroff>destroy</on_poweroff>|<on_poweroff>restart</on_poweroff>|' \
+      | sudo virsh define /dev/stdin > /dev/null 2>&1 \
+      && echo "  ✓ on_poweroff=restart set for $node_name" \
+      || echo "  ⚠ Could not patch on_poweroff for $node_name"
+
     # Increment counter for differentiating resources for first 3 nodes
     ((counter++))
 
