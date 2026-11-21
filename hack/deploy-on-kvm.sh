@@ -413,11 +413,8 @@ for node_name in $node_names; do
     fi
 
     # Patch on_poweroff=restart so VMs auto-reboot after ABI writes to disk.
-    # virt-install --events on_poweroff=restart is not reliably applied by all
-    # virt-install versions; patching the libvirt XML directly is deterministic.
-    sudo virsh dumpxml "$node_name" 2>/dev/null \
-      | sed 's|<on_poweroff>destroy</on_poweroff>|<on_poweroff>restart</on_poweroff>|' \
-      | sudo virsh define /dev/stdin > /dev/null 2>&1 \
+    # virt-install --events flag is not reliably applied; use virt-xml instead.
+    sudo virt-xml "$node_name" --edit --events on_poweroff=restart > /dev/null 2>&1 \
       && echo "  ✓ on_poweroff=restart set for $node_name" \
       || echo "  ⚠ Could not patch on_poweroff for $node_name"
 
