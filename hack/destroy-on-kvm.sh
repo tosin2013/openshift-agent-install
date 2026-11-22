@@ -117,3 +117,11 @@ if [[ -f "${LIBVIRT_VM_PATH}/agent.x86_64.iso" ]]; then
     echo "Removing agent ISO..."
     sudo rm ${LIBVIRT_VM_PATH}/agent.x86_64.iso || true
 fi
+
+# Remove generated assets directory so next ISO generation starts clean.
+# Without this, create-iso.sh reuses stale manifests/auth from the previous deploy.
+GENERATED_ASSET_PATH="${GENERATED_ASSET_PATH:-${HOME}/generated_assets}"
+if [[ -d "${GENERATED_ASSET_PATH}/${CLUSTER_NAME}" ]]; then
+    echo "Removing generated assets: ${GENERATED_ASSET_PATH}/${CLUSTER_NAME}"
+    rm -rf "${GENERATED_ASSET_PATH}/${CLUSTER_NAME}"
+fi
