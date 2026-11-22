@@ -212,6 +212,8 @@ External access is fully configured when:
 | Certs | "unauthorized" from oc | KUBECONFIG invalid or cluster unreachable | Verify `oc whoami` works |
 | Certs | Container runtime missing | No podman or docker | `sudo dnf install podman` |
 | General | EXTERNAL_IP wrong | IP doesn't match actual host | `curl ifconfig.me` to verify public IP |
+| Certs (API) | `authentication`/`openshift-apiserver` operators degraded with 401 after cert rotation | kube-apiserver rollout dropped `requestheader-client-ca-file` from `extension-apiserver-authentication` configmap in `kube-system` | (1) approve pending CSRs: `oc get csr --no-headers \| awk '/Pending/{print $1}' \| xargs -r oc adm certificate approve`; (2) `oc annotate kubeapiserver cluster unsupported-red-hat-internal-force-deployment=true --overwrite`; (3) wait for configmap to repopulate; (4) `oc delete pods -n openshift-apiserver --all && oc delete pods -n openshift-oauth-apiserver --all` — see [openshift-5-deployment-notes cert-manager README](https://github.com/tosin2013/openshift-5-deployment-notes/blob/main/cert-manager/README.md#recovery-401-errors-after-api-cert-rotation) |
+| Certs (API) | Nodes all NotReady, kubelet logs show `User: system:anonymous` | Kubelet client cert rotation stalled while cluster was broken; 100+ CSRs pending | Approve all pending CSRs (step 1 above); machine-approver resumes once cluster recovers |
 
 ## Security Notes
 
