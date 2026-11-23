@@ -198,7 +198,7 @@ function create(){
     # Vyos nightly builds
     # https://github.com/vyos/vyos-rolling-nightly-builds/releases
     # Auto-updated by .github/workflows/update-vyos-version.yml
-    VYOS_VERSION=2026.11.13-0016-rolling
+    VYOS_VERSION=2026.11.22-0018-rolling
     ISO_LOC=https://github.com/vyos/vyos-nightly-build/releases/download/${VYOS_VERSION}/vyos-${VYOS_VERSION}-generic-amd64.iso
     ISO_PATH="$HOME/vyos-${VYOS_VERSION}-generic-amd64.iso"
     ISO_MIN_SIZE_MB=400
