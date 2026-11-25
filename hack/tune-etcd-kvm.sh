@@ -34,6 +34,10 @@ log_success() { echo -e "${GREEN}[OK]${NC} $1"; }
 log_warn()    { echo -e "${YELLOW}[WARN]${NC} $1"; }
 log_error()   { echo -e "${RED}[ERR]${NC} $1"; }
 
+# NOTE: Use a udev rule (not a systemd service) for persistent read-ahead tuning.
+# A systemd service fires before udev resets block device params, so udev overrides it.
+# The udev rule fires on add/change events for vda, which always runs AFTER the kernel default.
+# Rule content: ACTION=="add|change", KERNEL=="vda", ATTR{queue/read_ahead_kb}="0"
 MACHINECONFIG_YAML='apiVersion: machineconfiguration.openshift.io/v1
 kind: MachineConfig
 metadata:
@@ -44,23 +48,12 @@ spec:
   config:
     ignition:
       version: 3.4.0
-    systemd:
-      units:
-        - name: etcd-disk-tuning.service
-          enabled: true
-          contents: |
-            [Unit]
-            Description=Tune disk read-ahead for etcd performance
-            After=local-fs.target
-            Before=etcd.service
-
-            [Service]
-            Type=oneshot
-            RemainAfterExit=yes
-            ExecStart=/bin/sh -c '"'"'echo 0 > /sys/block/vda/queue/read_ahead_kb'"'"'
-
-            [Install]
-            WantedBy=multi-user.target'
+    storage:
+      files:
+        - path: /etc/udev/rules.d/98-etcd-disk-tuning.rules
+          mode: 0644
+          contents:
+            source: "data:text/plain;charset=utf-8,ACTION%3D%3D%22add%7Cchange%22%2C%20KERNEL%3D%3D%22vda%22%2C%20ATTR%7Bqueue%2Fread_ahead_kb%7D%3D%220%22%0A"'
 
 apply_machineconfig() {
     log_info "Applying MachineConfig 98-etcd-disk-tuning-master..."
