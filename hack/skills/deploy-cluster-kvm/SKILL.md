@@ -289,3 +289,66 @@ This removes VMs, disks, and DNS entries.
 - `hack/configure-dnsmasq-entries.sh` - DNS entry management
 - `hack/verify-dns-resolution.sh` - DNS verification
 - `e2e-tests/validate_env.sh` - Environment validation
+
+## Lessons Learned (IBM Cloud KVM / OCP 5.0 CNV — 2026-11-25)
+
+### etcd High Read Latency on qcow2 Disks
+
+**Symptom**: etcd alert fires shortly after install:
+```
+etcd cluster "etcd": 99th percentile of gRPC read requests is 4.18s on etcd instance 192.168.50.22:9979
+```
+
+**Root cause**: VM disks (`/dev/vda`) default to 4MB read-ahead (`/sys/block/vda/queue/read_ahead_kb = 4096`). etcd does many small random reads — 4MB prefetch per read causes massive I/O amplification and latency spikes on qcow2-backed disks.
+
+**Immediate fix** (live, no reboot):
+```bash
+for ip in <ctlplane-0-ip> <ctlplane-1-ip> <ctlplane-2-ip>; do
+    ssh -i ~/generated_assets/<cluster>/ssh_key core@$ip \
+      "sudo sh -c 'echo 0 > /sys/block/vda/queue/read_ahead_kb'"
+done
+```
+
+**Permanent fix** — apply after install completes:
+```bash
+./hack/tune-etcd-kvm.sh   # applies MachineConfig to all master nodes
+```
+
+Or manually:
+```bash
+cat <<'YAML' | oc apply -f -
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  name: 98-etcd-disk-tuning-master
+  labels:
+    machineconfiguration.openshift.io/role: master
+spec:
+  config:
+    ignition:
+      version: 3.4.0
+    systemd:
+      units:
+        - name: etcd-disk-tuning.service
+          enabled: true
+          contents: |
+            [Unit]
+            Description=Tune disk read-ahead for etcd performance
+            After=local-fs.target
+            Before=etcd.service
+            [Service]
+            Type=oneshot
+            RemainAfterExit=yes
+            ExecStart=/bin/sh -c 'echo 0 > /sys/block/vda/queue/read_ahead_kb'
+            [Install]
+            WantedBy=multi-user.target
+YAML
+```
+
+**Applies to**: KVM/qcow2 deployments only. Not needed on bare metal (NVMe/SAS drives manage read-ahead natively).
+
+**Verification**:
+```bash
+# Wait ~5 min then check etcd logs for slow request warnings
+oc -n openshift-etcd logs etcd-<ctlplane-node> -c etcd --tail=30 | grep -i "slow\|latency"
+```
