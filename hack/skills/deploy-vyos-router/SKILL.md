@@ -319,3 +319,81 @@ curl -s --max-time 3 http://169.254.169.254/metadata/v1/instance 2>/dev/null | p
 - `e2e-tests/bootstrap_env.sh` - Calls vyos-router.sh during full bootstrap
 - `e2e-tests/validate_env.sh` - Validates VyOS networks are active
 - IBM Cloud guide: https://tosin2013.github.io/openshift-agent-install/ibm-cloud-deployment.html
+
+## Lessons Learned (IBM Cloud / RHEL 10 — 2026-11-25)
+
+### 1. virbr0 Goes `NO-CARRIER` After libvirt Network Restart
+
+**Symptom**: After `virsh net-destroy default && virsh net-start default`, VyOS is unreachable at `192.168.122.2` even though the VM is running. `ip link show virbr0` shows `NO-CARRIER`.
+
+**Root cause**: When the libvirt default network is destroyed and recreated while VyOS is running, the bridge `virbr0` is rebuilt but the VyOS VM's TAP interface (`vnet<N>`) is not automatically re-added to it.
+
+**Fix**:
+```bash
+# Find the VyOS tap interface attached to the default network
+sudo virsh domiflist vyos-router | grep default
+# Note the interface name (e.g. vnet30)
+
+# Add it back to the bridge
+sudo ip link set vnet30 master virbr0
+
+# Verify bridge is UP
+ip link show virbr0   # should show UP,LOWER_UP
+
+# Restore VLAN routes
+for net in 192.168.49.0/24 192.168.50.0/24 192.168.51.0/24 192.168.52.0/24 192.168.53.0/24; do
+    sudo ip route add "$net" via 192.168.122.2 2>/dev/null || true
+done
+```
+
+**Prevention**: Do not `virsh net-destroy default` while VyOS is running. If needed, reboot VyOS instead.
+
+---
+
+### 2. Cluster VMs Have No DNS — `cluster.yml dns_servers` Must Point to VyOS VLAN Gateway
+
+**Symptom**: Cluster VMs on VLAN 1924 (192.168.50.0/24) cannot resolve DNS. The ISO was built with `dns_servers: 192.168.122.1` but `192.168.122.1` is not directly reachable from VLAN 1924.
+
+**Root cause**: `cluster.yml` defaults to `dns_servers: 192.168.122.1` (the libvirt dnsmasq), but this address is on a different subnet from the VLAN the VMs are booting into.
+
+**Fix — Option A (preferred): Set `dns_servers` to the VyOS VLAN gateway before building ISO**:
+```yaml
+# site-config/<cluster>/cluster.yml
+dns_servers:
+  - 192.168.50.1   # VyOS VLAN 1924 gateway — always reachable from VLAN VMs
+```
+Then rebuild the ISO: `SITE_CONFIG_DIR=site-config ./hack/create-iso.sh <cluster-name>`
+
+**Fix — Option B: Add DNS forwarding on VyOS VLAN interface** (use if ISO already deployed):
+```bash
+cat > /tmp/vyos-dns-fix.sh << 'VYOS'
+#!/bin/vbash
+source /opt/vyatta/etc/functions/script-template
+configure
+set service dns forwarding listen-address 192.168.50.1
+set service dns forwarding allow-from 192.168.50.0/24
+commit
+save
+exit
+VYOS
+
+sshpass -p 'vyos' scp /tmp/vyos-dns-fix.sh vyos@192.168.122.2:/tmp/
+sshpass -p 'vyos' ssh vyos@192.168.122.2 "vbash /tmp/vyos-dns-fix.sh"
+
+# Verify
+dig @192.168.50.1 api.<cluster-name>.<base-domain> +short
+```
+
+**Rule**: For any VLAN-based cluster deployment, always set `dns_servers` to the VyOS gateway IP for the VLAN being used (e.g. VLAN 1924 → `192.168.50.1`).
+
+---
+
+### 3. `ACTION` Variable Must Be Set for `vyos-router.sh`
+
+**Symptom**: Running `sudo ./hack/vyos-router.sh` without env vars prints `help` and exits with errors:
+```
+./hack/vyos-router.sh: line 465: [: ==: unary operator expected
+```
+
+**Fix** (already applied to script): The script now defaults `ACTION="create"` if not set. No user action required.
+

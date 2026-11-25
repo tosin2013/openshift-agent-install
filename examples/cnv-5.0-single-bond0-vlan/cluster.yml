@@ -42,8 +42,11 @@ ntp_servers:
   - 216.239.35.4 #1.rhel.pool.ntp.org
 
 # Optional DNS Server definitions
+# ⚠️  KVM/VyOS VLAN deployments: use the VyOS VLAN gateway IP (e.g. 192.168.50.1 for VLAN 1924)
+# NOT 192.168.122.1 — that is the libvirt bridge, unreachable from VLAN-based VMs.
+# Bare metal: use your site DNS server.
 dns_servers:
-  - 192.168.122.1
+  - 192.168.50.1
 dns_search_domains:
   - example.com
 

@@ -273,7 +273,7 @@ function configure_router(){
     # Instructions already shown by show_manual_config_instructions()
     # No need to repeat them here - just start waiting
 
-    MAX_WAIT_TIME=1800
+    MAX_WAIT_TIME=7200
     WAIT_INTERVAL=300
     IP_ADDRESS=192.168.122.2
     start_time=$(date +%s)
@@ -352,7 +352,7 @@ function configure_router(){
     done
 
     IP_ADDRESS=192.168.50.1
-    MAX_WAIT_TIME=1800
+    MAX_WAIT_TIME=7200
     WAIT_INTERVAL=300
     start_time=$(date +%s)
     end_time=$((start_time + $MAX_WAIT_TIME))
@@ -462,8 +462,10 @@ function destroy(){
     sudo rm -rf /var/lib/libvirt/images/seed.iso
 }
 
-if [ $ACTION == "create" ];
-then 
+ACTION="${ACTION:-create}"
+
+if [ "$ACTION" == "create" ];
+then
 
   if ping -c 1 192.168.122.2 > /dev/null 2>&1; then
     echo "Router is accessible now. Continuing..."
@@ -476,8 +478,8 @@ then
   else
     configure_router
   fi
-elif [ $ACTION == "delete" ]; 
-then 
+elif [ "$ACTION" == "delete" ];
+then
   destroy
 else 
   echo "help"

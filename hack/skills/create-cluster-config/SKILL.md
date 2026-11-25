@@ -143,8 +143,11 @@ rendezvous_ip: 192.168.50.10
 - `ocp_version` must be quoted (e.g., `"4.22"`) to prevent YAML float interpretation
 
 **KVM lab conventions** (when deploying to local libvirt):
-- `dns_servers: [192.168.122.1]` (libvirt dnsmasq)
+- `dns_servers` — **depends on network topology**:
+  - Direct libvirt default network (192.168.122.0/24): use `192.168.122.1`
+  - VLAN-based via VyOS (e.g. 192.168.50.0/24): use the **VyOS VLAN gateway** (`192.168.50.1`) — `192.168.122.1` is unreachable from VLAN VMs
 - VLAN `1924`, network `192.168.50.0/24`, gateway `192.168.50.1` (VyOS router)
+- **Rule**: `dns_servers` must be an IP reachable from `machine_network_cidrs` at boot time
 
 ### Step 4: Author nodes.yml
 
@@ -288,7 +291,7 @@ The configuration is correct when:
 | No API access after install | VIP outside machine network | Ensure api_vips within machine_network_cidrs |
 | Nodes not joining cluster | Duplicate MAC addresses | Audit all MACs for uniqueness |
 | create-iso.sh rejects config | OpenShiftSDN with 4.21+ | Change network_type to OVNKubernetes |
-| DNS resolution fails | Wrong dns_servers value | Use 192.168.122.1 for KVM, corporate DNS for bare metal |
+| VMs have no DNS at boot | Wrong dns_servers value | Use VyOS VLAN gateway (e.g. `192.168.50.1`) for VLAN-based KVM; `192.168.122.1` only for direct libvirt default network; corporate DNS for bare metal |
 | NMState validation error | Wrong interface name or VLAN syntax | Check `nmstatectl gc` output |
 
 ## Version Notes
