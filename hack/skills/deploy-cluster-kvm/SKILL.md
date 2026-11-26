@@ -420,3 +420,92 @@ INSTALL_API_CERT=y ./hack/configure-letsencrypt-certs.sh
 - [OCP 4.18 MachineConfig Overview](https://docs.openshift.com/container-platform/4.18/machine_configuration/index.html)
 - [OCP 5.0 Configuring Certificates](https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html/security_and_compliance/configuring-certificates)
 - [OCP 4.11 Understanding Update Duration](https://docs.openshift.com/container-platform/4.11/updating/understanding-openshift-update-duration.html)
+
+## Lessons Learned — API Cert Rotation Cascade (OCP 5.0, IBM Cloud KVM, 2026-11-26)
+
+### The API Server Cert Change Triggered a Multi-Hour Cascade
+
+Applying `oc patch apiserver cluster` (Let's Encrypt cert) while a MachineConfig rollout was
+already running caused a chain reaction that took 4+ hours to fully recover from:
+
+| Component | Impact | Why |
+|---|---|---|
+| kube-apiserver | 1-2hr rolling update on all 3 control plane nodes | Adding API cert = new revision on every node |
+| Workers (5/6) | Went NotReady | ovnkube-controller lost API connection, CNI files wiped |
+| oauth pods | Stuck Pending during each cordon | Anti-affinity limits 1 pod/master — no room when node cordoned |
+| console-operator | 22 CrashLoopBackOff restarts | 1s liveness probe timed out under API load |
+| packageserver | 30+ restarts | Same 1s probe timeout |
+| catalog-operator | 29 restarts | Same 1s probe timeout |
+| redhat-operators catalog | 14 restarts + OOMKilled | **30Mi memory limit** — insufficient under restart storm load |
+| OperatorHub / GitOps install | Blocked for hours | Catalog OOMKilling → subscription `ErrorPreventedResolution` |
+
+### Root Cause Chain
+
+```
+API cert patch
+  → kube-apiserver rolling update (3 nodes × 20-30 min = 60-90 min)
+  → API latency spikes during each static pod replacement
+  → 1s liveness probes on OLM components fail → mass restarts
+  → catalog-operator restarts → gRPC ListBundles calls time out
+  → redhat-operators catalog pod gets OOMKilled (only 30Mi limit)
+  → subscription ErrorPreventedResolution
+  → GitOps operator never installs
+```
+
+### Fixes Applied
+
+```bash
+# 1. Increase OLM component liveness probe timeouts (1s → 5s)
+oc patch deployment packageserver -n openshift-operator-lifecycle-manager \
+  --type=json -p='[{"op":"replace","path":"/spec/template/spec/containers/0/livenessProbe/timeoutSeconds","value":5}]'
+oc patch deployment catalog-operator -n openshift-operator-lifecycle-manager \
+  --type=json -p='[{"op":"replace","path":"/spec/template/spec/containers/0/livenessProbe/timeoutSeconds","value":5},
+                  {"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/timeoutSeconds","value":5}]'
+oc patch deployment package-server-manager -n openshift-operator-lifecycle-manager \
+  --type=json -p='[{"op":"replace","path":"/spec/template/spec/containers/0/livenessProbe/timeoutSeconds","value":5},
+                  {"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/timeoutSeconds","value":5}]'
+
+# 2. Increase catalog source memory targets (30Mi is too low under load)
+oc patch catalogsource redhat-operators -n openshift-marketplace \
+  --type=merge -p='{"spec":{"grpcPodConfig":{"memoryTarget":"200Mi"}}}'
+oc patch catalogsource certified-operators -n openshift-marketplace \
+  --type=merge -p='{"spec":{"grpcPodConfig":{"memoryTarget":"100Mi"}}}'
+oc patch catalogsource community-operators -n openshift-marketplace \
+  --type=merge -p='{"spec":{"grpcPodConfig":{"memoryTarget":"100Mi"}}}'
+```
+
+### Prevention
+
+**Apply these proactively after any new cluster install, before doing anything else:**
+
+```bash
+# Increase OLM probe timeouts cluster-wide (run once after install)
+for dep in packageserver catalog-operator package-server-manager; do
+  oc patch deployment $dep -n openshift-operator-lifecycle-manager \
+    --type=json -p='[
+      {"op":"replace","path":"/spec/template/spec/containers/0/livenessProbe/timeoutSeconds","value":5},
+      {"op":"replace","path":"/spec/template/spec/containers/0/readinessProbe/timeoutSeconds","value":5}
+    ]' 2>/dev/null || true
+done
+
+# Increase catalog memory targets (run once after install)
+oc patch catalogsource redhat-operators -n openshift-marketplace \
+  --type=merge -p='{"spec":{"grpcPodConfig":{"memoryTarget":"200Mi"}}}'
+oc patch catalogsource certified-operators -n openshift-marketplace \
+  --type=merge -p='{"spec":{"grpcPodConfig":{"memoryTarget":"100Mi"}}}'
+oc patch catalogsource community-operators -n openshift-marketplace \
+  --type=merge -p='{"spec":{"grpcPodConfig":{"memoryTarget":"100Mi"}}}'
+```
+
+**And never apply the API server cert when other rollouts are in progress:**
+```bash
+# Check before patching API cert
+oc get co | grep -v "True.*False.*False"   # must be empty
+oc get mcp                                  # must show UPDATED=True, UPDATING=False
+# Only then apply the cert change
+```
+
+### References
+- OCP 5.0 default catalog memory limits are too low for production use under load
+- OLM liveness probe 1s timeout is too aggressive on clusters under API server rollout stress
+- Both are known field issues; file Bugzilla if encountered
