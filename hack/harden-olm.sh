@@ -1,6 +1,27 @@
 #!/bin/bash
 # harden-olm.sh - Proactive OLM hardening after cluster install
 #
+# NOTE: Was the OLM breakage caused by cert rotation?
+# -------------------------------------------------------
+# Both directly AND indirectly. The cert rotation itself does not change OLM
+# settings — but it triggers a restart storm (29+ catalog-operator restarts)
+# as OLM probes fail during the API server rolling update. Each restart
+# hammers all catalog sources with concurrent gRPC ListBundles calls, which
+# spikes the redhat-operators catalog pod memory above its 30Mi default limit
+# → OOMKill → subscription resolution fails → OperatorHub broken.
+#
+# Under normal operation, 30Mi might have been fine — the catalog-operator
+# makes gentle, spread-out queries. The cert rotation just stress-tested
+# and exposed a pre-existing sizing limitation in OCP 5.0's catalog defaults.
+#
+# The 1s OLM liveness probe timeout is also too aggressive — any brief API
+# server slowdown (cert rollout, MachineConfig reboot, etcd election) can
+# exceed it, triggering unnecessary restarts that make the situation worse.
+#
+# This script fixes both issues proactively. Run it after every new install
+# and before any cert changes, MachineConfig rollouts, or operator installs.
+# -------------------------------------------------------
+#
 # Problem: OCP 5.0 default OLM component settings are too aggressive for clusters
 # that undergo cert rotation or any significant API server disruption:
 #   - OLM liveness probes have 1s timeout → mass restarts under API load
