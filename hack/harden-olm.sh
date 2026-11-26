@@ -151,11 +151,63 @@ for catalog in redhat-operators certified-operators community-operators; do
 done
 
 echo ""
+
+# 5. Apply etcd KVM disk tuning MachineConfig
+# IMPORTANT: Must be done BEFORE deploying ArgoCD/operators on KVM.
+# High read-ahead (4096KB default) on qcow2 disks causes etcd latency spikes
+# that cascade into kube-apiserver timeouts and operator install failures.
+log_info "Step 5: Applying KVM etcd disk tuning MachineConfig..."
+echo ""
+
+EXISTING_MC=$(oc get machineconfig 98-etcd-disk-tuning-master 2>/dev/null | wc -l)
+if [ "$EXISTING_MC" -gt 1 ]; then
+    log_success "  MachineConfig 98-etcd-disk-tuning-master already exists"
+else
+    log_info "  Pausing master MCP to batch MachineConfig into one rollout pass..."
+    oc patch mcp/master --type=merge -p '{"spec":{"paused":true}}' 2>/dev/null \
+        && log_success "  master MCP paused" \
+        || log_warn "  could not pause MCP (may already be paused or inaccessible)"
+
+    log_info "  Applying etcd disk tuning MachineConfig (udev rule: read_ahead_kb=0 on /dev/vda)..."
+    cat <<'MCEOF' | oc apply -f - 2>/dev/null \
+        && log_success "  MachineConfig applied" \
+        || log_warn "  MachineConfig apply failed — apply manually: hack/tune-etcd-kvm.sh"
+apiVersion: machineconfiguration.openshift.io/v1
+kind: MachineConfig
+metadata:
+  name: 98-etcd-disk-tuning-master
+  labels:
+    machineconfiguration.openshift.io/role: master
+spec:
+  config:
+    ignition:
+      version: 3.4.0
+    storage:
+      files:
+        - path: /etc/udev/rules.d/98-etcd-disk-tuning.rules
+          mode: 0644
+          contents:
+            source: "data:text/plain;charset=utf-8,ACTION%3D%3D%22add%7Cchange%22%2C%20KERNEL%3D%3D%22vda%22%2C%20ATTR%7Bqueue%2Fread_ahead_kb%7D%3D%220%22%0A"
+MCEOF
+
+    log_info "  Unpausing master MCP — single rollout pass will begin..."
+    oc patch mcp/master --type=merge -p '{"spec":{"paused":false}}' 2>/dev/null \
+        && log_success "  master MCP unpaused — watch: oc get mcp master -w" \
+        || log_warn "  could not unpause MCP"
+
+    echo ""
+    log_warn "  NOTE: MachineConfig rollout will reboot each control plane node (~15-20 min)."
+    log_warn "  Wait for 'oc get mcp master' to show UPDATED=True before deploying ArgoCD."
+fi
+
+echo ""
 log_success "OLM hardening complete."
 echo ""
-echo "  It is now safe to:"
-echo "  - Install operators from OperatorHub"
-echo "  - Apply Let's Encrypt certificates (answer 'y' to API cert prompt)"
-echo "  - Apply MachineConfigs (pause MCP first)"
+echo "  NEXT STEPS (in order):"
+echo "  1. Wait for MCP rollout: watch oc get mcp master"
+echo "  2. Apply Let's Encrypt INGRESS cert (answer N to API cert on KVM):"
+echo "       INSTALL_API_CERT=n ./hack/configure-letsencrypt-certs.sh"
+echo "  3. Configure HAProxy: EXTERNAL_IP=<ip> ./hack/configure-haproxy-forwarder.sh <cluster.yml>"
+echo "  4. THEN deploy ArgoCD/operators (etcd will be stable)"
 echo ""
 echo "  Reference: hack/skills/deploy-cluster-kvm/SKILL.md (Lessons Learned section)"
