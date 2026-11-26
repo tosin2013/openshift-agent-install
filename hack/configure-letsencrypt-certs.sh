@@ -1,6 +1,15 @@
 #!/bin/bash
 # configure-letsencrypt-certs.sh - Obtain and install Let's Encrypt certificates for OpenShift
 # This script uses certbot with Route53 DNS-01 validation to obtain trusted TLS certificates
+#
+# RECOMMENDATION: On KVM/lab clusters, only apply the INGRESS cert (answer N to API cert prompt).
+#   - Ingress cert: affects *.apps.* routes → console, oauth, app URLs. Low impact (router restart only).
+#   - API cert: affects api.* → triggers full kube-apiserver rolling update on all control plane nodes.
+#               On KVM this takes 1-2 hours and can cascade into OVM-K CNI disruption, OOM catalog
+#               pods, and prolonged operator churn. NOT worth it for lab/dev clusters.
+#   - Alternative to API cert on KVM: use --insecure-skip-tls-verify, or add the OCP CA to local trust:
+#       oc get cm kube-root-ca.crt -n kube-public -o jsonpath='{.data.ca\.crt}' | sudo tee /etc/pki/ca-trust/source/anchors/ocp-ca.crt && sudo update-ca-trust
+#   - On bare metal production clusters with dedicated hardware, the API cert is appropriate.
 
 set -e
 
