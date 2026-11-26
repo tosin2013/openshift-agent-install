@@ -352,3 +352,71 @@ YAML
 # Wait ~5 min then check etcd logs for slow request warnings
 oc -n openshift-etcd logs etcd-<ctlplane-node> -c etcd --tail=30 | grep -i "slow\|latency"
 ```
+
+## Lessons Learned — MachineConfig & Cert Rotation Best Practices (2026-11-26)
+
+### The Problem We Hit
+
+Applying Let's Encrypt API server cert + etcd MachineConfig in the same window triggered **3 separate rolling update passes** through all 3 control plane nodes, causing 3+ hours of operator churn, worker CNI disruption, and repeated API server outages.
+
+### Root Causes (confirmed vs Red Hat docs)
+
+**1. Applying MachineConfig mid-rollout creates a new rendered config and a new rollout pass**
+
+Each `oc apply -f mc.yaml` while a rollout is in progress generates a new `rendered-master-*` config and starts another full 3-node rolling update. We did this twice (systemd → udev fix) = 3 total passes.
+
+**Fix: Pause the MCP before applying MachineConfigs:**
+```bash
+# Pause master MCP
+oc patch mcp/master --patch '{"spec":{"paused":true}}' --type=merge
+
+# Apply ALL your MachineConfig changes here (get them right first!)
+oc apply -f etcd-tuning-mc.yaml
+# ... any other MCs ...
+
+# Unpause — ONE rollout pass for everything
+oc patch mcp/master --patch '{"spec":{"paused":false}}' --type=merge
+oc get mcp master -w   # watch until UPDATED=True
+```
+
+⚠️ **Never leave MCPs paused during CA cert rotation** — MCO cannot push new certs to paused nodes.
+
+**2. Adding API server cert for the first time triggers a full kube-apiserver rolling update (~45-90 min per 3-node CP)**
+
+The Red Hat docs distinction:
+| Action | kube-apiserver rollout? | Time |
+|---|---|---|
+| Adding a custom named cert (first time) | ✅ YES | 45-90 min |
+| Renewing an existing named cert | ❌ NO (hot-reload) | Seconds |
+
+**Fix: Apply the API cert change in a separate window from MachineConfig changes.** Never combine them. Wait for `oc get co kube-apiserver` to show `PROGRESSING=False` before applying anything else.
+
+**3. maxUnavailable on master MCP is not adjustable**
+
+Red Hat explicitly recommends NOT changing `maxUnavailable` for control plane MCPs. Masters always roll one at a time — this is by design and cannot be sped up.
+
+### Correct Post-Install Procedure
+
+```bash
+# Step 1: Apply Let's Encrypt ingress cert (fast, workers only)
+./hack/configure-letsencrypt-certs.sh
+# → Answer 'N' to API cert prompt
+
+# Step 2: Wait for all operators green
+oc get co | grep -v "True.*False.*False" | grep -v NAME
+
+# Step 3: Apply MachineConfigs (pause MCP first!)
+oc patch mcp/master --patch '{"spec":{"paused":true}}' --type=merge
+oc apply -f ... # all MachineConfigs at once, get them right before unpausing
+oc patch mcp/master --patch '{"spec":{"paused":false}}' --type=merge
+oc get mcp master -w
+
+# Step 4: Wait for MCP rollout to complete
+# Step 5: THEN apply API server cert (if desired — budget 45-90 min)
+INSTALL_API_CERT=y ./hack/configure-letsencrypt-certs.sh
+```
+
+### References
+- [OCP 4.18 MachineConfig Overview](https://docs.openshift.com/container-platform/4.18/machine_configuration/index.html)
+- [OCP 5.0 Configuring Certificates](https://docs.redhat.com/en/documentation/openshift_container_platform/5.0/html/security_and_compliance/configuring-certificates)
+- [OCP 4.11 Understanding Update Duration](https://docs.openshift.com/container-platform/4.11/updating/understanding-openshift-update-duration.html)

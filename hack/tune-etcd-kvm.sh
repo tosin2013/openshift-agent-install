@@ -161,3 +161,25 @@ echo ""
 log_success "Done. Verify etcd health in ~5 min:"
 log_info "  oc -n openshift-etcd logs etcd-<node> -c etcd --tail=30 | grep -i 'slow\|latency'"
 log_info "  oc get co etcd"
+
+# ===========================================================================
+# IMPORTANT: MachineConfig Application Best Practices (from Red Hat Docs)
+# ===========================================================================
+#
+# DO NOT apply this script while another MachineConfig rollout is in progress
+# (e.g., during cert rotation). Each new MachineConfig triggers a new rendered
+# config and a new rolling update pass through all control plane nodes.
+#
+# RECOMMENDED approach:
+#   1. Pause the master MCP before applying
+#   2. Apply this MachineConfig
+#   3. Unpause — ONE rollout pass for all pending changes
+#
+#   oc patch mcp/master --patch '{"spec":{"paused":true}}' --type=merge
+#   KUBECONFIG=... ./hack/tune-etcd-kvm.sh
+#   oc patch mcp/master --patch '{"spec":{"paused":false}}' --type=merge
+#
+# WARNING: Never leave MCPs paused during CA certificate rotation.
+#
+# Ref: https://docs.openshift.com/container-platform/4.18/machine_configuration/index.html
+# ===========================================================================
