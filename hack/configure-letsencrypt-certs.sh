@@ -420,6 +420,68 @@ main() {
     display_certificate_info
 
     echo -e "\n${GREEN}Certificate configuration complete!${NC}"
+
+    # Optional: install cert on API server endpoint
+    echo ""
+    echo -e "${YELLOW}=============================================================${NC}"
+    echo -e "${YELLOW}⚠️  OPTIONAL: Install Let's Encrypt cert on API server${NC}"
+    echo -e "${YELLOW}=============================================================${NC}"
+    echo ""
+    echo "  The ingress (console/apps) cert is now installed — done in ~2-3 min."
+    echo ""
+    echo "  You can also replace the API server's self-signed cert with Let's Encrypt."
+    echo "  This makes 'oc' commands work without --insecure-skip-tls-verify."
+    echo ""
+    echo -e "  ${RED}⚠️  WARNING: This triggers a full kube-apiserver rolling update${NC}"
+    echo "  across ALL control plane nodes (one at a time), including:"
+    echo "    - Each node gets cordoned and drained"
+    echo "    - kube-apiserver static pod replaced (new cert)"
+    echo "    - Node may reboot if a MachineConfig is also pending"
+    echo "    - oauth pods temporarily unavailable during each node's update"
+    echo ""
+    echo "  Estimated time: 45 min – 2 hours depending on pending MachineConfigs."
+    echo "  The cluster remains functional but operators will show degraded/progressing."
+    echo ""
+    echo -e "  ${BLUE}Apply only if you can tolerate 1-2 hours of operator churn.${NC}"
+    echo -e "  ${BLUE}For lab/dev clusters: recommended. For production: schedule a window.${NC}"
+    echo ""
+
+    CERT_DIR="${LETSENCRYPT_DIR}/live/api.${CLUSTER_NAME}.${BASE_DOMAIN}"
+
+    if [ -t 0 ]; then
+        read -r -p "Install Let's Encrypt cert on API server? [y/N]: " INSTALL_API_CERT
+    else
+        INSTALL_API_CERT="${INSTALL_API_CERT:-n}"
+    fi
+
+    if [[ "$INSTALL_API_CERT" =~ ^[Yy]$ ]]; then
+        print_section "Installing Let's Encrypt cert on API Server"
+
+        print_info "Creating api-letsencrypt-cert secret in openshift-config..."
+        if oc get secret api-letsencrypt-cert -n openshift-config &>/dev/null; then
+            oc delete secret api-letsencrypt-cert -n openshift-config
+        fi
+        sudo oc create secret tls api-letsencrypt-cert \
+            -n openshift-config \
+            --cert="${CERT_DIR}/fullchain.pem" \
+            --key="${CERT_DIR}/privkey.pem" \
+            || { print_error "Failed to create API cert secret"; exit 1; }
+
+        print_info "Patching API server to use Let's Encrypt cert..."
+        oc patch apiserver cluster --type=merge \
+            -p "{\"spec\":{\"servingCerts\":{\"namedCertificates\":[{\"names\":[\"api.${CLUSTER_NAME}.${BASE_DOMAIN}\"],\"servingCertificate\":{\"name\":\"api-letsencrypt-cert\"}}]}}}" \
+            || { print_error "Failed to patch API server"; exit 1; }
+
+        print_status "API server cert patch applied" 0
+        echo ""
+        print_info "Monitor rollout: oc get co kube-apiserver"
+        print_info "Expected duration: 45 min – 2 hours"
+        print_info "Watch progress:   watch oc get nodes"
+    else
+        print_info "Skipping API server cert — ingress-only install complete."
+        print_info "To add API cert later:"
+        print_info "  INSTALL_API_CERT=y ./hack/configure-letsencrypt-certs.sh"
+    fi
 }
 
 # Run main function
