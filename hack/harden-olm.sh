@@ -190,27 +190,18 @@ else
         && log_success "  master MCP paused" \
         || log_warn "  could not pause MCP (may already be paused or inaccessible)"
 
-    log_info "  Applying etcd disk tuning MachineConfig (udev rule: read_ahead_kb=0 on /dev/vda)..."
-    cat <<'MCEOF' | oc apply -f - 2>/dev/null \
-        && log_success "  MachineConfig applied" \
-        || log_warn "  MachineConfig apply failed — apply manually: hack/tune-etcd-kvm.sh"
-apiVersion: machineconfiguration.openshift.io/v1
-kind: MachineConfig
-metadata:
-  name: 98-etcd-disk-tuning-master
-  labels:
-    machineconfiguration.openshift.io/role: master
-spec:
-  config:
-    ignition:
-      version: 3.4.0
-    storage:
-      files:
-        - path: /etc/udev/rules.d/98-etcd-disk-tuning.rules
-          mode: 0644
-          contents:
-            source: "data:text/plain;charset=utf-8,ACTION%3D%3D%22add%7Cchange%22%2C%20KERNEL%3D%3D%22vda%22%2C%20ATTR%7Bqueue%2Fread_ahead_kb%7D%3D%220%22%0A"
-MCEOF
+    log_info "  Applying etcd disk tuning MachineConfig (Butane-generated)..."
+    log_info "  Uses: udev rule (99-etcd-disk-tuning.rules) + systemd service for belt-and-suspenders"
+    # Use the Butane-generated MachineConfig from hack/etcd-disk-tuning-mc.yaml
+    # This has proper encoding and survives reboots (unlike hand-crafted percent-encoded versions)
+    MC_FILE="$(dirname "$0")/etcd-disk-tuning-mc.yaml"
+    if [ -f "$MC_FILE" ]; then
+        tail -n +2 "$MC_FILE" | oc apply -f - 2>/dev/null \
+            && log_success "  MachineConfig applied from $MC_FILE" \
+            || log_warn "  MachineConfig apply failed — check: oc apply -f hack/etcd-disk-tuning-mc.yaml"
+    else
+        log_warn "  hack/etcd-disk-tuning-mc.yaml not found — run: oc apply -f hack/etcd-disk-tuning-mc.yaml manually"
+    fi
 
     log_info "  Unpausing master MCP — single rollout pass will begin..."
     oc patch mcp/master --type=merge -p '{"spec":{"paused":false}}' 2>/dev/null \
