@@ -1,0 +1,33 @@
+variant: openshift
+version: 5.0.0
+metadata:
+  name: 98-etcd-disk-tuning-master
+  labels:
+    machineconfiguration.openshift.io/role: master
+storage:
+  files:
+    - path: /etc/udev/rules.d/99-etcd-disk-tuning.rules
+      mode: 0644
+      overwrite: true
+      contents:
+        inline: |
+          SUBSYSTEM=="block", KERNEL=="vda", ACTION=="add|change", ATTR{queue/read_ahead_kb}="0"
+systemd:
+  units:
+    - name: etcd-disk-tuning.service
+      enabled: true
+      contents: |
+        [Unit]
+        Description=Set etcd disk read-ahead to 0
+        After=systemd-udev-settle.service
+        Wants=dev-vda.device
+        After=dev-vda.device
+
+        [Service]
+        Type=oneshot
+        RemainAfterExit=yes
+        ExecStart=/bin/sh -c 'echo 0 > /sys/block/vda/queue/read_ahead_kb'
+        ExecStartPost=/bin/sh -c 'udevadm trigger --attr-match=DEVNAME=/dev/vda'
+
+        [Install]
+        WantedBy=multi-user.target
