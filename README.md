@@ -1,432 +1,136 @@
 # OpenShift Agent Based Installer Helper
 
-Automated deployment tooling for OpenShift clusters using the Agent-Based Installer.
-Supports **bare metal, vSphere, Nutanix AHV, and platform=none** in SNO, 3-Node compact,
-and HA configurations.
-
-Primary workflow: **Development (KVM) → Fork & Adapt → Production (Bare Metal)**
+Automated deployment tooling for OpenShift clusters using the Agent-Based Installer (ABI).
+Supports **bare metal, vSphere, Nutanix AHV, and KVM** in SNO, 3-node compact, and HA configurations across OpenShift 4.15–5.x.
 
 📚 **Full documentation**: https://tosin2013.github.io/openshift-agent-install/
 
 ---
 
-## Two Paths: KVM Development and Bare Metal Production
+## Choose Your Path
 
-This repository supports two distinct deployment contexts. Choose based on your goal:
-
-| | KVM Development | Bare Metal Production |
+| | 🔩 Bare Metal Production | 🖥️ KVM Development |
 |---|---|---|
-| **Purpose** | Learn, test, and validate configs safely | Deploy real production clusters |
-| **Networking** | VyOS router + libvirt VLANs | Physical switch VLANs |
-| **DNS** | dnsmasq (`192.168.122.1`) | Corporate DNS (BIND / Infoblox / AD) |
-| **BMC** | sushy Redfish emulator (virtual) | Real iDRAC / iLO / IPMI |
-| **ISO delivery** | `./hack/deploy-on-kvm.sh` | `./hack/deploy-iso-baremetal.sh` |
-| **Environment check** | `./e2e-tests/validate_env.sh` | `./hack/validate-baremetal-env.sh` |
-| **Config directory** | `examples/` | `site-config/` |
-| **Start here** | [Developer Guide] | [Bare Metal Tutorial] |
+| **Goal** | Deploy real production clusters | Learn, test, and validate configs |
+| **DNS** | Corporate DNS (BIND / Infoblox / AD) | dnsmasq on `192.168.122.1` |
+| **BMC** | Real iDRAC / iLO / IPMI | sushy Redfish emulator |
+| **ISO delivery** | `./hack/deploy-iso-baremetal.sh` | `./hack/deploy-on-kvm.sh` |
+| **Environment check** | `./hack/validate-baremetal-env.sh` | `./e2e-tests/validate_env.sh` |
+| **Start here** | [Bare Metal Tutorial →][bm] | [Developer Guide →][dev] |
 
-**Choose your starting point:**
-
-- 🖥️ **KVM development** (learn and test) → [Developer Guide](https://tosin2013.github.io/openshift-agent-install/developer-guide)
-- 🔩 **Physical bare metal** (production) → [Bare Metal Tutorial](https://tosin2013.github.io/openshift-agent-install/bare-metal-tutorial)
-- 🔄 **Migrating KVM → production** → [Fork & Adapt Checklist](https://tosin2013.github.io/openshift-agent-install/fork-and-adapt-checklist)
+**Migrating KVM config to production?** → [Fork & Adapt Checklist][fork]
 
 ---
 
-## Prerequisites
-
-### Core Requirements (both paths)
-
-- **RHEL 9.x or 10.x** — deployment host for KVM development or bare metal control
-- **OpenShift CLI tools** — `./download-openshift-cli.sh` (downloads latest; pass a version like `4.22` or `5.0` to pin) then `sudo cp ./bin/* /usr/local/bin/`
-- **NMState CLI** — `sudo dnf install -y nmstate`
-- **Ansible Core** — `sudo dnf install -y ansible-core`
-- **Ansible Collections** — `ansible-galaxy install -r execution-environment/collections/requirements.yml`
-- **Red Hat Pull Secret** — download from [console.redhat.com](https://console.redhat.com/openshift/downloads#tool-pull-secret), save to `~/pull-secret.json`
-
-> **Containerized alternative**: Skip host-level Ansible/NMState installation by using the pre-built
-> Execution Environment image with `ansible-navigator`. See the
-> [Ansible Navigator Guide](docs/ansible-navigator-guide.md) for details.
-
----
-
-## Common Installation Flow
-
-After environment setup, the ISO generation and monitoring steps are **identical for both KVM and bare metal**. Only ISO delivery differs.
+## Quick Start
 
 ```bash
-# ── Step 0: Create your cluster configuration ────────────────────────────────
-
-# Pick a template that matches your deployment pattern
-ls examples/
-
-# Copy it as your cluster name
-cp -r examples/sno-4.20-standard site-config/my-cluster
-
-# Edit cluster.yml — set cluster_name, base_domain, api_vips, app_vips, etc.
-vi site-config/my-cluster/cluster.yml
-
-# Edit nodes.yml — set MAC addresses, IPs, disk devices for your hardware
-vi site-config/my-cluster/nodes.yml
-
-# Point scripts at your config directory
-export SITE_CONFIG_DIR=site-config
-
-# ── Step 1: Generate the agent ISO (same for both paths) ─────────────────────
-./hack/create-iso.sh my-cluster
-# ISO lands at: ~/generated_assets/my-cluster/agent.x86_64.iso
-
-# ── Step 2: Deliver ISO to nodes ─────────────────────────────────────────────
-
-# KVM path:
-./hack/deploy-on-kvm.sh site-config/my-cluster/nodes.yml
-
-# Bare metal — Redfish virtual media (iDRAC 9+ / iLO 5+):
-./hack/deploy-iso-baremetal.sh site-config/my-cluster/nodes.yml \
-    --method redfish \
-    --iso ~/generated_assets/my-cluster/agent.x86_64.iso
-
-# Bare metal — IPMI chassis boot:
-./hack/deploy-iso-baremetal.sh site-config/my-cluster/nodes.yml \
-    --method ipmi \
-    --iso ~/generated_assets/my-cluster/agent.x86_64.iso
-
-# ── Step 3: Monitor installation (identical for both paths) ──────────────────
-./bin/openshift-install agent wait-for bootstrap-complete \
-    --dir ~/generated_assets/my-cluster/ --log-level=info
-
-./bin/openshift-install agent wait-for install-complete \
-    --dir ~/generated_assets/my-cluster/ --log-level=info
-
-# ── Step 4: Access the cluster ───────────────────────────────────────────────
-export KUBECONFIG=~/generated_assets/my-cluster/auth/kubeconfig
-oc get nodes
-oc get co
-```
-
----
-
-## Post-Install Validation
-
-After `install-complete`, validate the cluster is healthy. The KVM script checks both generic cluster health and KVM-specific settings (etcd tuning, OLM hardening, catalog sources):
-
-```bash
-# KVM deployments
-export KUBECONFIG=~/generated_assets/<cluster>/auth/kubeconfig
-./hack/validate-kvm-deployment.sh --ssh-key ~/generated_assets/<cluster>/ssh_key
-
-# Bare metal deployments (pre-install environment validation)
-./hack/validate-baremetal-env.sh <cluster-name>
-```
-
-The KVM validation script checks:
-- All nodes Ready, all 34 operators green
-- etcd read-ahead = 0 on all control plane nodes (critical for KVM stability)
-- OLM liveness probe timeouts = 5s (prevents cascade failures)
-- OperatorHub catalog loaded (500+ packages)
-- HAProxy forwarding and console accessibility
-- Let's Encrypt cert (if configured)
-
-> **KVM-specific post-install steps** (run before deploying workloads):
-> ```bash
-> # 1. Harden OLM + apply etcd tuning (run ONCE after install-complete)
-> ./hack/harden-olm.sh
-> # 2. Configure Let's Encrypt ingress cert (answer N to API cert on KVM)
-> INSTALL_API_CERT=n ./hack/configure-letsencrypt-certs.sh
-> # 3. Set up HAProxy for external access
-> EXTERNAL_IP=<your-public-ip> ./hack/configure-haproxy-forwarder.sh site-config/<cluster>/cluster.yml
-> # 4. Validate everything is healthy
-> ./hack/validate-kvm-deployment.sh
-> ```
-
----
-
-## Bare Metal Production Path
-
-For physical servers, validate your environment before generating the ISO.
-
-```bash
-# Validate bare metal prerequisites
-export SITE_CONFIG_DIR=site-config
-./hack/validate-baremetal-env.sh <cluster-name>
-```
-
-This validates: required tools, cluster config files, corporate DNS records, VIP routing, BMC reachability, NMState networkConfig syntax, SSH key, and pull secret.
-
-### Corporate DNS
-
-Register DNS records in your corporate DNS server (BIND, Infoblox, or Active Directory) before any node boots:
-
-| Record | Value |
-|--------|-------|
-| `api.<cluster>.<domain>` | API VIP |
-| `api-int.<cluster>.<domain>` | API VIP |
-| `*.apps.<cluster>.<domain>` | App VIP |
-
-📘 **Full bare metal guide**: [Bare Metal Tutorial](https://tosin2013.github.io/openshift-agent-install/bare-metal-tutorial)
-📘 **DNS setup**: [Corporate DNS Integration](https://tosin2013.github.io/openshift-agent-install/corporate-dns-integration)
-📘 **BMC configuration**: [BMC Management Guide](https://tosin2013.github.io/openshift-agent-install/bmc-management)
-
----
-
-## KVM Development Path
-
-KVM development requires VyOS VLAN networking and dnsmasq DNS. Run environment validation first — if it fails, do not proceed.
-
-```bash
-# Validate KVM environment (VyOS, DNS, packages, libvirt)
-./e2e-tests/validate_env.sh
-```
-
-### Setting up KVM prerequisites
-
-**1. VyOS Router** ⚠️ MANUAL CONFIGURATION REQUIRED
-
-VyOS deployment requires interactive console access via Cockpit. The script pauses and waits for you to complete manual configuration (up to 30 minutes).
-
-```bash
-ACTION=create ./hack/vyos-router.sh
-```
-
-After the script pauses:
-1. Open Cockpit: `https://<your-host>:9090` (credentials: `cat ~/cockpit-credentials.txt`)
-2. Navigate to Virtual Machines → vyos-router → Console
-3. Follow the step-by-step guide: [VyOS Manual Configuration](https://tosin2013.github.io/openshift-agent-install/vyos-manual-configuration)
-
-Verify networks after manual configuration:
-```bash
-sudo virsh net-list
-```
-
-**2. DNS (dnsmasq)**
-
-```bash
-sudo ./hack/setup-dnsmasq.sh
-sudo ./hack/configure-dnsmasq-entries.sh add examples/<cluster-name>/cluster.yml
-./hack/verify-dns-resolution.sh examples/<cluster-name>/cluster.yml
-```
-
-**3. Libvirt/KVM**
-
-```bash
-sudo dnf install -y qemu-kvm libvirt virt-install
-sudo systemctl enable --now libvirtd
-```
-
-📘 **Full KVM setup guide**: [Developer Guide](https://tosin2013.github.io/openshift-agent-install/developer-guide)
-
----
-
-## Supported Platforms and Versions
-
-### Platforms
-
-| Platform | `platform_type` | Example configs |
-|----------|----------------|-----------------|
-| Bare metal | `baremetal` | `examples/baremetal-example/`, `examples/ha-4.21-disconnected/` |
-| VMware vSphere | `vsphere` | `examples/vmware-example/`, `examples/vmware-disconnected-example/` |
-| Nutanix AHV | `nutanix` | `examples/nutanix-sno/`, `examples/nutanix-ha/` |
-| Platform None | `none` | `examples/sno-4.20-standard/`, `examples/sno-bond0-signal-vlan/` |
-
-### OpenShift Versions
-
-Supports OpenShift 4.15+ and 5.x. Tested and validated with:
-- OpenShift 4.20.x
-- OpenShift 4.21.x
-- OpenShift 4.22.x
-- OpenShift 5.0.x
-
-### Critical version boundaries
-
-**4.19 → 4.20**: Disconnected deployments must migrate from `imageDigestSources` in `install-config.yaml` to standalone `ImageDigestMirrorSet` manifests.
-
-**4.20 → 4.21**: `networkType: OpenShiftSDN` removed — all deployments must use `OVNKubernetes`.
-
-**4.22 → 5.0**: RHCOS 10 (RHEL 10 based) is the default OS. Requires x86-64-v3 or newer CPU. CLI downloads from the `openshift-v5` mirror automatically (`./download-openshift-cli.sh 5.0`). Upgrade from 4.22 follows the standard in-place update path.
-
-See the [Version Compatibility Matrix](https://tosin2013.github.io/openshift-agent-install/version-compatibility-matrix) for full API change history.
-
----
-
-## Usage — Declarative (Recommended)
-
-Place your `cluster.yml` and `nodes.yml` in a config directory, then generate the ISO in one command:
-
-```bash
-# Use examples/ for learning, site-config/ for production
-export SITE_CONFIG_DIR=site-config        # or: export SITE_CONFIG_DIR=examples
-
-# Generate ISO
-./hack/create-iso.sh <cluster-name>
-```
-
-Example configs:
-- `examples/sno-4.20-standard/` — SNO connected deployment
-- `examples/ha-4.21-disconnected/` — HA air-gapped deployment
-- `examples/nutanix-sno/` — SNO on Nutanix AHV
-- `examples/baremetal-example/` — Bare metal HA with BMC blocks
-- `examples/sno-5.0-standard/` — SNO on OpenShift 5.0 (RHCOS 10)
-- `examples/ha-5.0-standard/` — HA on OpenShift 5.0 (RHCOS 10)
-- `examples/cnv-5.0-single-bond0-vlan/` — OpenShift Virtualization on OCP 5.0, bond0 + VLAN 1924
-
-For all configuration parameters, see the [Configuration Reference](https://tosin2013.github.io/openshift-agent-install/configuration-guide).
-
----
-
-## Usage — Manual
-
-For manual Ansible templating and full configuration YAML examples (SNO, HA, VLAN, Bond,
-Bond+VLAN, Nutanix, vSphere), see the
-[Configuration Reference](https://tosin2013.github.io/openshift-agent-install/configuration-guide)
-and [Reference Configurations](https://tosin2013.github.io/openshift-agent-install/reference-configurations).
-
-```bash
-# Template manifests with Ansible
-cd playbooks/
-ansible-playbook -e "@your-cluster-vars.yml" create-manifests.yml
-
-# Create ISO from generated manifests
-openshift-install agent create image --dir ./generated_manifests/<cluster_name>
-
-# Monitor
-openshift-install agent wait-for bootstrap-complete --dir ./generated_manifests/<cluster_name>
-openshift-install agent wait-for install-complete --dir ./generated_manifests/<cluster_name>
-```
-
----
-
-## Version Validation and Compatibility Testing
-
-Automated tools to validate manifests across multiple OpenShift versions and detect version-specific API changes.
-
-```bash
-# Generate manifests for multiple versions
-./hack/generate-version-manifests.sh sno-disconnected "4.19 4.20 4.21"
-
-# Validate against deployment standards
-./hack/validate-deployment-standards.sh \
-  ~/generated_assets/version-compare/sno-disconnected-4.20 4.20
-
-# Compare version boundaries
-./hack/compare-version-manifests.sh 4.19 4.20 sno-disconnected
-./hack/compare-version-manifests.sh 4.20 4.21 sno-disconnected
-```
-
-### LLM-Powered Validation
-
-Version validation uses **Granite-3-2-8b-instruct** to analyze API compliance, deployment pattern standards, and platform-specific configuration:
-
-```
-[PASS] Image Registry Configuration
-[FAIL] Network Configuration - networkType: OpenShiftSDN deprecated for 4.21
-[PASS] Platform Configuration
-```
-
-### GitHub Actions Integration
-
-```bash
-gh workflow run version-validation.yml \
-  -f create_issues=true \
-  -f examples="sno-disconnected ha-4.21-disconnected sno-4.20-standard"
-```
-
-**Documentation:**
-- [Version Compatibility Matrix](https://tosin2013.github.io/openshift-agent-install/version-compatibility-matrix)
-- [Version Validation Feature](https://tosin2013.github.io/openshift-agent-install/version-validation-feature)
-- [Quick Start Guide](https://tosin2013.github.io/openshift-agent-install/version-validation-quick-start)
-
----
-
-## DNS Setup
-
-Three DNS records are required per cluster:
-
-| Record | Points to |
-|--------|-----------|
-| `api.<cluster>.<domain>` | API VIP |
-| `api-int.<cluster>.<domain>` | API VIP |
-| `*.apps.<cluster>.<domain>` | App VIP |
-
-**KVM development** (dnsmasq):
-```bash
-sudo ./hack/setup-dnsmasq.sh
-sudo ./hack/configure-dnsmasq-entries.sh add examples/sno-4.20-standard/cluster.yml
-dig @localhost api.sno-4-20.example.com
-```
-
-**Bare metal production**: Register in your corporate DNS server. See [Corporate DNS Integration](https://tosin2013.github.io/openshift-agent-install/corporate-dns-integration).
-
----
-
-## E2E Testing and Bootstrap
-
-```bash
-# Bootstrap complete KVM environment (packages, DNS, VyOS, etc.)
+# 1. Bootstrap environment (installs packages, DNS, libvirt)
 sudo ./e2e-tests/bootstrap_env.sh
 
-# Run E2E tests
-./e2e-tests/run_e2e.sh
+# 2. Download OpenShift CLI tools
+./download-openshift-cli.sh 5.0        # or 4.22, 4.21, etc.
+sudo cp ./bin/* /usr/local/bin/
+
+# 3. Create your cluster config (copy an example)
+cp -r examples/sno-5.0-standard site-config/my-cluster
+# Edit site-config/my-cluster/cluster.yml and nodes.yml
+
+# 4. Generate the agent ISO
+export SITE_CONFIG_DIR=site-config
+./hack/create-iso.sh my-cluster
+
+# 5. Deploy and monitor
+./hack/deploy-on-kvm.sh site-config/my-cluster/nodes.yml          # KVM
+# ./hack/deploy-iso-baremetal.sh site-config/my-cluster/nodes.yml  # Bare metal
+./bin/openshift-install agent wait-for install-complete \
+    --dir ~/generated_assets/my-cluster/ --log-level=info
 ```
 
 ---
 
-## AI Skills (Claude Code, Cursor, GitHub Copilot)
+## Post-Install (KVM Only)
 
-This repository includes a skills system that gives AI coding assistants step-by-step procedures for every major deployment task. Skills work with Claude Code, Cursor, and GitHub Copilot.
+Run these **once after `install-complete`**, before deploying workloads:
 
 ```bash
-# Install skills into your IDE
-./hack/skills/install-skills.sh --all
-
-# Then ask your AI assistant things like:
-# "bootstrap environment"       → environment setup skill
-# "deploy on KVM"               → KVM deployment skill
-# "DNS not resolving"           → troubleshoot DNS skill
-# "create a new cluster config" → cluster config authoring skill
+./hack/harden-olm.sh                    # Fix OLM probes + apply etcd disk tuning
+INSTALL_API_CERT=n ./hack/configure-letsencrypt-certs.sh   # Ingress cert only
+EXTERNAL_IP=<ip> ./hack/configure-haproxy-forwarder.sh site-config/my-cluster/cluster.yml
+./hack/validate-kvm-deployment.sh       # Verify everything is healthy
 ```
 
-For users who prefer a guided shell workflow without an AI tool:
-```bash
-./hack/harness.sh   # Interactive menu covering all deployment tasks
-```
-
-See [SKILLS.md](SKILLS.md) for the full skill list, trigger phrases, and Red Hat AI Skills Catalog integration. See [hack/skills/README.md](hack/skills/README.md) for a step-by-step walkthrough.
+> ⚠️ **Do not apply the API server cert on KVM** — it triggers a 1-2 hour kube-apiserver rollout cascade. Ingress cert only is sufficient. See [Lessons Learned][lessons].
 
 ---
 
-## Execution Environment (Ansible)
+## Example Configurations
 
-For offline use or Ansible Automation Platform, use the pre-built containerized Execution Environment:
+| Config | Pattern |
+|--------|---------|
+| `examples/sno-5.0-standard/` | SNO on OCP 5.0 (RHCOS 10) |
+| `examples/ha-5.0-standard/` | HA on OCP 5.0 |
+| `examples/cnv-5.0-single-bond0-vlan/` | OpenShift Virtualization, bond0 + VLAN |
+| `examples/sno-4.20-standard/` | SNO on OCP 4.20 |
+| `examples/ha-4.21-disconnected/` | HA air-gapped on OCP 4.21 |
+| `examples/baremetal-example/` | Bare metal HA with BMC |
+| `examples/nutanix-sno/` | SNO on Nutanix AHV |
+
+All 23+ examples: `ls examples/`
+
+---
+
+## Supported Versions
+
+| OCP | Status | Notes |
+|-----|--------|-------|
+| 5.0.x | ✅ Current | RHCOS 10, x86-64-v3+ required |
+| 4.22.x | ✅ Supported | — |
+| 4.21.x | ✅ Supported | OpenShiftSDN removed — use OVNKubernetes |
+| 4.20.x | ⚠️ Maintenance | — |
+| 4.18.x | ⚠️ EUS | — |
+| ≤ 4.17 | ❌ EOL | — |
+
+---
+
+## AI Skills
+
+This repo includes step-by-step skills for Claude Code, Cursor, and GitHub Copilot:
 
 ```bash
-# Pull latest
-podman pull quay.io/takinosh/openshift-agent-install-ee:latest
-
-# Run playbook in container
-podman run --rm -it \
-  -v $(pwd):/runner \
-  -v ~/pull-secret.json:/runner/pull-secret.json:ro \
-  quay.io/takinosh/openshift-agent-install-ee:latest \
-  ansible-playbook -e @examples/sno-4.20-standard/cluster.yml \
-                   -e @examples/sno-4.20-standard/nodes.yml \
-                   playbooks/create-manifests.yml
+./hack/skills/install-skills.sh --all   # Install into your IDE
+./hack/harness.sh                       # Interactive shell menu (no AI needed)
 ```
 
-Image tags: `latest` (most recent), `vX.Y.Z` (pinned, e.g., `v4.21.0`).
+Trigger phrases: `"deploy on KVM"`, `"DNS not resolving"`, `"create cluster config"`, etc. See [SKILLS.md](SKILLS.md).
 
 ---
 
 ## Documentation
 
-| Section | URL |
-|---------|-----|
-| Full docs site | https://tosin2013.github.io/openshift-agent-install/ |
-| Developer Guide (KVM) | [/developer-guide](https://tosin2013.github.io/openshift-agent-install/developer-guide) |
-| Bare Metal Tutorial | [/bare-metal-tutorial](https://tosin2013.github.io/openshift-agent-install/bare-metal-tutorial) |
-| Fork & Adapt Checklist | [/fork-and-adapt-checklist](https://tosin2013.github.io/openshift-agent-install/fork-and-adapt-checklist) |
-| Configuration Reference | [/configuration-guide](https://tosin2013.github.io/openshift-agent-install/configuration-guide) |
-| Platform Guides | [/platform-guides](https://tosin2013.github.io/openshift-agent-install/platform-guides) |
-| BMC Management | [/bmc-management](https://tosin2013.github.io/openshift-agent-install/bmc-management) |
-| Troubleshooting | [/troubleshooting](https://tosin2013.github.io/openshift-agent-install/troubleshooting) |
-| AI Skills (Claude Code / Cursor / Copilot) | [hack/skills/README.md](hack/skills/README.md) |
-| AI Skills Catalog + Red Hat Integration | [SKILLS.md](SKILLS.md) |
+| | |
+|---|---|
+| 📖 Full docs | https://tosin2013.github.io/openshift-agent-install/ |
+| 🔩 Bare metal tutorial | [/bare-metal-tutorial][bm] |
+| 🖥️ KVM developer guide | [/developer-guide][dev] |
+| ⚙️ Configuration reference | [/configuration-guide][config] |
+| 🔀 Fork & adapt checklist | [/fork-and-adapt-checklist][fork] |
+| 🌐 Platform guides | [/platform-guides][platforms] |
+| 🔧 BMC management | [/bmc-management][bmc] |
+| 🔍 Troubleshooting | [/troubleshooting][ts] |
+| 📋 Lessons learned (KVM) | [deploy-cluster-kvm skill][lessons] |
+
+---
+
+## License
+
+Apache 2.0 — see [LICENSE](LICENSE).
+
+[bm]: https://tosin2013.github.io/openshift-agent-install/bare-metal-tutorial
+[dev]: https://tosin2013.github.io/openshift-agent-install/developer-guide
+[fork]: https://tosin2013.github.io/openshift-agent-install/fork-and-adapt-checklist
+[config]: https://tosin2013.github.io/openshift-agent-install/configuration-guide
+[platforms]: https://tosin2013.github.io/openshift-agent-install/platform-guides
+[bmc]: https://tosin2013.github.io/openshift-agent-install/bmc-management
+[ts]: https://tosin2013.github.io/openshift-agent-install/troubleshooting
+[lessons]: hack/skills/deploy-cluster-kvm/SKILL.md
