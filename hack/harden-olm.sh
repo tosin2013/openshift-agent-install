@@ -30,6 +30,28 @@
 # This causes a cascade: restarts → catalog OOM → subscription resolution fails
 # → OperatorHub broken → operators fail to install.
 #
+# ⚠️  KNOWN LIMITATION (OCP 5.0 — 2026-11-27):
+# -------------------------------------------------------
+# The catalog source memory targets (redhat-operators: 30Mi, certified: 40Mi,
+# community: 120Mi) are HARDCODED in the marketplace-operator image and managed
+# by its /defaults directory. They CANNOT be overridden by:
+#   - Patching the CatalogSource object (marketplace-operator reverts it)
+#   - Mounting a ConfigMap over /defaults (crashes the marketplace-operator)
+#   - OperatorHub CR (no memory config in its spec)
+#
+# 30Mi is insufficient for redhat-operators which serves 500+ packages in OCP 5.0.
+# Under heavy concurrent ListBundles load it OOMKills, causing brief (~30s)
+# catalog unavailability and a "loading failures" alert in OperatorHub UI.
+#
+# MITIGATION (applied by this script):
+#   - catalog-operator liveness probe: 1s → 5s (prevents cascade on OOMKill)
+#   - packageserver liveness probe: 1s → 5s (same)
+#   - etcd read-ahead: 4096KB → 0 (reduces API load that triggers ListBundles storms)
+#
+# STATUS: Should be filed as a Bugzilla against marketplace-operator for OCP 5.x.
+# Check if fixed before deploying on OCP 5.1+.
+# -------------------------------------------------------
+#
 # Run this ONCE after cluster install and BEFORE applying any cert changes.
 #
 # Usage:
