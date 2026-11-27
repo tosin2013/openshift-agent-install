@@ -141,6 +141,34 @@ The KVM validation script checks:
 
 ---
 
+## Bare Metal Production Path
+
+For physical servers, validate your environment before generating the ISO.
+
+```bash
+# Validate bare metal prerequisites
+export SITE_CONFIG_DIR=site-config
+./hack/validate-baremetal-env.sh <cluster-name>
+```
+
+This validates: required tools, cluster config files, corporate DNS records, VIP routing, BMC reachability, NMState networkConfig syntax, SSH key, and pull secret.
+
+### Corporate DNS
+
+Register DNS records in your corporate DNS server (BIND, Infoblox, or Active Directory) before any node boots:
+
+| Record | Value |
+|--------|-------|
+| `api.<cluster>.<domain>` | API VIP |
+| `api-int.<cluster>.<domain>` | API VIP |
+| `*.apps.<cluster>.<domain>` | App VIP |
+
+📘 **Full bare metal guide**: [Bare Metal Tutorial](https://tosin2013.github.io/openshift-agent-install/bare-metal-tutorial)
+📘 **DNS setup**: [Corporate DNS Integration](https://tosin2013.github.io/openshift-agent-install/corporate-dns-integration)
+📘 **BMC configuration**: [BMC Management Guide](https://tosin2013.github.io/openshift-agent-install/bmc-management)
+
+---
+
 ## KVM Development Path
 
 KVM development requires VyOS VLAN networking and dnsmasq DNS. Run environment validation first — if it fails, do not proceed.
@@ -186,34 +214,6 @@ sudo systemctl enable --now libvirtd
 ```
 
 📘 **Full KVM setup guide**: [Developer Guide](https://tosin2013.github.io/openshift-agent-install/developer-guide)
-
----
-
-## Bare Metal Production Path
-
-For physical servers, validate your environment before generating the ISO.
-
-```bash
-# Validate bare metal prerequisites
-export SITE_CONFIG_DIR=site-config
-./hack/validate-baremetal-env.sh <cluster-name>
-```
-
-This validates: required tools, cluster config files, corporate DNS records, VIP routing, BMC reachability, NMState networkConfig syntax, SSH key, and pull secret.
-
-### Corporate DNS
-
-Register DNS records in your corporate DNS server (BIND, Infoblox, or Active Directory) before any node boots:
-
-| Record | Value |
-|--------|-------|
-| `api.<cluster>.<domain>` | API VIP |
-| `api-int.<cluster>.<domain>` | API VIP |
-| `*.apps.<cluster>.<domain>` | App VIP |
-
-📘 **Full bare metal guide**: [Bare Metal Tutorial](https://tosin2013.github.io/openshift-agent-install/bare-metal-tutorial)
-📘 **DNS setup**: [Corporate DNS Integration](https://tosin2013.github.io/openshift-agent-install/corporate-dns-integration)
-📘 **BMC configuration**: [BMC Management Guide](https://tosin2013.github.io/openshift-agent-install/bmc-management)
 
 ---
 
