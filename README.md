@@ -106,6 +106,41 @@ oc get co
 
 ---
 
+## Post-Install Validation
+
+After `install-complete`, validate the cluster is healthy. The KVM script checks both generic cluster health and KVM-specific settings (etcd tuning, OLM hardening, catalog sources):
+
+```bash
+# KVM deployments
+export KUBECONFIG=~/generated_assets/<cluster>/auth/kubeconfig
+./hack/validate-kvm-deployment.sh --ssh-key ~/generated_assets/<cluster>/ssh_key
+
+# Bare metal deployments (pre-install environment validation)
+./hack/validate-baremetal-env.sh <cluster-name>
+```
+
+The KVM validation script checks:
+- All nodes Ready, all 34 operators green
+- etcd read-ahead = 0 on all control plane nodes (critical for KVM stability)
+- OLM liveness probe timeouts = 5s (prevents cascade failures)
+- OperatorHub catalog loaded (500+ packages)
+- HAProxy forwarding and console accessibility
+- Let's Encrypt cert (if configured)
+
+> **KVM-specific post-install steps** (run before deploying workloads):
+> ```bash
+> # 1. Harden OLM + apply etcd tuning (run ONCE after install-complete)
+> ./hack/harden-olm.sh
+> # 2. Configure Let's Encrypt ingress cert (answer N to API cert on KVM)
+> INSTALL_API_CERT=n ./hack/configure-letsencrypt-certs.sh
+> # 3. Set up HAProxy for external access
+> EXTERNAL_IP=<your-public-ip> ./hack/configure-haproxy-forwarder.sh site-config/<cluster>/cluster.yml
+> # 4. Validate everything is healthy
+> ./hack/validate-kvm-deployment.sh
+> ```
+
+---
+
 ## KVM Development Path
 
 KVM development requires VyOS VLAN networking and dnsmasq DNS. Run environment validation first — if it fails, do not proceed.
